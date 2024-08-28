@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EcommerceBackend.Interfaces.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EcommerceBackend.Controllers
 {
@@ -6,26 +7,33 @@ namespace EcommerceBackend.Controllers
     [Route("[controller]")]
     public class CartController: ControllerBase
     {
-        [HttpGet("GetCartContent")]
-        public IActionResult GetCartContent()
+        private readonly ICartService _cartService;
+        public CartController(ICartService cartService)
         {
-            return Content("ok");
+            _cartService = cartService;
+        }
+
+        [HttpGet("GetCartContent")]
+        public IActionResult GetCartContent([FromQuery] int userid)
+        {
+            var cartcontent = _cartService.GetCartContent(userid);
+            return Ok(cartcontent);
         }
 
         [HttpPost("AddToCart")] // 登入時，
-        public IActionResult AddToCart()
+        public IActionResult AddToCart([FromQuery] string? userid)
         {
             return Content("ok");
         }
 
         [HttpPost("ModifyCartContent")]
-        public IActionResult ModifyCartContent()
+        public IActionResult ModifyCartContent([FromQuery] string? userid)
         {
             return Content("ok");
         }
 
         [HttpDelete("RemoveFromCart")]
-        public IActionResult RemoveFromCart()
+        public IActionResult RemoveFromCart([FromQuery] string? userid)
         {
             return Content("ok");
         }

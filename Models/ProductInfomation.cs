@@ -33,4 +33,12 @@ namespace EcommerceBackend.Models
 
         public bool? IsFavorite { get; set; }
     }
+
+    public class ProductSelection
+    {
+        public ProductInfomation? Product { get; set; }
+        public string? SelectColor { get; set; }
+        public string? SelectSize { get; set; }
+        public int Count { get; set; }
+    }
 }
