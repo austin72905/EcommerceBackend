@@ -31,6 +31,21 @@ namespace EcommerceBackend.Controllers
             return Ok(products);
         }
 
+
+
+        [HttpGet("GetProductById")]
+        public IActionResult GetProductById([FromQuery] string? userid, [FromQuery] string productId)
+        {
+            // 之後可以驗證是否已登錄
+
+            // 可以驗證product 不存在的反回 code msg data
+            var product = _productervice.GetProductById(userid, productId);
+
+
+            return Ok(product);
+        }
+
+
         [HttpPost("AddNewProduct")]
         public IActionResult AddNewProduct([FromBody] Product product)
         {

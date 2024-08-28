@@ -16,13 +16,45 @@ namespace EcommerceBackend.Services
             _userRepository= userRepository;
         }
 
-        public ProductResponse GetProducts(string userid, string kind, string tag)
+        public ProductResponse GetProductById(string userid, string productId)
+        {
+            var product = _repository.GetProductById(productId);
+
+            if (product == null) 
+            {
+                return new ProductResponse { Product = new ProductWithFavoriteStatus() };
+            }
+
+
+            //有登陸的情況
+            if (!string.IsNullOrEmpty(userid))
+            {
+                var favoriteProductIds = _userRepository.GetFavoriteProductIdsByUser(userid);
+                
+                return new ProductResponse 
+                { 
+                    Product = new ProductWithFavoriteStatus { product= product,IsFavorite = favoriteProductIds.Contains(product.ProductId) } 
+                };
+
+               
+            }
+            else
+            {
+                
+                return new ProductResponse
+                {
+                    Product = new ProductWithFavoriteStatus { product = product }
+                };
+            }
+        }
+
+        public ProductListResponse GetProducts(string userid, string kind, string tag)
         {
             List<ProductInfomation> products = new List<ProductInfomation>();
 
             if (string.IsNullOrEmpty(tag) && string.IsNullOrEmpty(kind))
             {
-                return new ProductResponse { Products= products.Select(p => new ProductWithFavoriteStatus { product = p }) };
+                return new ProductListResponse { Products= products.Select(p => new ProductWithFavoriteStatus { product = p }) };
             }
 
 
@@ -48,13 +80,13 @@ namespace EcommerceBackend.Services
                     IsFavorite= favoriteProductIds.Contains(p.ProductId) 
                 });
 
-                return new ProductResponse { Products = productWithFavorite };
+                return new ProductListResponse { Products = productWithFavorite };
             }
             else
             {
                 var productWithFavorite = products.Select(p => new ProductWithFavoriteStatus { product = p });
 
-                return new ProductResponse { Products = productWithFavorite };
+                return new ProductListResponse { Products = productWithFavorite };
             }
 
 

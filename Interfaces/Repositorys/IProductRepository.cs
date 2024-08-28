@@ -7,5 +7,7 @@ namespace EcommerceBackend.Interfaces.Repositorys
         public List<ProductInfomation> GetProductsByKind(string kind);
 
         public List<ProductInfomation> GetProductsByTag(string tag);
+
+        public ProductInfomation? GetProductById(string productId);
     }
 }
