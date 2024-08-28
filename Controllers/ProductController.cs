@@ -52,7 +52,7 @@ namespace EcommerceBackend.Controllers
             return Content("ok");
         }
 
-        [HttpDelete("ModifyProduct")]
+        [HttpPost("ModifyProduct")]
         public IActionResult ModifyProduct([FromBody] Product product)
         {
             return Content("ok");
@@ -64,10 +64,14 @@ namespace EcommerceBackend.Controllers
             return Content("ok");
         }
 
-        [HttpDelete("GetRecommendationProduct")]
-        public IActionResult GetRecommendationProduct([FromBody] Product product)
+        [HttpGet("GetRecommendationProduct")]
+        public IActionResult GetRecommendationProduct([FromQuery] string? userid,[FromQuery] string productId)
         {
-            return Content("ok");
+            // 之後可以驗證是否已登錄
+
+            var products = _productervice.GetRecommendationProduct(userid, productId);
+
+            return Ok(products);
         }
 
     }

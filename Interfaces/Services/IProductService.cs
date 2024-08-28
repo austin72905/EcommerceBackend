@@ -10,5 +10,7 @@ namespace EcommerceBackend.Interfaces.Services
         public List<ProductInfomation> GetProductsByKind(string kind);
 
         public List<ProductInfomation> GetProductsByTag(string tag);
+
+        public List<ProductInfomation> GetRecommendationProduct(string? userid,string productId);
     }
 }

@@ -105,5 +105,14 @@ namespace EcommerceBackend.Services
 
             return products;
         }
+
+        public List<ProductInfomation> GetRecommendationProduct(string? userid, string productId)
+        {
+            List<ProductInfomation> products = new List<ProductInfomation>();
+            // 目前假設是返回新品上市
+            // 之後可以改成 用戶瀏覽紀錄 or 依照 productId 找出先關聯的產品
+            products = _repository.GetProductsByKind("new-arrival");
+            return products;
+        }
     }
 }
