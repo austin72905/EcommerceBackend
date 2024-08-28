@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EcommerceBackend.Interfaces.Services;
+using EcommerceBackend.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EcommerceBackend.Controllers
 {
@@ -6,11 +8,27 @@ namespace EcommerceBackend.Controllers
     [Route("[controller]")]
     public class ProductController: ControllerBase
     {
-        [HttpGet("GetProductList")]
-        public IActionResult GetProductList([FromQuery]Filter filter) 
+        private readonly IProductService _productervice;
+        public ProductController(IProductService productService)
         {
+            _productervice=productService;
+        }
 
-            return Content($"{filter.kind}\n{filter.tag}");
+        [HttpGet("GetProductList")]
+        public IActionResult GetProductList([FromQuery] string? userid,[FromQuery]Filter filter) 
+        {
+             // 之後可以驗證是否已登錄
+
+            if(string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind))
+            {
+                return Content($"no data\n{filter.kind}\n{filter.tag}");
+            }
+
+
+            var products = _productervice.GetProducts(userid, filter.kind, filter.tag);
+
+            
+            return Ok(products);
         }
 
         [HttpPost("AddNewProduct")]

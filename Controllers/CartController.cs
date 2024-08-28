@@ -12,7 +12,7 @@ namespace EcommerceBackend.Controllers
             return Content("ok");
         }
 
-        [HttpPost("AddToCart")]
+        [HttpPost("AddToCart")] // 登入時，
         public IActionResult AddToCart()
         {
             return Content("ok");

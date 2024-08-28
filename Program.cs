@@ -1,6 +1,14 @@
+using EcommerceBackend.Interfaces.Repositorys;
+using EcommerceBackend.Interfaces.Services;
+using EcommerceBackend.Repositorys;
+using EcommerceBackend.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
