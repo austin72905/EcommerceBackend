@@ -4,7 +4,7 @@ namespace EcommerceBackend.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class UserController: ControllerBase
+    public class UserController: BaseController
     {
         
         [HttpGet("GetMemberList")]

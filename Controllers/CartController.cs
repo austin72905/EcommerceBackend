@@ -5,7 +5,7 @@ namespace EcommerceBackend.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class CartController: ControllerBase
+    public class CartController: BaseController
     {
         private readonly ICartService _cartService;
         public CartController(ICartService cartService)

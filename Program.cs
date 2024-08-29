@@ -1,5 +1,6 @@
 using EcommerceBackend.Interfaces.Repositorys;
 using EcommerceBackend.Interfaces.Services;
+using EcommerceBackend.MiddleWares;
 using EcommerceBackend.Repositorys;
 using EcommerceBackend.Services;
 
@@ -25,6 +26,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// ≈Á√“¨Oß_µn≥∞
+app.UseMiddleware<AuthenticationMiddleware>();
 
 app.UseHttpsRedirection();
 

@@ -6,18 +6,33 @@ namespace EcommerceBackend.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class ProductController: ControllerBase
+    public class ProductController: BaseController
     {
         private readonly IProductService _productervice;
+
+        // 是否已驗證
+        //private bool IsAuthenticated => HttpContext.Items.ContainsKey("IsAuthenticated") && Convert.ToBoolean(HttpContext.Items["IsAuthenticated"]);
+
+
         public ProductController(IProductService productService)
         {
             _productervice=productService;
         }
 
         [HttpGet("GetProductList")]
-        public IActionResult GetProductList([FromQuery] string? userid,[FromQuery]Filter filter) 
+        public IActionResult GetProductList([FromHeader(Name = "ALP-User-Id")] string? userid,[FromQuery]Filter filter) 
         {
-             // 之後可以驗證是否已登錄
+
+
+            // 之後可以驗證是否已登錄
+
+          
+
+            if (IsAuthenticated)
+            {
+                
+                return Content($"isAuthenticated :  {IsAuthenticated}");
+            }
 
             if(string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind))
             {
