@@ -49,7 +49,7 @@ namespace EcommerceBackend.Controllers
 
 
         [HttpGet("GetProductById")]
-        public IActionResult GetProductById([FromQuery] string? userid, [FromQuery] string productId)
+        public IActionResult GetProductById([FromHeader(Name = "ALP-User-Id")] string? userid, [FromQuery] string productId)
         {
             // 之後可以驗證是否已登錄
 
@@ -80,7 +80,7 @@ namespace EcommerceBackend.Controllers
         }
 
         [HttpGet("GetRecommendationProduct")]
-        public IActionResult GetRecommendationProduct([FromQuery] string? userid,[FromQuery] string productId)
+        public IActionResult GetRecommendationProduct([FromHeader(Name = "ALP-User-Id")] string? userid, [FromQuery] string productId)
         {
             // 之後可以驗證是否已登錄
 
