@@ -17,19 +17,10 @@ namespace EcommerceBackend.Repositorys
 
         }
 
-        public UserInfoDTO GetUserInfo(string userid)
+        public IEnumerable<UserShipAddressDTO> GetUserAddress(string userid)
         {
-            return new UserInfoDTO
-            {
-                UserId = userid,
-                Username="linda",
-                Email="abc.@pornmail.com",
-                NickName="金牌殺手",
-                PhoneNumber="4512367",
-                Gender="男",
-                Birthday= DateTime.Today,
-                ShipAddress=new List<UserShipAddressDTO> 
-                { 
+            return new List<UserShipAddressDTO>
+                {
                     new UserShipAddressDTO
                     {
                         RecipientName="王大明",
@@ -45,7 +36,7 @@ namespace EcommerceBackend.Repositorys
                         PhoneNumber="15459",
                         Email="abc.@pornmail.com",
                         AddressLine="台中市中區大名路377號",
-                        
+
 
                     },
                     new UserShipAddressDTO
@@ -54,9 +45,24 @@ namespace EcommerceBackend.Repositorys
                         PhoneNumber="15459",
                         Email="abc.@pornmail.com",
                         AddressLine="台中市中區大名路377號",
-                   
+
                     }
-                }
+                };
+
+        }
+
+        public UserInfoDTO GetUserInfo(string userid)
+        {
+            return new UserInfoDTO
+            {
+                UserId = userid,
+                Username="linda",
+                Email="abc.@pornmail.com",
+                NickName="金牌殺手",
+                PhoneNumber="4512367",
+                Gender="男",
+                Birthday= DateTime.Today,
+                
             };
 
         }

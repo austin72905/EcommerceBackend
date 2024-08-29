@@ -11,6 +11,17 @@ namespace EcommerceBackend.Services
         {
             _userRepository=userRepository;
         }
+
+        public List<UserShipAddressDTO> GetUserAddress(string? userid)
+        {
+            if (userid == null)
+            {
+                return new List<UserShipAddressDTO>();
+            }
+
+            return _userRepository.GetUserAddress(userid).ToList();
+        }
+
         public UserInfoDTO GetUserInfo(string? userid)
         {
             if (userid == null) 

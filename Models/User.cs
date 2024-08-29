@@ -30,7 +30,6 @@
         public string? Gender { get; set; }  // 性別
         public DateTime? Birthday { get; set; }  // 生日
 
-        public List<UserShipAddressDTO>? ShipAddress {  get; set; }
 
     }
 

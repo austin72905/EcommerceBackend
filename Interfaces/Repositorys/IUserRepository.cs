@@ -7,5 +7,7 @@ namespace EcommerceBackend.Interfaces.Repositorys
         public IEnumerable<string> GetFavoriteProductIdsByUser(string userId);
 
         public UserInfoDTO GetUserInfo(string userid);
+
+        public IEnumerable<UserShipAddressDTO> GetUserAddress(string userid);
     }
 }

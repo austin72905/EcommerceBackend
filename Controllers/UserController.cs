@@ -1,4 +1,5 @@
 ﻿using EcommerceBackend.Interfaces.Services;
+using EcommerceBackend.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EcommerceBackend.Controllers
@@ -49,7 +50,16 @@ namespace EcommerceBackend.Controllers
             return Content("ok");
         }
 
+
+
         // address
+        [HttpGet("GetUserShippingAddress")]
+        public IActionResult GetUserShippingAddress()
+        {
+            var address = _userService.GetUserAddress(UserId);
+            return Ok(address);
+        }
+
         [HttpPost("ModifyDefaultShippingAddress")]
         public IActionResult ModifyDefaultShippingAddress()
         {
