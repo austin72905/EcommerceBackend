@@ -62,21 +62,21 @@ namespace EcommerceBackend.Controllers
         }
 
         [HttpPost("ModifyDefaultShippingAddress")]
-        public IActionResult ModifyDefaultShippingAddress([FromHeader(Name = "ALP-User-Id")] string? UserId ,[FromBody] UserShipAddressDTO address)
+        public IActionResult ModifyDefaultShippingAddress([FromBody] UserShipAddressDTO address)
         {
             var msg = _userService.ModifyUserShippingAddress(UserId, address);
             return Ok(msg);
         }
 
         [HttpPost("AddShippingAddress")]
-        public IActionResult AddShippingAddress([FromHeader(Name = "ALP-User-Id")] string? UserId ,[FromBody] UserShipAddressDTO address)
+        public IActionResult AddShippingAddress([FromBody] UserShipAddressDTO address)
         {
             var msg = _userService.AddUserShippingAddress(UserId, address);
             return Ok(msg);
         }
 
         [HttpDelete("DeleteShippingAddress")]
-        public IActionResult DeleteShippingAddress([FromHeader(Name = "ALP-User-Id")] string? UserId ,[FromBody] UserShipAddressDTO address)
+        public IActionResult DeleteShippingAddress([FromBody] UserShipAddressDTO address)
         {
             var msg = _userService.DeleteUserShippingAddress(UserId, address.AddressId);
             return Ok(msg);
