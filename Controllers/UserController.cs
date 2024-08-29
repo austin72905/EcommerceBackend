@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EcommerceBackend.Interfaces.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EcommerceBackend.Controllers
 {
@@ -6,6 +7,12 @@ namespace EcommerceBackend.Controllers
     [Route("[controller]")]
     public class UserController: BaseController
     {
+        private readonly IUserService _userService;
+
+        public UserController(IUserService userService)
+        {
+            _userService = userService;
+        }
         
         [HttpGet("GetMemberList")]
         public IActionResult GetMemberList()
@@ -13,10 +20,26 @@ namespace EcommerceBackend.Controllers
             return Content("ok");
         }
 
+
+        [HttpPost("UserLogin")]
+        public IActionResult UserLogin() 
+        {
+            return Content("ok");
+        }
+
+
+        [HttpPost("UserLogout")]
+        public IActionResult UserLogout()
+        {
+            return Content("ok");
+        }
+
         [HttpGet("GetUserInfo")]
         public IActionResult GetUserInfo()
         {
-            return Content("ok");
+            var user = _userService.GetUserInfo(UserId);
+
+            return Ok(user);
         }
 
         // password
