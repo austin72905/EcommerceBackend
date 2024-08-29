@@ -1,6 +1,7 @@
 ﻿using EcommerceBackend.Interfaces.Services;
 using EcommerceBackend.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace EcommerceBackend.Controllers
 {
@@ -56,20 +57,29 @@ namespace EcommerceBackend.Controllers
         [HttpGet("GetUserShippingAddress")]
         public IActionResult GetUserShippingAddress()
         {
-            var address = _userService.GetUserAddress(UserId);
+            var address = _userService.GetUserShippingAddress(UserId);
             return Ok(address);
         }
 
         [HttpPost("ModifyDefaultShippingAddress")]
-        public IActionResult ModifyDefaultShippingAddress()
+        public IActionResult ModifyDefaultShippingAddress([FromHeader(Name = "ALP-User-Id")] string? UserId ,[FromBody] UserShipAddressDTO address)
         {
-            return Content("ok");
+            var msg = _userService.ModifyUserShippingAddress(UserId, address);
+            return Ok(msg);
         }
 
         [HttpPost("AddShippingAddress")]
-        public IActionResult AddShippingAddress()
+        public IActionResult AddShippingAddress([FromHeader(Name = "ALP-User-Id")] string? UserId ,[FromBody] UserShipAddressDTO address)
         {
-            return Content("ok");
+            var msg = _userService.AddUserShippingAddress(UserId, address);
+            return Ok(msg);
+        }
+
+        [HttpDelete("DeleteShippingAddress")]
+        public IActionResult DeleteShippingAddress([FromHeader(Name = "ALP-User-Id")] string? UserId ,[FromBody] UserShipAddressDTO address)
+        {
+            var msg = _userService.DeleteUserShippingAddress(UserId, address.AddressId);
+            return Ok(msg);
         }
 
     }

@@ -8,6 +8,12 @@ namespace EcommerceBackend.Interfaces.Repositorys
 
         public UserInfoDTO GetUserInfo(string userid);
 
-        public IEnumerable<UserShipAddressDTO> GetUserAddress(string userid);
+        public IEnumerable<UserShipAddressDTO> GetUserShippingAddress(string userid);
+
+        public string AddUserShippingAddress(string userid, UserShipAddressDTO address);
+
+        public string ModifyUserShippingAddress(string userid, UserShipAddressDTO address);
+
+        public string DeleteUserShippingAddress(string userid, int addressId);
     }
 }

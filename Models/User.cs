@@ -8,6 +8,8 @@
         public string? Username { get; set; }  // 用戶名 (帳號)
         public string? Email { get; set; }  // 電子郵件，唯一
         public string? PasswordHash { get; set; }  // 密碼
+
+        public string? GoogleId { get; set; }  // 使用google帳號登陸時
         public string? NickName { get; set; }  // 用戶自訂義名稱
         public string? PhoneNumber { get; set; }  // 電話號碼
 
@@ -46,7 +48,8 @@
     }
 
     public class UserShipAddressDTO
-    {     
+    {
+        public int AddressId { get; set; }
         public string? RecipientName { get; set; }  // 收件人姓名
         public string? PhoneNumber { get; set; }  // 收件人電話
         public string? Email { get; set; }  // 收件人電子信箱

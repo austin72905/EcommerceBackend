@@ -17,7 +17,7 @@ namespace EcommerceBackend.Repositorys
 
         }
 
-        public IEnumerable<UserShipAddressDTO> GetUserAddress(string userid)
+        public IEnumerable<UserShipAddressDTO> GetUserShippingAddress(string userid)
         {
             return new List<UserShipAddressDTO>
                 {
@@ -65,6 +65,21 @@ namespace EcommerceBackend.Repositorys
                 
             };
 
+        }
+
+        public string AddUserShippingAddress(string userid, UserShipAddressDTO address)
+        {
+            return "ok,add address success";
+        }
+
+        public string DeleteUserShippingAddress(string userid, int addressId)
+        {
+            return "ok,delete address success";
+        }
+
+        public string ModifyUserShippingAddress(string userid, UserShipAddressDTO address)
+        {
+            return "ok,modify address success";
         }
     }
 }
