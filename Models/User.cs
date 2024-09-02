@@ -32,6 +32,9 @@
         public string? Gender { get; set; }  // 性別
         public DateTime? Birthday { get; set; }  // 生日
 
+        public string? Picture { get; set; }
+
+        public string? Type { get; set; }
 
     }
 
@@ -57,4 +60,14 @@
         public bool IsDefault { get; set; }  // 是否為默認地址
 
     }
+
+    public class AuthLogin
+    {
+        public string code { get; set; }
+        public string redirect_url { get; set; }
+
+        public string state { get; set; }
+    }
+
+    
 }

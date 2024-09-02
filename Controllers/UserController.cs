@@ -1,13 +1,12 @@
 ﻿using EcommerceBackend.Interfaces.Services;
 using EcommerceBackend.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 namespace EcommerceBackend.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class UserController: BaseController
+    public class UserController : BaseController
     {
         private readonly IUserService _userService;
 
@@ -15,18 +14,48 @@ namespace EcommerceBackend.Controllers
         {
             _userService = userService;
         }
-        
+
         [HttpGet("GetMemberList")]
         public IActionResult GetMemberList()
         {
             return Content("ok");
         }
 
-
-        [HttpPost("UserLogin")]
-        public IActionResult UserLogin() 
+        [HttpPost("UserRegister")]
+        public IActionResult UserRegister()
         {
             return Content("ok");
+        }
+
+        [HttpPost("AuthLogin")]
+        public async Task<IActionResult> AuthLogin([FromBody] AuthLogin authLogin)
+        {
+            var result = await _userService.UserAuthLogin(authLogin);
+
+            if (result.IsSuccess)
+            {
+                var response = new LoginReponse { UserInfo = result.UserInfo, RedirectUrl = authLogin.redirect_url };
+
+                return Ok(response);
+            }
+            else
+            {
+                var response = new LoginReponse { UserInfo = null, RedirectUrl = authLogin.redirect_url };
+
+                return Ok(response);
+            }
+
+
+        }
+
+
+        [HttpPost("UserLogin")]
+        public async Task<IActionResult> UserLogin()
+        {
+            //var resp = await _userService.GetIDTokenFromGoogle();
+
+
+            return Ok("ok");
         }
 
 

@@ -1,16 +1,20 @@
 ﻿using EcommerceBackend.Interfaces.Repositorys;
 using EcommerceBackend.Interfaces.Services;
 using EcommerceBackend.Models;
-using System.Net;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
+using System.Text.Json;
 
 namespace EcommerceBackend.Services
 {
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
-        public UserService(IUserRepository userRepository) 
+        private readonly IConfiguration _configuration;
+        public UserService(IUserRepository userRepository, IConfiguration configuration)
         {
-            _userRepository=userRepository;
+            _userRepository = userRepository;
+            _configuration = configuration;
         }
 
         public List<UserShipAddressDTO> GetUserShippingAddress(string? userid)
@@ -25,12 +29,12 @@ namespace EcommerceBackend.Services
 
         public UserInfoDTO GetUserInfo(string? userid)
         {
-            if (userid == null) 
-            { 
+            if (userid == null)
+            {
                 return new UserInfoDTO();
             }
 
-            var user =_userRepository.GetUserInfo(userid);
+            var user = _userRepository.GetUserInfo(userid);
 
             return user;
         }
@@ -42,7 +46,7 @@ namespace EcommerceBackend.Services
                 return "no";
             }
 
-            var msg =_userRepository.AddUserShippingAddress(userid, address);
+            var msg = _userRepository.AddUserShippingAddress(userid, address);
 
             return msg;
         }
@@ -69,5 +73,86 @@ namespace EcommerceBackend.Services
             var msg = _userRepository.DeleteUserShippingAddress(userid, addressId);
             return msg;
         }
+
+
+
+
+        private GoogleUserInfo? DecodeIDToken(string idToken)
+        {
+            string[] jwtContent = idToken.Split('.');
+            string jwtPayloadString = Encoding.UTF8.GetString(Base64UrlTextEncoder.Decode(jwtContent[1]));
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            var userInfo = JsonSerializer.Deserialize<GoogleUserInfo>(jwtPayloadString, options);
+            return userInfo;
+        }
+
+        public async Task<GoogleOAuth> UserAuthLogin(AuthLogin authLogin)
+        {
+            try
+            {
+                string? secret = _configuration["GoogleAuthClientSecret"];
+
+                if (string.IsNullOrEmpty(secret))
+                {
+                    throw new InvalidOperationException("The environment variable 'GoogleAuthClientSecret' is not set.");
+                }
+
+                var body = new Dictionary<string, string>()
+                {
+                    {"client_id","88199731036-4ve6gh6a0vdj63j41r4gnhd7cf8s8kpr.apps.googleusercontent.com" },
+                    {"client_secret",secret },
+                    {"code",authLogin.code},
+                    {"grant_type","authorization_code" },
+                    {"redirect_uri","http://localhost:3000/auth" },
+                    //{"code_verifier","" },
+                };
+
+                var client = new HttpClient();
+
+                var resp = await client.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(body));
+
+                var jsonResp = await resp.Content.ReadAsStringAsync();
+
+                var result = JsonSerializer.Deserialize<OAuth2GoogleResp>(jsonResp);
+
+
+                //請求錯誤
+                if (result == null || result.id_token == null)
+                {
+                    return new GoogleOAuth { ErrorMessage="some error occured when request token"};
+                }
+
+                var jwtUserInfo = DecodeIDToken(result.id_token);
+
+                if (jwtUserInfo == null)
+                {
+                    return new GoogleOAuth { ErrorMessage = "some error occured when parse token" };
+                }
+
+                var userInfo = new UserInfoDTO
+                {
+                    UserId = jwtUserInfo.Sub,
+                    Email = jwtUserInfo.Email,
+                    Username = jwtUserInfo.Name,
+                    Picture = jwtUserInfo.Picture,
+                    Type = authLogin.state
+                };
+
+                return new GoogleOAuth { UserInfo= userInfo,IsSuccess=true };
+            }
+            catch (Exception ex)
+            {
+                return new GoogleOAuth { ErrorMessage = "some error occured" };
+            }
+
+        }
+
+       
+
+        
+        
     }
 }

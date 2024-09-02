@@ -29,6 +29,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+//啟用Cors
+app.UseCors(builder=>builder.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod());
+
 // 驗證是否登陸
 app.UseMiddleware<AuthenticationMiddleware>();
 
