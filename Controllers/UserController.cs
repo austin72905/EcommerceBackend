@@ -1,6 +1,7 @@
 ﻿using EcommerceBackend.Interfaces.Services;
 using EcommerceBackend.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace EcommerceBackend.Controllers
 {
@@ -9,10 +10,12 @@ namespace EcommerceBackend.Controllers
     public class UserController : BaseController
     {
         private readonly IUserService _userService;
+        private readonly IRedisService _redisService;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, IRedisService redisService)
         {
             _userService = userService;
+            _redisService = redisService;
         }
 
         [HttpGet("GetMemberList")]
@@ -30,10 +33,39 @@ namespace EcommerceBackend.Controllers
         [HttpPost("AuthLogin")]
         public async Task<IActionResult> AuthLogin([FromBody] AuthLogin authLogin)
         {
+
             var result = await _userService.UserAuthLogin(authLogin);
 
             if (result.IsSuccess)
             {
+                if (result.UserInfo != null)
+                {
+                    string sessionId=await SaveUserInfoToRedis(result.UserInfo);
+
+                    // SameSite 只要設為none，Secure 就必須為true
+                    // https 會造成 無法寫給前端http cookie
+                    var cookieOption = new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Expires = DateTime.Now.AddHours(2),
+                        //SameSite = SameSiteMode.None,
+                        Secure = false,
+                        Domain = "localhost"
+                    };
+
+                    var cookieOption2 = new CookieOptions
+                    {
+                        HttpOnly = false,
+                        Expires = DateTime.Now.AddHours(2),
+                        //SameSite = SameSiteMode.None,
+                        Secure = false,
+                        Domain= "localhost"
+                    };
+
+                    Response.Cookies.Append("session-id", sessionId, cookieOption);
+                    Response.Cookies.Append("has-session-id", "true", cookieOption2);
+                }
+               
                 var response = new LoginReponse { UserInfo = result.UserInfo, RedirectUrl = authLogin.redirect_url };
 
                 return Ok(response);
@@ -66,10 +98,38 @@ namespace EcommerceBackend.Controllers
         }
 
         [HttpGet("GetUserInfo")]
-        public IActionResult GetUserInfo()
+        public async Task<IActionResult> GetUserInfo()
         {
-            var user = _userService.GetUserInfo(UserId);
+            var sessionId = Request.Cookies["session-id"];
+            UserInfoDTO? user;
+            
+            
+            
+            if (sessionId != null)
+            {
+                var userInfo = await _redisService.GetUserInfoAsync(sessionId);
 
+                if (userInfo == null)
+                {
+                    user = _userService.GetUserInfo(UserId);
+                }
+                else
+                {
+                    user = JsonSerializer.Deserialize<UserInfoDTO>(userInfo);
+                }
+            }
+            else
+            {
+                user = _userService.GetUserInfo(UserId);
+            }
+
+
+            
+
+            
+           
+
+            
             return Ok(user);
         }
 
@@ -111,5 +171,17 @@ namespace EcommerceBackend.Controllers
             return Ok(msg);
         }
 
+
+
+        private async Task<string> SaveUserInfoToRedis(UserInfoDTO userInfo)
+        {
+            string guid = Guid.NewGuid().ToString();
+
+            string result = JsonSerializer.Serialize(userInfo);
+
+            await _redisService.SetUserInfoAsync(guid, result);
+
+            return guid;
+        }
     }
 }

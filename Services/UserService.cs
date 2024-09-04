@@ -11,10 +11,12 @@ namespace EcommerceBackend.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
-        public UserService(IUserRepository userRepository, IConfiguration configuration)
+        private readonly IRedisService _redisService;
+        public UserService(IUserRepository userRepository, IConfiguration configuration, IRedisService redisService)
         {
             _userRepository = userRepository;
             _configuration = configuration;
+            _redisService = redisService;
         }
 
         public List<UserShipAddressDTO> GetUserShippingAddress(string? userid)
@@ -132,6 +134,8 @@ namespace EcommerceBackend.Services
                     return new GoogleOAuth { ErrorMessage = "some error occured when parse token" };
                 }
 
+                //將用戶訊息存到redis
+
                 var userInfo = new UserInfoDTO
                 {
                     UserId = jwtUserInfo.Sub,
@@ -140,6 +144,8 @@ namespace EcommerceBackend.Services
                     Picture = jwtUserInfo.Picture,
                     Type = authLogin.state
                 };
+
+                
 
                 return new GoogleOAuth { UserInfo= userInfo,IsSuccess=true };
             }
@@ -151,7 +157,7 @@ namespace EcommerceBackend.Services
         }
 
        
-
+        
         
         
     }
