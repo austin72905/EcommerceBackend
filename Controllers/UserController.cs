@@ -50,7 +50,7 @@ namespace EcommerceBackend.Controllers
                         Expires = DateTime.Now.AddHours(2),
                         //SameSite = SameSiteMode.None,
                         Secure = false,
-                        Domain = "localhost"
+                        //Domain = "localhost"
                     };
 
                     var cookieOption2 = new CookieOptions
@@ -59,7 +59,7 @@ namespace EcommerceBackend.Controllers
                         Expires = DateTime.Now.AddHours(2),
                         //SameSite = SameSiteMode.None,
                         Secure = false,
-                        Domain= "localhost"
+                        //Domain= "localhost"
                     };
 
                     Response.Cookies.Append("session-id", sessionId, cookieOption);
@@ -91,9 +91,20 @@ namespace EcommerceBackend.Controllers
         }
 
 
-        [HttpPost("UserLogout")]
-        public IActionResult UserLogout()
+        [HttpGet("UserLogout")]
+        public async Task<IActionResult> UserLogout()
         {
+            var sessionId = Request.Cookies["session-id"];
+
+            if (sessionId != null)
+            {
+                await _redisService.DelUserInfoAsync(sessionId);
+            }
+            
+
+           
+            Response.Cookies.Delete("session-id");
+            Response.Cookies.Delete("has-session-id");
             return Content("ok");
         }
 

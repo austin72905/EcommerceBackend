@@ -59,5 +59,22 @@ namespace EcommerceBackend.Services
 
             
         }
+
+        public async Task DelUserInfoAsync(string sessonId)
+        {
+            string key = $"user:{sessonId}";
+
+            
+            bool wasDeleted = await _db.KeyDeleteAsync(key);
+
+            if (wasDeleted)
+            {
+                Console.WriteLine($"Key '{key}' was successfully deleted.");
+            }
+            else
+            {
+                Console.WriteLine($"Key '{key}' does not exist.");
+            }
+        }
     }
 }
