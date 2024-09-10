@@ -4,6 +4,6 @@ namespace EcommerceBackend.Interfaces.Services
 {
     public interface IOrderService
     {
-        public List<OrderInfomation> GetOrders(string userid);
+        public ServiceResult<List<OrderInfomation>> GetOrders(string userid);
     }
 }

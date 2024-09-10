@@ -1,12 +1,18 @@
-﻿namespace EcommerceBackend.MiddleWares
+﻿using EcommerceBackend.Enums;
+using EcommerceBackend.Interfaces.Services;
+using EcommerceBackend.Models;
+
+namespace EcommerceBackend.MiddleWares
 {
     public class AuthenticationMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly IRedisService _redisService;
 
-        public AuthenticationMiddleware(RequestDelegate requestDelegate)
+        public AuthenticationMiddleware(RequestDelegate requestDelegate, IRedisService redisService)
         {
             _next= requestDelegate;
+            _redisService= redisService;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -14,31 +20,41 @@
 
             // /user/*  除了 /user/login 只要沒經過驗證都返回
 
-            bool isAuthenticated = true;
-            string? sessonId=context.Request.Cookies["session-id"];
+            //bool isAuthenticated = true;
+            string? sessionId=context.Request.Cookies["session-id"];
 
-            if (sessonId == null)
-            {
-                isAuthenticated=false;
-            }
+            
+            string? userInfo=null;
 
 
             var path = context.Request.Path.ToString().ToLower();
 
-            if (path.StartsWith("/user/") || path.StartsWith("/order/") && !path.Contains("userlogin", StringComparison.OrdinalIgnoreCase) && !path.Contains("AuthLogin",StringComparison.OrdinalIgnoreCase))
+            if (path.StartsWith("/user/")  && !path.Contains("userlogin", StringComparison.OrdinalIgnoreCase) && !path.Contains("AuthLogin",StringComparison.OrdinalIgnoreCase) || path.StartsWith("/order/"))
             {
-                if (!isAuthenticated)
+                if (sessionId == null)
                 {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    await context.Response.WriteAsync("Unauthorized");
+                    context.Response.StatusCode = StatusCodes.Status200OK;
+                    var resp = new ApiResponse { Code = (int)RespCode.UN_AUTHORIZED, Message = "未授權，請重新登入" };
+                    await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(resp));
+                    return;
+                }
+
+                userInfo = await _redisService.GetUserInfoAsync(sessionId);
+
+                if (userInfo == null)
+                {
+                    //context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    context.Response.StatusCode = StatusCodes.Status200OK;
+                    var resp = new ApiResponse { Code = (int)RespCode.UN_AUTHORIZED, Message = "Invalid session" };
+                    await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(resp));
                     return;
                 }
             }
 
-            
+
 
             // 先無條件的是登錄狀態，後續在做redis 驗證
-            context.Items["IsAuthenticated"] = isAuthenticated;  // context.Items是 ASP.NET Core 中的一個字典，允許你在請求的生命週期內儲存和共享資料。這個字典中的資料只在目前請求中有效，隨著請求的結束，這些資料會被清除。
+            context.Items["UserInfo"] = userInfo; // context.Items是 ASP.NET Core 中的一個字典，允許你在請求的生命週期內儲存和共享資料。這個字典中的資料只在目前請求中有效，隨著請求的結束，這些資料會被清除。
             await _next(context);
             return;
         }

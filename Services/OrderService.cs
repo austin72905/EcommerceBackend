@@ -11,10 +11,16 @@ namespace EcommerceBackend.Services
         {
             _orderRepostory = orderRepostory;
         }
-        public List<OrderInfomation> GetOrders(string userid)
+        public ServiceResult<List<OrderInfomation>>  GetOrders(string userid)
         {
             var orderList=_orderRepostory.GetOrdersByUserId(userid);
-            return orderList;
+
+            return new ServiceResult<List<OrderInfomation>>()
+            {
+                IsSuccess = true,
+                Data = orderList
+            };
+
         }
     }
 }

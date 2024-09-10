@@ -20,23 +20,23 @@ namespace EcommerceBackend.Controllers
         public async Task<IActionResult> GetOrders()
         {
             ApiResponse resp;
-            if (SessionId == null)
+            
+            if (UserInfo == null)
             {
-                resp = UnAuthorized();
-                return Ok(resp);
+
+                return UnAuthorized();
             }
 
-            string? userId = await _redisService.GetUserInfoAsync(SessionId);
-
-            if(userId == null)
+            var result= _orderService.GetOrders(UserInfo.UserId);
+            if (result.IsSuccess)
             {
-                resp = UnAuthorized();
-                return Ok(resp);
+                return Success(result.Data);
             }
-
-            var orderList=_orderService.GetOrders(userId);
-            resp=Success(orderList);
-            return Ok(resp);
+            else
+            {
+                return Fail();
+            }
+            
         }
     }
 }

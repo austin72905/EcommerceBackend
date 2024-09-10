@@ -19,29 +19,40 @@ namespace EcommerceBackend.Services
             _redisService = redisService;
         }
 
-        public List<UserShipAddressDTO> GetUserShippingAddress(string? userid)
+        public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(string userid)
         {
-            if (userid == null)
-            {
-                return new List<UserShipAddressDTO>();
-            }
+            var addressList = _userRepository.GetUserShippingAddress(userid).ToList();
 
-            return _userRepository.GetUserShippingAddress(userid).ToList();
+            return new ServiceResult<List<UserShipAddressDTO>>()
+            {
+                IsSuccess = true,
+                Data = addressList
+            };
+
         }
 
-        public UserInfoDTO GetUserInfo(string? userid)
+        public ServiceResult<UserInfoDTO> GetUserInfo(string userid)
         {
             if (userid == null)
             {
-                return new UserInfoDTO();
+                return new ServiceResult<UserInfoDTO>() 
+                { 
+                    IsSuccess=false,
+                    ErrorMessage="userid不得為空"
+
+                };
             }
 
             var user = _userRepository.GetUserInfo(userid);
 
-            return user;
+            return new ServiceResult<UserInfoDTO>()
+            {
+                IsSuccess = true,
+                Data = user,
+            };
         }
 
-        public string AddUserShippingAddress(string? userid, UserShipAddressDTO address)
+        public string AddUserShippingAddress(string userid, UserShipAddressDTO address)
         {
             if (userid == null)
             {
@@ -53,7 +64,7 @@ namespace EcommerceBackend.Services
             return msg;
         }
 
-        public string ModifyUserShippingAddress(string? userid, UserShipAddressDTO address)
+        public string ModifyUserShippingAddress(string userid, UserShipAddressDTO address)
         {
             if (userid == null)
             {
@@ -65,7 +76,7 @@ namespace EcommerceBackend.Services
             return msg;
         }
 
-        public string DeleteUserShippingAddress(string? userid, int addressId)
+        public string DeleteUserShippingAddress(string userid, int addressId)
         {
             if (userid == null)
             {

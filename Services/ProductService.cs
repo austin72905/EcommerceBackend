@@ -16,13 +16,18 @@ namespace EcommerceBackend.Services
             _userRepository= userRepository;
         }
 
-        public ProductResponse GetProductById(string userid, string productId)
+        public ServiceResult<ProductResponse> GetProductById(string userid, string productId)
         {
             var product = _repository.GetProductById(productId);
 
             if (product == null) 
             {
-                return new ProductResponse { Product = new ProductWithFavoriteStatus() };
+                return new ServiceResult<ProductResponse>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage="產品不存在"
+                };
+                
             }
 
 
@@ -30,32 +35,40 @@ namespace EcommerceBackend.Services
             if (!string.IsNullOrEmpty(userid))
             {
                 var favoriteProductIds = _userRepository.GetFavoriteProductIdsByUser(userid);
-                
-                return new ProductResponse 
-                { 
-                    Product = new ProductWithFavoriteStatus { product= product,IsFavorite = favoriteProductIds.Contains(product.ProductId) } 
-                };
 
+                return new ServiceResult<ProductResponse>()
+                {
+                    IsSuccess = true,
+                    Data = new ProductResponse
+                    {
+                        Product = new ProductWithFavoriteStatus { product = product, IsFavorite = favoriteProductIds.Contains(product.ProductId) }
+                    }
+                };
+                
                
             }
             else
             {
-                
-                return new ProductResponse
+                return new ServiceResult<ProductResponse>()
                 {
-                    Product = new ProductWithFavoriteStatus { product = product }
+                    IsSuccess = true,
+                    Data = new ProductResponse
+                    {
+                        Product = new ProductWithFavoriteStatus { product = product }
+                    }
                 };
+                
             }
         }
 
-        public ProductListResponse GetProducts(string userid, string kind, string tag)
+        public ServiceResult<ProductListResponse> GetProducts(string userid, string kind, string tag)
         {
             List<ProductInfomation> products = new List<ProductInfomation>();
 
-            if (string.IsNullOrEmpty(tag) && string.IsNullOrEmpty(kind))
-            {
-                return new ProductListResponse { Products= products.Select(p => new ProductWithFavoriteStatus { product = p }) };
-            }
+            //if (string.IsNullOrEmpty(tag) && string.IsNullOrEmpty(kind))
+            //{
+            //    return new ProductListResponse { Products= products.Select(p => new ProductWithFavoriteStatus { product = p }) };
+            //}
 
 
             if (!string.IsNullOrEmpty(tag))
@@ -80,39 +93,70 @@ namespace EcommerceBackend.Services
                     IsFavorite= favoriteProductIds.Contains(p.ProductId) 
                 });
 
-                return new ProductListResponse { Products = productWithFavorite };
+                return new ServiceResult<ProductListResponse>
+                {
+                    IsSuccess = true,
+                    Data = new ProductListResponse { Products = productWithFavorite }
+                };
+
+  
             }
             else
             {
                 var productWithFavorite = products.Select(p => new ProductWithFavoriteStatus { product = p });
+                return new ServiceResult<ProductListResponse>
+                {
+                    IsSuccess = true,
+                    Data = new ProductListResponse { Products = productWithFavorite },
+                };
 
-                return new ProductListResponse { Products = productWithFavorite };
             }
 
 
         }
 
-        public List<ProductInfomation> GetProductsByKind(string kind)
+        public ServiceResult<List<ProductInfomation>> GetProductsByKind(string kind)
         {
             var products = _repository.GetProductsByKind(kind);
 
-            return products;
+            return new ServiceResult<List<ProductInfomation>> 
+            { 
+                IsSuccess=true,
+                Data= products
+
+            };
+
         }
 
-        public List<ProductInfomation> GetProductsByTag(string tag)
+        public ServiceResult<List<ProductInfomation>> GetProductsByTag(string tag)
         {
             var products = _repository.GetProductsByTag(tag);
 
-            return products;
+
+            return new ServiceResult<List<ProductInfomation>>
+            {
+                IsSuccess = true,
+                Data = products
+
+            };
+
         }
 
-        public List<ProductInfomation> GetRecommendationProduct(string? userid, string productId)
+        public ServiceResult<List<ProductInfomation>> GetRecommendationProduct(string? userid, string productId)
         {
             List<ProductInfomation> products = new List<ProductInfomation>();
             // 目前假設是返回新品上市
             // 之後可以改成 用戶瀏覽紀錄 or 依照 productId 找出先關聯的產品
             products = _repository.GetProductsByKind("new-arrival");
-            return products;
+
+
+            return new ServiceResult<List<ProductInfomation>>
+            {
+                IsSuccess = true,
+                Data = products
+
+            };
+
         }
     }
 }

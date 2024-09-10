@@ -1,13 +1,13 @@
 ﻿using EcommerceBackend.Enums;
 using EcommerceBackend.Models;
 using Microsoft.AspNetCore.Mvc;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Text.Json;
 
 namespace EcommerceBackend.Controllers
 {
-    public abstract class BaseController: ControllerBase
+    public abstract class BaseController : ControllerBase
     {
-        
+
         /// <summary>
         /// 是否已驗證 (登陸)
         /// </summary>
@@ -17,29 +17,52 @@ namespace EcommerceBackend.Controllers
         protected string? UserId { get; set; }
 
 
-        protected string? SessionId {
+
+        protected UserInfoDTO? UserInfo
+        {
             get
             {
-                string? sessionId= Request.Cookies["session-id"];
-                return sessionId;
-            } 
-        
+
+                string? userInfo = HttpContext.Items.ContainsKey("UserInfo") ? HttpContext.Items["UserInfo"] as string : null;
+
+                if (userInfo == null)
+                {
+                    return null;
+
+                }
+
+                return JsonSerializer.Deserialize<UserInfoDTO>(userInfo);
+
+
+            }
+
         }
 
 
-        protected ApiResponse Success(object? data=null)
+        protected string? SessionId
+        {
+            get
+            {
+                string? sessionId = Request.Cookies["session-id"];
+                return sessionId;
+            }
+
+        }
+
+
+        protected OkObjectResult Success(object? data = null)
         {
             var response = new ApiResponse()
             {
-                Code=(int)RespCode.SUCCESS,
-                Message="請求成功",
-                Data=data
+                Code = (int)RespCode.SUCCESS,
+                Message = "請求成功",
+                Data = data
             };
-           
-            return response;
+
+            return Ok(response);
         }
 
-        protected ApiResponse UnAuthorized()
+        protected OkObjectResult UnAuthorized()
         {
             var response = new ApiResponse()
             {
@@ -47,10 +70,10 @@ namespace EcommerceBackend.Controllers
                 Message = "未驗證，請先登入",
             };
 
-            return response;
+            return Ok(response);
         }
 
-        protected ApiResponse Fail(object? data=null,string msg="")
+        protected OkObjectResult Fail(object? data = null, string msg = "")
         {
             var response = new ApiResponse()
             {
@@ -63,9 +86,9 @@ namespace EcommerceBackend.Controllers
             {
                 response.Message = msg;
             }
-           
 
-            return response;
+
+            return Ok(response);
         }
     }
 }

@@ -25,28 +25,26 @@ namespace EcommerceBackend.Controllers
         public async Task<IActionResult> GetProductList([FromQuery]Filter filter) 
         {
 
-            string? userid=null;
 
-            // 之後可以驗證是否已登錄
-            if (SessionId != null)
-            {
-                userid = await _redisService.GetUserInfoAsync(SessionId);
-            }
-            
-         
-
-            if(string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind))
+            if (string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind))
             {            
-                return Ok(Fail("請求類型不得為空"));
+                return Fail("請求類型不得為空");
+            }
+
+            string? userid = UserInfo!=null? UserInfo.UserId:null;
+
+
+            var result = _productervice.GetProducts(userid, filter.kind, filter.tag);
+
+            if (!result.IsSuccess)
+            {
+                return Fail();
             }
 
 
-            var products = _productervice.GetProducts(userid, filter.kind, filter.tag);
+            return Success(result.Data);
 
-            var resp =Success(products);
 
-            
-            return Ok(resp);
         }
 
 
@@ -54,20 +52,20 @@ namespace EcommerceBackend.Controllers
         [HttpGet("GetProductById")]
         public async Task<IActionResult> GetProductById([FromQuery] string productId)
         {
-            // 之後可以驗證是否已登錄
-            string? userid = null;
 
-            // 之後可以驗證是否已登錄
-            if (SessionId != null)
+            string? userid = UserInfo != null ? UserInfo.UserId : null;
+            // 可以驗證product 不存在的反回 code msg data
+            var result = _productervice.GetProductById(userid, productId);
+
+
+            if (!result.IsSuccess)
             {
-                userid = await _redisService.GetUserInfoAsync(SessionId);
+                return Fail();
+
             }
 
-            // 可以驗證product 不存在的反回 code msg data
-            var product = _productervice.GetProductById(userid, productId);
+            return Success(result.Data);
 
-            var resp = Success(product);
-            return Ok(resp);
         }
 
 
@@ -92,18 +90,17 @@ namespace EcommerceBackend.Controllers
         [HttpGet("GetRecommendationProduct")]
         public async Task<IActionResult> GetRecommendationProduct([FromQuery] string productId)
         {
-            // 之後可以驗證是否已登錄
-            string? userid = null;
 
-            // 之後可以驗證是否已登錄
-            if (SessionId != null)
+            string? userid = UserInfo != null ? UserInfo.UserId : null;
+            var result = _productervice.GetRecommendationProduct(userid, productId);
+
+            if (!result.IsSuccess)
             {
-                userid = await _redisService.GetUserInfoAsync(SessionId);
+                return Fail();
             }
 
-            var products = _productervice.GetRecommendationProduct(userid, productId);
-            var resp = Success(products);
-            return Ok(resp);
+            return Success(result.Data);
+
         }
 
     }

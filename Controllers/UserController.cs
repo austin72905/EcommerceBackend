@@ -68,16 +68,15 @@ namespace EcommerceBackend.Controllers
                
                 var loginResponse = new LoginReponse { UserInfo = result.UserInfo, RedirectUrl = authLogin.redirect_url };
 
-                var resp = Success(loginResponse);
+                return Success(loginResponse);
 
-                return Ok(resp);
             }
             else
             {
                 
                 var loginResponse = new LoginReponse { UserInfo = null, RedirectUrl = authLogin.redirect_url };
-                var resp = Fail(loginResponse);
-                return Ok(resp);
+                return Fail(loginResponse);
+
             }
 
 
@@ -116,8 +115,8 @@ namespace EcommerceBackend.Controllers
         [HttpGet("GetUserInfo")]
         public async Task<IActionResult> GetUserInfo()
         {
-            UserInfoDTO? user;
-            ApiResponse resp;
+            UserInfoDTO? user=null;
+     
             
             
             
@@ -128,8 +127,8 @@ namespace EcommerceBackend.Controllers
                 if (userInfo == null)
                 {
                     //user = _userService.GetUserInfo(UserId);
-                    resp = Fail("請重新登入");
-                    return Ok(resp);
+                    return Fail("請重新登入");
+               
                 }
                 else
                 {
@@ -138,17 +137,17 @@ namespace EcommerceBackend.Controllers
             }
             else
             {
-                user = _userService.GetUserInfo(UserId);
+                var result = _userService.GetUserInfo(UserId);
+                if (result.IsSuccess)
+                {
+                    user = result.Data;
+                }
+                
             }
 
+            return Success(user);
 
             
-
-            
-           resp = Success(user);
-
-            
-            return Ok(resp);
         }
 
         // password
@@ -164,37 +163,62 @@ namespace EcommerceBackend.Controllers
         [HttpGet("GetUserShippingAddress")]
         public IActionResult GetUserShippingAddress()
         {
-            ApiResponse resp;
-            var address = _userService.GetUserShippingAddress(UserId);
-            resp= Success(address);
-            return Ok(resp);
+            
+            string? userid = UserInfo != null ? UserInfo.UserId : null;
+            if (UserInfo == null)
+            {
+                return Fail("請重新登入");
+              
+            }
+
+            var address = _userService.GetUserShippingAddress(UserInfo.UserId);
+            return Success(address);
+         
         }
 
         [HttpPost("ModifyDefaultShippingAddress")]
         public IActionResult ModifyDefaultShippingAddress([FromBody] UserShipAddressDTO address)
         {
-            ApiResponse resp;
-            var msg = _userService.ModifyUserShippingAddress(UserId, address);
-            resp = Success(address);
-            return Ok(resp);
+          
+            string? userid = UserInfo != null ? UserInfo.UserId : null;
+            if (UserInfo == null)
+            {
+                return Fail("請重新登入");
+             
+            }
+            var msg = _userService.ModifyUserShippingAddress(UserInfo.UserId, address);
+            return Success(address);
+            
         }
 
         [HttpPost("AddShippingAddress")]
         public IActionResult AddShippingAddress([FromBody] UserShipAddressDTO address)
         {
-            ApiResponse resp;
-            var msg = _userService.AddUserShippingAddress(UserId, address);
-            resp = Success(address);
-            return Ok(resp);
+       
+            string? userid = UserInfo != null ? UserInfo.UserId : null;
+            if (UserInfo == null)
+            {
+                return Fail("請重新登入");
+           
+            }
+            var msg = _userService.AddUserShippingAddress(UserInfo.UserId, address);
+            return Success(address);
+  
         }
 
         [HttpDelete("DeleteShippingAddress")]
         public IActionResult DeleteShippingAddress([FromBody] UserShipAddressDTO address)
         {
-            ApiResponse resp;
-            var msg = _userService.DeleteUserShippingAddress(UserId, address.AddressId);
-            resp = Success(address);
-            return Ok(resp);
+
+            string? userid = UserInfo != null ? UserInfo.UserId : null;
+            if (UserInfo == null)
+            {
+                return Fail("請重新登入");
+
+            }
+            var msg = _userService.DeleteUserShippingAddress(UserInfo.UserId, address.AddressId);
+            return Success(address);
+
         }
 
 

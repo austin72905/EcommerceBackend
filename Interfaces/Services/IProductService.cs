@@ -4,13 +4,13 @@ namespace EcommerceBackend.Interfaces.Services
 {
     public interface IProductService
     {
-        public ProductListResponse GetProducts(string? userid,string kind,string tag);
+        public ServiceResult<ProductListResponse>  GetProducts(string? userid,string kind,string tag);
 
-        public ProductResponse GetProductById(string? userid, string productId);
-        public List<ProductInfomation> GetProductsByKind(string kind);
+        public ServiceResult<ProductResponse> GetProductById(string? userid, string productId);
+        public ServiceResult<List<ProductInfomation>> GetProductsByKind(string kind);
 
-        public List<ProductInfomation> GetProductsByTag(string tag);
+        public ServiceResult<List<ProductInfomation>> GetProductsByTag(string tag);
 
-        public List<ProductInfomation> GetRecommendationProduct(string? userid,string productId);
+        public ServiceResult<List<ProductInfomation>> GetRecommendationProduct(string? userid,string productId);
     }
 }
