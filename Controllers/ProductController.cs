@@ -9,55 +9,65 @@ namespace EcommerceBackend.Controllers
     public class ProductController: BaseController
     {
         private readonly IProductService _productervice;
+        private readonly IRedisService _redisService;
 
         // 是否已驗證
         //private bool IsAuthenticated => HttpContext.Items.ContainsKey("IsAuthenticated") && Convert.ToBoolean(HttpContext.Items["IsAuthenticated"]);
 
 
-        public ProductController(IProductService productService)
+        public ProductController(IProductService productService,IRedisService redisService)
         {
             _productervice=productService;
+            _redisService=redisService;
         }
 
         [HttpGet("GetProductList")]
-        public IActionResult GetProductList([FromHeader(Name = "ALP-User-Id")] string? userid,[FromQuery]Filter filter) 
+        public async Task<IActionResult> GetProductList([FromQuery]Filter filter) 
         {
 
+            string? userid=null;
 
             // 之後可以驗證是否已登錄
-
-          
-
-            if (IsAuthenticated)
+            if (SessionId != null)
             {
-                
-                return Content($"isAuthenticated :  {IsAuthenticated}");
+                userid = await _redisService.GetUserInfoAsync(SessionId);
             }
+            
+         
 
             if(string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind))
-            {
-                return Content($"no data\n{filter.kind}\n{filter.tag}");
+            {            
+                return Ok(Fail("請求類型不得為空"));
             }
 
 
             var products = _productervice.GetProducts(userid, filter.kind, filter.tag);
 
+            var resp =Success(products);
+
             
-            return Ok(products);
+            return Ok(resp);
         }
 
 
 
         [HttpGet("GetProductById")]
-        public IActionResult GetProductById([FromHeader(Name = "ALP-User-Id")] string? userid, [FromQuery] string productId)
+        public async Task<IActionResult> GetProductById([FromQuery] string productId)
         {
             // 之後可以驗證是否已登錄
+            string? userid = null;
+
+            // 之後可以驗證是否已登錄
+            if (SessionId != null)
+            {
+                userid = await _redisService.GetUserInfoAsync(SessionId);
+            }
 
             // 可以驗證product 不存在的反回 code msg data
             var product = _productervice.GetProductById(userid, productId);
 
-
-            return Ok(product);
+            var resp = Success(product);
+            return Ok(resp);
         }
 
 
@@ -80,13 +90,20 @@ namespace EcommerceBackend.Controllers
         }
 
         [HttpGet("GetRecommendationProduct")]
-        public IActionResult GetRecommendationProduct([FromHeader(Name = "ALP-User-Id")] string? userid, [FromQuery] string productId)
+        public async Task<IActionResult> GetRecommendationProduct([FromQuery] string productId)
         {
             // 之後可以驗證是否已登錄
+            string? userid = null;
+
+            // 之後可以驗證是否已登錄
+            if (SessionId != null)
+            {
+                userid = await _redisService.GetUserInfoAsync(SessionId);
+            }
 
             var products = _productervice.GetRecommendationProduct(userid, productId);
-
-            return Ok(products);
+            var resp = Success(products);
+            return Ok(resp);
         }
 
     }

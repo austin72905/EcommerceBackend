@@ -66,15 +66,18 @@ namespace EcommerceBackend.Controllers
                     Response.Cookies.Append("has-session-id", "true", cookieOption2);
                 }
                
-                var response = new LoginReponse { UserInfo = result.UserInfo, RedirectUrl = authLogin.redirect_url };
+                var loginResponse = new LoginReponse { UserInfo = result.UserInfo, RedirectUrl = authLogin.redirect_url };
 
-                return Ok(response);
+                var resp = Success(loginResponse);
+
+                return Ok(resp);
             }
             else
             {
-                var response = new LoginReponse { UserInfo = null, RedirectUrl = authLogin.redirect_url };
-
-                return Ok(response);
+                
+                var loginResponse = new LoginReponse { UserInfo = null, RedirectUrl = authLogin.redirect_url };
+                var resp = Fail(loginResponse);
+                return Ok(resp);
             }
 
 
@@ -105,24 +108,28 @@ namespace EcommerceBackend.Controllers
            
             Response.Cookies.Delete("session-id");
             Response.Cookies.Delete("has-session-id");
-            return Content("ok");
+
+            var resp = Success();
+            return Ok(resp);
         }
 
         [HttpGet("GetUserInfo")]
         public async Task<IActionResult> GetUserInfo()
         {
-            var sessionId = Request.Cookies["session-id"];
             UserInfoDTO? user;
+            ApiResponse resp;
             
             
             
-            if (sessionId != null)
+            if (SessionId != null)
             {
-                var userInfo = await _redisService.GetUserInfoAsync(sessionId);
+                var userInfo = await _redisService.GetUserInfoAsync(SessionId);
 
                 if (userInfo == null)
                 {
-                    user = _userService.GetUserInfo(UserId);
+                    //user = _userService.GetUserInfo(UserId);
+                    resp = Fail("請重新登入");
+                    return Ok(resp);
                 }
                 else
                 {
@@ -138,10 +145,10 @@ namespace EcommerceBackend.Controllers
             
 
             
-           
+           resp = Success(user);
 
             
-            return Ok(user);
+            return Ok(resp);
         }
 
         // password
@@ -157,29 +164,37 @@ namespace EcommerceBackend.Controllers
         [HttpGet("GetUserShippingAddress")]
         public IActionResult GetUserShippingAddress()
         {
+            ApiResponse resp;
             var address = _userService.GetUserShippingAddress(UserId);
-            return Ok(address);
+            resp= Success(address);
+            return Ok(resp);
         }
 
         [HttpPost("ModifyDefaultShippingAddress")]
         public IActionResult ModifyDefaultShippingAddress([FromBody] UserShipAddressDTO address)
         {
+            ApiResponse resp;
             var msg = _userService.ModifyUserShippingAddress(UserId, address);
-            return Ok(msg);
+            resp = Success(address);
+            return Ok(resp);
         }
 
         [HttpPost("AddShippingAddress")]
         public IActionResult AddShippingAddress([FromBody] UserShipAddressDTO address)
         {
+            ApiResponse resp;
             var msg = _userService.AddUserShippingAddress(UserId, address);
-            return Ok(msg);
+            resp = Success(address);
+            return Ok(resp);
         }
 
         [HttpDelete("DeleteShippingAddress")]
         public IActionResult DeleteShippingAddress([FromBody] UserShipAddressDTO address)
         {
+            ApiResponse resp;
             var msg = _userService.DeleteUserShippingAddress(UserId, address.AddressId);
-            return Ok(msg);
+            resp = Success(address);
+            return Ok(resp);
         }
 
 

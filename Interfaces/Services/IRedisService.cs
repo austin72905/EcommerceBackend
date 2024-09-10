@@ -2,7 +2,7 @@
 {
     public interface IRedisService
     {
-        public Task SetUserInfoAsync(string sessonId, string userIndo);
+        public Task SetUserInfoAsync(string sessonId, string userInfo);
 
         public Task DelUserInfoAsync(string sessonId);
 

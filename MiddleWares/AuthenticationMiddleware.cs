@@ -15,11 +15,17 @@
             // /user/*  除了 /user/login 只要沒經過驗證都返回
 
             bool isAuthenticated = true;
+            string? sessonId=context.Request.Cookies["session-id"];
+
+            if (sessonId == null)
+            {
+                isAuthenticated=false;
+            }
 
 
             var path = context.Request.Path.ToString().ToLower();
 
-            if (path.StartsWith("/user/") && !path.Contains("userlogin"))
+            if (path.StartsWith("/user/") || path.StartsWith("/order/") && !path.Contains("userlogin", StringComparison.OrdinalIgnoreCase) && !path.Contains("AuthLogin",StringComparison.OrdinalIgnoreCase))
             {
                 if (!isAuthenticated)
                 {

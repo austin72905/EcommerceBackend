@@ -15,14 +15,14 @@ namespace EcommerceBackend.Services
             _db=_redis.GetDatabase();
         }
 
-        public async Task SetUserInfoAsync(string sessonId,string  userIndo)
+        public async Task SetUserInfoAsync(string sessonId,string  userInfo)
         {
             string key= $"user:{sessonId}";
 
             try
             {
 
-                await _db.StringSetAsync(key, userIndo, TimeSpan.FromHours(2));
+                await _db.StringSetAsync(key, userInfo, TimeSpan.FromHours(2));
 
                 Console.WriteLine($"userkey: {key}");
             }
