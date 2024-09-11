@@ -16,7 +16,7 @@ namespace EcommerceBackend.Services
             _userRepository= userRepository;
         }
 
-        public ServiceResult<ProductResponse> GetProductById(string userid, string productId)
+        public ServiceResult<ProductResponse> GetProductById(string userid, int productId)
         {
             var product = _repository.GetProductById(productId);
 
@@ -142,7 +142,7 @@ namespace EcommerceBackend.Services
 
         }
 
-        public ServiceResult<List<ProductInfomation>> GetRecommendationProduct(string? userid, string productId)
+        public ServiceResult<List<ProductInfomation>> GetRecommendationProduct(string? userid, int productId)
         {
             List<ProductInfomation> products = new List<ProductInfomation>();
             // 目前假設是返回新品上市

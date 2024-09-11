@@ -23,7 +23,7 @@ namespace EcommerceBackend.Repositorys
             {
                 new CartItem
                 {
-                    ProductId="26790367",
+                    ProductId=26790367,
                     CartId=cartId,
                     CartItemId=1,
                     Quantity=5,
@@ -32,7 +32,7 @@ namespace EcommerceBackend.Repositorys
                 },
                 new CartItem
                 {
-                    ProductId="26790368",
+                    ProductId=26790368,
                     CartId=cartId,
                     CartItemId=3,
                     Quantity=2,
@@ -41,7 +41,7 @@ namespace EcommerceBackend.Repositorys
                 },
                 new CartItem
                 {
-                    ProductId="13790367",
+                    ProductId=13790367,
                     CartId=cartId,
                     CartItemId=5,
                     Quantity=4,

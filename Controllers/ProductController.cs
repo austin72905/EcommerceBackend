@@ -50,7 +50,7 @@ namespace EcommerceBackend.Controllers
 
 
         [HttpGet("GetProductById")]
-        public async Task<IActionResult> GetProductById([FromQuery] string productId)
+        public async Task<IActionResult> GetProductById([FromQuery] int productId)
         {
 
             string? userid = UserInfo != null ? UserInfo.UserId : null;
@@ -88,7 +88,7 @@ namespace EcommerceBackend.Controllers
         }
 
         [HttpGet("GetRecommendationProduct")]
-        public async Task<IActionResult> GetRecommendationProduct([FromQuery] string productId)
+        public async Task<IActionResult> GetRecommendationProduct([FromQuery] int productId)
         {
 
             string? userid = UserInfo != null ? UserInfo.UserId : null;

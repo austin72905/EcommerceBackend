@@ -6,7 +6,7 @@ namespace EcommerceBackend.Models
     {
         public string? Title { get; set; }
 
-        public string? ProductId { get; set; }
+        public int ProductId { get; set; }
 
         public int Price { get; set; }
 
@@ -17,6 +17,8 @@ namespace EcommerceBackend.Models
         public List<string>? Color { get; set; }
 
         public List<string>? Material { get; set; }
+
+        public List<ProductVariantDTO>? Varients { get; set; }
 
         public string? HowToWash { get; set; }
 
@@ -48,4 +50,43 @@ namespace EcommerceBackend.Models
         public string? SelectSize { get; set; }
         public int Count { get; set; }
     }
+
+    // 顏色與尺寸
+    public class Size
+    {
+        public int SizeId { get; set; }   
+        public string? SizeValue { get; set; }
+    }
+
+    // 儲存 顏色與尺寸 與產品的對應關係
+    public class ProductVariant
+    {
+        public int VariantID { get; set; }
+        public int ProductId { get; set; }
+        public string? Color { get; set; }
+
+        public int SizeID { get; set; }
+
+        public int Stock { get; set; }
+
+        public string? SKU { get; set; }
+
+        public int Price { get; set; }
+    }
+
+
+    public class ProductVariantDTO
+    {
+        public int VariantID { get; set; }
+        public string? Color { get; set; }
+
+        public string? Size { get; set; }
+
+        public int Stock { get; set; }
+
+        public string? SKU { get; set; }
+
+        public int Price { get; set; }
+    }
+
 }

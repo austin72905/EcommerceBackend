@@ -10,10 +10,10 @@ namespace EcommerceBackend.Repositorys
             
         }
 
-        public IEnumerable<string> GetFavoriteProductIdsByUser(string userId)
+        public IEnumerable<int> GetFavoriteProductIdsByUser(string userId)
         {
             // UserFavorites 表
-            return new List<string>() { "26790367", "2", "3" };
+            return new List<int>() { 26790367,2, 3 };
 
         }
 
