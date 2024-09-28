@@ -4,7 +4,10 @@ namespace EcommerceBackend.Models
 {
     public class OrderInfomation
     {
+        public int Id { get; set; }
         public string? RecordCode { get; set; }
+
+        public int UserId { get; set; }
 
         public List<ProductWithCount>? ProductList { get; set; }
         public int OrderPrice { get; set; }

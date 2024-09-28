@@ -5,7 +5,7 @@
         /// <summary>
         /// 失敗
         /// </summary>
-        FAIL=-1,
+        FAIL = -1,
         /// <summary>
         /// 未授權 (未登入)
         /// </summary>
@@ -13,6 +13,6 @@
         /// <summary>
         /// 成功
         /// </summary>
-        SUCCESS =1
+        SUCCESS = 1
     }
 }
