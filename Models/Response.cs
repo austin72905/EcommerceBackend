@@ -1,4 +1,5 @@
-﻿using EcommerceBackend.Services;
+﻿using EcommerceBackend.Models.DTOs;
+using EcommerceBackend.Services;
 
 namespace EcommerceBackend.Models
 {

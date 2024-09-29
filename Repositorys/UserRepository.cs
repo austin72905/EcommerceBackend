@@ -1,5 +1,6 @@
 ﻿using EcommerceBackend.Interfaces.Repositorys;
 using EcommerceBackend.Models;
+using EcommerceBackend.Models.DTOs;
 
 namespace EcommerceBackend.Repositorys
 {

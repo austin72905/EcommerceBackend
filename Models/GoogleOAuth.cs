@@ -1,4 +1,6 @@
-﻿namespace EcommerceBackend.Models
+﻿using EcommerceBackend.Models.DTOs;
+
+namespace EcommerceBackend.Models
 {
     public class GoogleOAuth
     {

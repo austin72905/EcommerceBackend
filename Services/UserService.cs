@@ -1,6 +1,7 @@
 ﻿using EcommerceBackend.Interfaces.Repositorys;
 using EcommerceBackend.Interfaces.Services;
 using EcommerceBackend.Models;
+using EcommerceBackend.Models.DTOs;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Text;
 using System.Text.Json;

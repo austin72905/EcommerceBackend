@@ -1,9 +1,18 @@
 ﻿namespace EcommerceBackend.Models
 {
-    public class ShipmentInfo
+    public class Shipment
     {
-        public string? Description { get; set; }
+        public int ShipmentId { get; set; }
 
-        public DateTime Date { get; set; }
+        public int OrderId { get; set; }
+
+        public int ShipmentStatus { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+
+        public DateTime UpdatedAt { get; set; }
     }
+
+
+    
 }

@@ -1,5 +1,6 @@
 ﻿using EcommerceBackend.Enums;
 using EcommerceBackend.Models;
+using EcommerceBackend.Models.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 

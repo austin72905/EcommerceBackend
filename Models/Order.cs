@@ -6,13 +6,18 @@ namespace EcommerceBackend.Models
     {
         public int Id { get; set; }
         public string? RecordCode { get; set; }
-
+         
         public int UserId { get; set; }
 
-        public List<ProductWithCount>? ProductList { get; set; }
+        public int AddressId { get; set; }
+
+        public string? Receiver { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? ShippingAddress { get; set; }
+
+
         public int OrderPrice { get; set; }
 
-        public OrderAddress? Address { get; set; }
 
         public OrderStatus Status { get; set; }
 
@@ -20,14 +25,13 @@ namespace EcommerceBackend.Models
 
         public int ShippingPrice { get; set; }
 
-        public List<OrderStep>? OrderStepInfomation { get; set; }
-
-        public List<ShipmentInfo>? ShipInfomation { get; set; }
 
         // 新增的更新時間
         public DateTime UpdatedAt { get; set; }
 
     }
+
+    
 
 
     public class OrderAddress
@@ -39,13 +43,18 @@ namespace EcommerceBackend.Models
 
     public class OrderStep
     {
-        public string? UnachieveDescription { get; set; }
-        public string? AchieveDescription { get; set; }
-        public DateTime Date { get; set; }
+        public int StepId { get; set; }
+
+        public int OrderId { get; set; }
+
+        public int StepStatus { get; set; }
+
+        public DateTime CreatedAt { get; set; }
         // 新增的更新時間
         public DateTime UpdatedAt { get; set; }
     }
 
+    
 
 
 }

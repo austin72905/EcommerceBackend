@@ -1,4 +1,5 @@
 ﻿using EcommerceBackend.Models;
+using EcommerceBackend.Models.DTOs;
 
 namespace EcommerceBackend.Interfaces.Services
 {
