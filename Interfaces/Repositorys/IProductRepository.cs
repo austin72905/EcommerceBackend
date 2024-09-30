@@ -1,13 +1,14 @@
 ﻿using EcommerceBackend.Models;
+using EcommerceBackend.Models.DTOs;
 
 namespace EcommerceBackend.Interfaces.Repositorys
 {
     public interface IProductRepository
     {
-        public List<ProductInfomation> GetProductsByKind(string kind);
+        public List<ProductInfomationDTO> GetProductsByKind(string kind);
 
-        public List<ProductInfomation> GetProductsByTag(string tag);
+        public List<ProductInfomationDTO> GetProductsByTag(string tag);
 
-        public ProductInfomation? GetProductById(int productId);
+        public ProductInfomationDTO? GetProductById(int productId);
     }
 }

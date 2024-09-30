@@ -2,6 +2,7 @@
 using EcommerceBackend.Interfaces.Repositorys;
 using EcommerceBackend.Interfaces.Services;
 using EcommerceBackend.Models;
+using EcommerceBackend.Models.DTOs;
 using EcommerceBackend.Repositorys;
 
 namespace EcommerceBackend.Services
@@ -41,7 +42,7 @@ namespace EcommerceBackend.Services
                     IsSuccess = true,
                     Data = new ProductResponse
                     {
-                        Product = new ProductWithFavoriteStatus { product = product, IsFavorite = favoriteProductIds.Contains(product.ProductId) }
+                        Product = new ProductWithFavoriteStatusDTO { Product = product, IsFavorite = favoriteProductIds.Contains(product.ProductId) }
                     }
                 };
                 
@@ -54,7 +55,7 @@ namespace EcommerceBackend.Services
                     IsSuccess = true,
                     Data = new ProductResponse
                     {
-                        Product = new ProductWithFavoriteStatus { product = product }
+                        Product = new ProductWithFavoriteStatusDTO { Product = product }
                     }
                 };
                 
@@ -63,7 +64,7 @@ namespace EcommerceBackend.Services
 
         public ServiceResult<ProductListResponse> GetProducts(string userid, string kind, string tag)
         {
-            List<ProductInfomation> products = new List<ProductInfomation>();
+            List<ProductInfomationDTO> products = new List<ProductInfomationDTO>();
 
             //if (string.IsNullOrEmpty(tag) && string.IsNullOrEmpty(kind))
             //{
@@ -87,9 +88,9 @@ namespace EcommerceBackend.Services
             if (!string.IsNullOrEmpty(userid))
             {
                 var favoriteProductIds = _userRepository.GetFavoriteProductIdsByUser(userid);
-                var productWithFavorite = products.Select(p => new ProductWithFavoriteStatus 
+                var productWithFavorite = products.Select(p => new ProductWithFavoriteStatusDTO
                 { 
-                    product = p,
+                    Product = p,
                     IsFavorite= favoriteProductIds.Contains(p.ProductId) 
                 });
 
@@ -103,7 +104,7 @@ namespace EcommerceBackend.Services
             }
             else
             {
-                var productWithFavorite = products.Select(p => new ProductWithFavoriteStatus { product = p });
+                var productWithFavorite = products.Select(p => new ProductWithFavoriteStatusDTO { Product = p });
                 return new ServiceResult<ProductListResponse>
                 {
                     IsSuccess = true,
@@ -115,11 +116,11 @@ namespace EcommerceBackend.Services
 
         }
 
-        public ServiceResult<List<ProductInfomation>> GetProductsByKind(string kind)
+        public ServiceResult<List<ProductInfomationDTO>> GetProductsByKind(string kind)
         {
             var products = _repository.GetProductsByKind(kind);
 
-            return new ServiceResult<List<ProductInfomation>> 
+            return new ServiceResult<List<ProductInfomationDTO>> 
             { 
                 IsSuccess=true,
                 Data= products
@@ -128,12 +129,12 @@ namespace EcommerceBackend.Services
 
         }
 
-        public ServiceResult<List<ProductInfomation>> GetProductsByTag(string tag)
+        public ServiceResult<List<ProductInfomationDTO>> GetProductsByTag(string tag)
         {
             var products = _repository.GetProductsByTag(tag);
 
 
-            return new ServiceResult<List<ProductInfomation>>
+            return new ServiceResult<List<ProductInfomationDTO>>
             {
                 IsSuccess = true,
                 Data = products
@@ -142,15 +143,15 @@ namespace EcommerceBackend.Services
 
         }
 
-        public ServiceResult<List<ProductInfomation>> GetRecommendationProduct(string? userid, int productId)
+        public ServiceResult<List<ProductInfomationDTO>> GetRecommendationProduct(string? userid, int productId)
         {
-            List<ProductInfomation> products = new List<ProductInfomation>();
+            List<ProductInfomationDTO> products = new List<ProductInfomationDTO>();
             // 目前假設是返回新品上市
             // 之後可以改成 用戶瀏覽紀錄 or 依照 productId 找出先關聯的產品
             products = _repository.GetProductsByKind("new-arrival");
 
 
-            return new ServiceResult<List<ProductInfomation>>
+            return new ServiceResult<List<ProductInfomationDTO>>
             {
                 IsSuccess = true,
                 Data = products

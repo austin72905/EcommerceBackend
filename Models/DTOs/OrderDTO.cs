@@ -9,7 +9,7 @@ namespace EcommerceBackend.Models.DTOs
 
         public int UserId { get; set; }
 
-        public List<ProductWithCount>? ProductList { get; set; }
+        public List<ProductWithCountDTO>? ProductList { get; set; }
         public int OrderPrice { get; set; }
 
         public OrderAddress? Address { get; set; }

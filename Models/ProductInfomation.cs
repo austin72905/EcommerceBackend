@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using EcommerceBackend.Models.DTOs;
+using System.ComponentModel.DataAnnotations;
 
 namespace EcommerceBackend.Models
 {
@@ -38,9 +39,11 @@ namespace EcommerceBackend.Models
 
     public class ProductWithCount
     {
-        public ProductInfomation? product { get; set; }
+        public ProductInfomationDTO? product { get; set; }
 
         public int Count { get; set; }
+
+        public ProductVariant? SelectedVariant { get; set; }
     }
 
     public class ProductSelection
@@ -75,18 +78,6 @@ namespace EcommerceBackend.Models
     }
 
 
-    public class ProductVariantDTO
-    {
-        public int VariantID { get; set; }
-        public string? Color { get; set; }
-
-        public string? Size { get; set; }
-
-        public int Stock { get; set; }
-
-        public string? SKU { get; set; }
-
-        public int Price { get; set; }
-    }
+    
 
 }

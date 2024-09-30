@@ -1,9 +1,10 @@
 ﻿using EcommerceBackend.Models;
+using EcommerceBackend.Models.DTOs;
 
 namespace EcommerceBackend.Interfaces.Repositorys
 {
     public interface IOrderRepostory
     {
-        public List<OrderInfomation> GetOrdersByUserId(string userid);
+        public List<OrderInfomationDTO> GetOrdersByUserId(string userid);
     }
 }

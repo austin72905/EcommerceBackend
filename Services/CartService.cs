@@ -1,6 +1,7 @@
 ﻿using EcommerceBackend.Interfaces.Repositorys;
 using EcommerceBackend.Interfaces.Services;
 using EcommerceBackend.Models;
+using EcommerceBackend.Models.DTOs;
 
 namespace EcommerceBackend.Services
 {
@@ -16,9 +17,9 @@ namespace EcommerceBackend.Services
             _cartRepository= cartRepository;
         }
 
-        public List<ProductSelection> GetCartContent(int userid)
+        public List<ProductWithCountDTO> GetCartContent(int userid)
         {
-            var productSelectionList = new List<ProductSelection>();
+            var productSelectionList = new List<ProductWithCountDTO>();
 
             var cartId=_cartRepository.GetCartByUserId(userid);
             var cartItemList = _cartRepository.GetCartItemByCartId(userid);
@@ -27,11 +28,9 @@ namespace EcommerceBackend.Services
             {
                var product = _productRepository.GetProductById(cartItem.ProductId);
 
-                productSelectionList.Add(new ProductSelection 
+                productSelectionList.Add(new ProductWithCountDTO
                 { 
                     Product = product,
-                    SelectColor= cartItem.SelectColor,
-                    SelectSize= cartItem.SelectSize,
                     Count =cartItem.Quantity
                 });
             }

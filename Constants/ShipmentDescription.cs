@@ -4,7 +4,7 @@ namespace EcommerceBackend.Constants
 {
     public class ShipmentDescription
     {
-        public static Dictionary<ShipmentStatus, string> OrderstepMap = new Dictionary<ShipmentStatus, string>()
+        public static Dictionary<ShipmentStatus, string> ShipmentMap = new Dictionary<ShipmentStatus, string>()
         {
             { ShipmentStatus.Pending,"尚未出貨" },
 
