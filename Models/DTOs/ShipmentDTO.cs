@@ -1,8 +1,10 @@
-﻿namespace EcommerceBackend.Models.DTOs
+﻿using EcommerceBackend.Enums;
+
+namespace EcommerceBackend.Models.DTOs
 {
     public class ShipmentDTO
     {
-        public string? Description { get; set; }
+        public ShipmentStatus Status { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
 

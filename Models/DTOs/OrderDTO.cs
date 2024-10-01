@@ -31,7 +31,7 @@ namespace EcommerceBackend.Models.DTOs
 
     public class OrderStepDTO
     {
-        public string? Description { get; set; }
+        public OrderStepStatus Status { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
 }

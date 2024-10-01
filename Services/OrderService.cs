@@ -12,6 +12,18 @@ namespace EcommerceBackend.Services
         {
             _orderRepostory = orderRepostory;
         }
+
+        public ServiceResult<OrderInfomationDTO> GetOrderInfo(string userid, string recordCode)
+        {
+            var orderInfo = _orderRepostory.GetOrderInfoByUserId(userid, recordCode);
+
+            return new ServiceResult<OrderInfomationDTO>()
+            {
+                IsSuccess = true,
+                Data = orderInfo
+            };
+        }
+
         public ServiceResult<List<OrderInfomationDTO>>  GetOrders(string userid)
         {
             var orderList=_orderRepostory.GetOrdersByUserId(userid);

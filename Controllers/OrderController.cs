@@ -38,5 +38,28 @@ namespace EcommerceBackend.Controllers
             }
             
         }
+
+        [HttpGet("GetOrderInfo")]
+        public async Task<IActionResult> GetOrderInfo([FromQuery]string recordCode)
+        {
+            ApiResponse resp;
+
+            if (UserInfo == null)
+            {
+
+                return UnAuthorized();
+            }
+
+            var result = _orderService.GetOrderInfo(UserInfo.UserId, recordCode);
+            if (result.IsSuccess)
+            {
+                return Success(result.Data);
+            }
+            else
+            {
+                return Fail();
+            }
+
+        }
     }
 }

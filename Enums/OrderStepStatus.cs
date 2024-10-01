@@ -1,6 +1,6 @@
 ﻿namespace EcommerceBackend.Enums
 {
-    public enum OrderStep
+    public enum OrderStepStatus
     {
         /// <summary>
         /// 訂單已成立
@@ -30,6 +30,12 @@
         /// <summary>
         /// 已完成訂單
         /// </summary>
-        OrderCompleted = 5
+        OrderCompleted = 5,
+
+
+        /// <summary>
+        /// 已取消訂單
+        /// </summary>
+        OrderCanceled = 6
     }
 }
