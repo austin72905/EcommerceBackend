@@ -83,7 +83,7 @@ namespace EcommerceBackend.Repositorys
                             Price=211
                         }
                     },
-                    CoverImg=""
+                    CoverImg="http://localhost:9000/coat1.jpg"
                 },
                 new ProductInfomationDTO
                 {
@@ -143,7 +143,7 @@ namespace EcommerceBackend.Repositorys
                             Price=211
                         }
                     },
-                    CoverImg=""
+                    CoverImg="http://localhost:9000/coat4.jpg"
                 },
                 new ProductInfomationDTO
                 {
@@ -203,7 +203,7 @@ namespace EcommerceBackend.Repositorys
                             Price=211
                         }
                     },
-                    CoverImg=""
+                    CoverImg="http://localhost:9000/coat3.jpg"
                 },
                 new ProductInfomationDTO
                 {
@@ -263,7 +263,7 @@ namespace EcommerceBackend.Repositorys
                             Price=211
                         }
                     },
-                    CoverImg=""
+                    CoverImg="http://localhost:9000/coat2.jpg"
                 },
                 new ProductInfomationDTO
                 {
@@ -323,7 +323,7 @@ namespace EcommerceBackend.Repositorys
                             Price=211
                         }
                     },
-                    CoverImg=""
+                    CoverImg="http://localhost:9000/coat5.jpg"
                 },
 
             };

@@ -67,7 +67,7 @@ namespace EcommerceBackend.DummyData
                             Price=211
                         }
                     },
-                    CoverImg=""
+                    CoverImg="http://localhost:9000/coat1.jpg"
                 },
                 SelectedVariant=new ProductVariantDTO
                         {
@@ -141,7 +141,7 @@ namespace EcommerceBackend.DummyData
                             Price=211
                         }
                     },
-                    CoverImg=""
+                    CoverImg="http://localhost:9000/coat4.jpg"
                 },
                 SelectedVariant=new ProductVariantDTO
                 {
@@ -215,7 +215,7 @@ namespace EcommerceBackend.DummyData
                             Price=211
                         }
                     },
-                    CoverImg=""
+                    CoverImg="http://localhost:9000/coat3.jpg"
                 },
                 SelectedVariant= new ProductVariantDTO
                 {
