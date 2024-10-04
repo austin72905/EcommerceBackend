@@ -19,7 +19,7 @@ namespace EcommerceBackend.DummyData
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",
                     Images=new List<string>(),
-                    Varients=new List<ProductVariantDTO>
+                    Variants=new List<ProductVariantDTO>
                     {
                        new ProductVariantDTO
                         {
@@ -93,7 +93,7 @@ namespace EcommerceBackend.DummyData
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",
                     Images=new List<string>(),
-                    Varients=new List<ProductVariantDTO>
+                    Variants=new List<ProductVariantDTO>
                     {
                         new ProductVariantDTO
                         {
@@ -167,7 +167,7 @@ namespace EcommerceBackend.DummyData
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",
                     Images=new List<string>(),
-                    Varients=new List<ProductVariantDTO>
+                    Variants=new List<ProductVariantDTO>
                     {
                         new ProductVariantDTO
                         {

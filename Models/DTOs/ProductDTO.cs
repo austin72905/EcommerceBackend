@@ -13,7 +13,7 @@
 
         public List<string>? Material { get; set; }
 
-        public List<ProductVariantDTO>? Varients { get; set; }
+        public List<ProductVariantDTO>? Variants { get; set; }
 
         public string? HowToWash { get; set; }
 
