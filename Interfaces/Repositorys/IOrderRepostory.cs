@@ -8,5 +8,7 @@ namespace EcommerceBackend.Interfaces.Repositorys
         public List<OrderInfomationDTO> GetOrdersByUserId(string userid);
 
         public OrderInfomationDTO GetOrderInfoByUserId(string userid,string recordCode);
+
+        public PaymentRequestDataWithUrl GenerateOrder();
     }
 }

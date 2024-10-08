@@ -8,5 +8,11 @@ namespace EcommerceBackend.Interfaces.Services
         public ServiceResult<List<OrderInfomationDTO>> GetOrders(string userid);
 
         public ServiceResult<OrderInfomationDTO> GetOrderInfo(string userid,string recordCode);
+
+
+        public ServiceResult<PaymentRequestDataWithUrl> GenerateOrder();
+
+
+
     }
 }

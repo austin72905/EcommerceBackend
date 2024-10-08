@@ -14,19 +14,21 @@ if (string.IsNullOrEmpty(redisConnectionString))
     throw new ArgumentNullException("RedisConnString", "Environment variable RedisConnString is not set or is empty.");
 }
 
+//ª`¤J IHttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
 // Add services to the container.
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>(); 
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<IOrderRepostory, OrderRepostory>();
-
-
-
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp=> 
 {

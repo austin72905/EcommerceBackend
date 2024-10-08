@@ -3,11 +3,24 @@ using EcommerceBackend.Enums;
 using EcommerceBackend.Interfaces.Repositorys;
 using EcommerceBackend.Models;
 using EcommerceBackend.Models.DTOs;
+using EcommerceBackend.Utils;
 
 namespace EcommerceBackend.Repositorys
 {
     public class OrderRepostory : IOrderRepostory
     {
+
+        public PaymentRequestDataWithUrl GenerateOrder()
+        {
+            return new PaymentRequestDataWithUrl
+            {
+                Amount = "100",
+                PaymentUrl = "http://localhost:5025/Payment/ECPayPayment",
+                RecordNo = $"RK{Tools.TimeStamp()}",
+                PayType = "Credit"
+            };
+        }
+
         public OrderInfomationDTO GetOrderInfoByUserId(string userid, string recordCode)
         {
             var order = new OrderInfomationDTO

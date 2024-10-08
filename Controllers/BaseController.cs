@@ -2,6 +2,8 @@
 using EcommerceBackend.Models;
 using EcommerceBackend.Models.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System.Text;
 using System.Text.Json;
 
 namespace EcommerceBackend.Controllers
@@ -90,6 +92,27 @@ namespace EcommerceBackend.Controllers
 
 
             return Ok(response);
+        }
+
+        /// <summary>
+        /// 返回自動提交的表單給用戶
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="keyValues"></param>
+        /// <returns></returns>
+        protected ContentResult AutoSubmitFormHtml(IEnumerable<KeyValuePair<string, string>> keyValues,string url)
+        {          
+            StringBuilder sb = new StringBuilder();
+            sb.Append("<form action='" + url + $"' method='POST'>");
+            foreach (KeyValuePair<string, string> kv in keyValues)
+            {
+                sb.Append("<input type='hidden' name='" + kv.Key + "' value='" + kv.Value + "'/>");
+            }
+            sb.Append("</form>");
+            sb.Append("<script>document.forms[0].submit();</script>");
+            string html = sb.ToString();
+
+            return Content(html, "text/html", Encoding.UTF8);
         }
     }
 }

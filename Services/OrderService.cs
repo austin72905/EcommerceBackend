@@ -35,5 +35,16 @@ namespace EcommerceBackend.Services
             };
 
         }
+
+
+        public ServiceResult<PaymentRequestDataWithUrl> GenerateOrder()
+        {
+            var paymentData=_orderRepostory.GenerateOrder();
+            return new ServiceResult<PaymentRequestDataWithUrl>
+            {
+                IsSuccess = true,
+                Data = paymentData
+            };
+        }
     }
 }

@@ -61,5 +61,20 @@ namespace EcommerceBackend.Controllers
             }
 
         }
+
+        [HttpPost("SubmitOrder")]
+        public async Task<IActionResult> SubmitOrder()
+        {
+           
+            var result = _orderService.GenerateOrder();
+            if (result.IsSuccess)
+            {
+                return Success(result.Data);
+            }
+            else
+            {
+                return Fail();
+            }
+        }
     }
 }
