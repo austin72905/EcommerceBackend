@@ -30,7 +30,8 @@ namespace EcommerceBackend.Repositorys
                     Title="超時尚流蘇几皮外套",
                     ProductId=26790367,
                     Stock=60,
-                    Price=100,
+                    Price=150,
+                    DiscountPrice=100,
                     Material=new List<string>{ "聚酯纖維", "聚氨酯纖維"},
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",
@@ -91,6 +92,7 @@ namespace EcommerceBackend.Repositorys
                     ProductId=26790368,
                     Stock=5,
                     Price=598,
+                    DiscountPrice=500,
                     Material=new List<string>{ "聚酯纖維", "聚氨酯纖維"},
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",
@@ -151,6 +153,7 @@ namespace EcommerceBackend.Repositorys
                     ProductId=13790367,
                     Stock=18,
                     Price=179,
+                    DiscountPrice=159,
                     Material=new List<string>{ "聚酯纖維", "聚氨酯纖維"},
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",
@@ -271,6 +274,7 @@ namespace EcommerceBackend.Repositorys
                     ProductId=34690012,
                     Stock=60,
                     Price=799,
+                    DiscountPrice=599,
                     Material=new List<string>{ "聚酯纖維", "聚氨酯纖維"},
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",
@@ -284,7 +288,8 @@ namespace EcommerceBackend.Repositorys
                             Size="S",
                             SKU="BLACK-S",
                             Stock=2,
-                            Price=99
+                            Price=99,
+                            DiscountPrice=22
                         },
                         new ProductVariantDTO
                         {

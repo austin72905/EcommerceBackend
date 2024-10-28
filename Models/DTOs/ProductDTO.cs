@@ -8,6 +8,8 @@
 
         public int Price { get; set; }
 
+        public int DiscountPrice { get; set; }
+
         public int Stock { get; set; }
 
 
@@ -53,5 +55,7 @@
         public string? SKU { get; set; }
 
         public int Price { get; set; }
+
+        public int DiscountPrice { get; set; }
     }
 }
