@@ -7,9 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="DBContext\" />
-    <Folder Include="Repositories\" />
+    <Folder Include="Interfaces\Repositories\" />
+    <Folder Include="Interfaces\Services\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\EcommerceBackend\EcommerceBackend.csproj" />
+  </ItemGroup>
 
 </Project>
