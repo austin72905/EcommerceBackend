@@ -1,13 +1,9 @@
-﻿using DataSource.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Domain.Entities;
+using Domain.Interfaces.Repositories;
 
 namespace DataSource.Repositories
 {
-    public class PaymentRepository
+    public class PaymentRepository: IPaymentRepository
     {
         public Payments? GetTenantConfig()
         {

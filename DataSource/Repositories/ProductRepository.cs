@@ -1,13 +1,9 @@
-﻿using DataSource.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Domain.Entities;
+using Domain.Interfaces.Repositories;
 
 namespace DataSource.Repositories
 {
-    public class ProductRepository
+    public class ProductRepository: IProductRepository
     {
         public IEnumerable<Product> GetProductsByKind(string kind)
         {
