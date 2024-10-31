@@ -4,7 +4,7 @@ namespace Domain.Interfaces.Repositories
 {
     public interface ICartRepository
     {
-        public Cart GetCartByUserId(int userId);
+        public Task<Cart?> GetCartByUserId(int userId);
 
 
     }

@@ -13,11 +13,14 @@
         public int Status { get; set; }
         public int PayWay { get; set; }
         public int ShippingPrice { get; set; }
+        public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
         public User User { get; set; }
         public UserShipAddress Address { get; set; }
         public ICollection<OrderProduct> OrderProducts { get; set; }
         public ICollection<OrderStep> OrderSteps { get; set; }
+
+        public ICollection<Shipment> Shipments { get; set; }
     }
 }

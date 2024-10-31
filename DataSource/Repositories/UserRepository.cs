@@ -1,38 +1,55 @@
-﻿using Domain.Entities;
+﻿using DataSource.DBContext;
+using Domain.Entities;
 using Domain.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataSource.Repositories
 {
-    public class UserRepository: IUserRepository
+    public class UserRepository : Repository<User>, IUserRepository
     {
-        public IEnumerable<int> GetFavoriteProductIdsByUser(string userId)
+        public UserRepository(EcommerceDBContext context) : base(context)
+        {
+        }
+
+        public IEnumerable<int> GetFavoriteProductIdsByUser(int userId)
         {
             throw new NotImplementedException();
         }
 
-        public User? GetUserInfo(string userid)
+        public User? GetUserInfo(int userid)
         {
-            throw new NotImplementedException();
+            return _dbSet
+                .Where(u => u.Id == userid)
+                .FirstOrDefault();
+
         }
 
-        public IEnumerable<UserShipAddress> GetUserShippingAddress(string userid)
+        public IEnumerable<UserShipAddress> GetUserShippingAddress(int userid)
         {
-            throw new NotImplementedException();
+            return _context.UserShipAddresses
+                .Where(us => us.UserId == userid).AsNoTracking();
+
         }
 
-        public string AddUserShippingAddress(string userid, string address)
+        public async Task AddUserShippingAddress(int userid, string address)
         {
-            throw new NotImplementedException();
+            await _context.UserShipAddresses.AddAsync(new UserShipAddress());
+            await _context.SaveChangesAsync();
         }
 
-        public string ModifyUserShippingAddress(string userid, string address)
+        public async Task ModifyUserShippingAddress(int userid, string address)
         {
-            throw new NotImplementedException();
+            await _context.UserShipAddresses
+                    .Where(us => us.UserId == userid && us.Id == 1)
+                    .ExecuteUpdateAsync(set => set
+                    .SetProperty(prop => prop.RecipientName, address)
+                    .SetProperty(prop => prop.UpdatedAt, DateTime.Now));
         }
 
-        public string DeleteUserShippingAddress(string userid, int addressId)
+        public async Task DeleteUserShippingAddress(int userid, int addressId)
         {
-            throw new NotImplementedException();
+            await _context.UserShipAddresses.Where(us => us.UserId == userid && us.Id == addressId).ExecuteDeleteAsync();
+
         }
     }
 }

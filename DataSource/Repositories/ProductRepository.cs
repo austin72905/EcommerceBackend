@@ -1,23 +1,40 @@
-﻿using Domain.Entities;
+﻿using DataSource.DBContext;
+using Domain.Entities;
 using Domain.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataSource.Repositories
 {
-    public class ProductRepository: IProductRepository
+    public class ProductRepository : Repository<Product>, IProductRepository
     {
-        public IEnumerable<Product> GetProductsByKind(string kind)
+        public ProductRepository(EcommerceDBContext context) : base(context)
         {
-            throw new NotImplementedException();
         }
 
-        public IEnumerable<Product> GetProductsByTag(string tag)
+        public async Task<IEnumerable<Product>> GetProductsByKind(string kind)
         {
-            throw new NotImplementedException();
+            return await  _dbSet
+                .Include(p => p.ProductKindTags)
+                    .ThenInclude(pkt => pkt.Kind)
+                .Where(p => p.ProductKindTags.Any(pkt => pkt.Kind.Name == kind))
+                .ToListAsync();
+
         }
 
-        public Product? GetProductById(int productId)
+        public async Task<IEnumerable<Product>> GetProductsByTag(string tag)
         {
-            throw new NotImplementedException();
+            return await _dbSet
+                .Include(p => p.ProductKindTags)
+                    .ThenInclude(pkt => pkt.Kind)
+                .Where(p => p.ProductKindTags.Any(pkt => pkt.Tag.Name == tag))
+                .ToListAsync();
+        }
+
+        public async Task<Product?> GetProductById(int productId)
+        {
+            return await _dbSet
+                .Where(p => p.Id == productId)
+                .FirstOrDefaultAsync();
         }
     }
 }

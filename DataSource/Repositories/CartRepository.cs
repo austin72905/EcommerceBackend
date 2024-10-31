@@ -1,18 +1,30 @@
-﻿using Domain.Entities;
+﻿using DataSource.DBContext;
+using Domain.Entities;
 using Domain.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataSource.Repositories
 {
-    public class CartRepository: ICartRepository
+    public class CartRepository: Repository<Cart>,ICartRepository
     {
-        public Cart GetCartByUserId(int userId)
+        public CartRepository(EcommerceDBContext context) : base(context)
         {
-            throw new NotImplementedException();
         }
 
-        public IEnumerable<CartItem> GetCartItemByCartId(int cartId)
+        public async Task<Cart?> GetCartByUserId(int userId)
         {
-            throw new NotImplementedException();
+            return await _dbSet
+                .Include(c => c.CartItems)
+                    .ThenInclude(ct => ct.ProductVariant)
+                        .ThenInclude(pv => pv.Product)
+                .Include(c => c.CartItems)
+                    .ThenInclude(ct => ct.ProductVariant)
+                        .ThenInclude(pv => pv.Size)
+                .Where(c => c.UserId == userId)
+                .FirstOrDefaultAsync();
+
         }
+
+
     }
 }

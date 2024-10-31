@@ -11,9 +11,14 @@
         public string CoverImg { get; set; }
         public string Material { get; set; }
 
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+
+        public ICollection<ProductKindTag> ProductKindTags { get; set; }
+
         public ICollection<ProductDiscount> ProductDiscounts { get; set; }
         public ICollection<ProductVariant> ProductVariants { get; set; }
         public ICollection<ProductMaterial> ProductMaterials { get; set; }
-        public ICollection<ProductImages> ProductImages { get; set; }
+        public ICollection<ProductImage> ProductImages { get; set; }
     }
 }

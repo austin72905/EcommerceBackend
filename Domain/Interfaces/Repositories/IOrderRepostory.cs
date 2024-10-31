@@ -9,10 +9,10 @@ namespace Domain.Interfaces.Repositories
 {
     public interface IOrderRepostory
     {
-        public IEnumerable<Order> GetOrdersByUserId(string userid);
+        public Task<IEnumerable<Order>> GetOrdersByUserId(int userid);
 
-        public Order? GetOrderInfoByUserId(string userid, string recordCode);
+        public Task<Order?> GetOrderInfoByUserId(int userid, string recordCode);
 
-        public void GenerateOrder();
+        public Task GenerateOrder();
     }
 }

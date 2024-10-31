@@ -1,6 +1,6 @@
 ﻿namespace Domain.Entities
 {
-    public class Payments
+    public class Payment
     {
         public int Id { get; set; }
         public int OrderId { get; set; }

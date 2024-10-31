@@ -9,11 +9,11 @@ namespace Domain.Interfaces.Repositories
 {
     public interface IProductRepository
     {
-        public IEnumerable<Product> GetProductsByKind(string kind);
+        public Task<IEnumerable<Product>> GetProductsByKind(string kind);
 
-        public IEnumerable<Product> GetProductsByTag(string tag);
+        public Task<IEnumerable<Product>> GetProductsByTag(string tag);
 
-        public Product? GetProductById(int productId);
+        public Task<Product?> GetProductById(int productId);
 
     }
 }

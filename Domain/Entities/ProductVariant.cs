@@ -10,6 +10,10 @@
         public string SKU { get; set; }
         public int VariantPrice { get; set; }
 
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+
+        // 導航屬性
         public Product Product { get; set; }
         public Size Size { get; set; }
         public ICollection<ProductVariantDiscount> ProductVariantDiscounts { get; set; }

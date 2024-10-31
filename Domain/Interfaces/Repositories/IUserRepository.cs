@@ -4,15 +4,15 @@ namespace Domain.Interfaces.Repositories
 {
     public interface IUserRepository
     {
-        public IEnumerable<int> GetFavoriteProductIdsByUser(string userId);
-        public User? GetUserInfo(string userid);
+        public IEnumerable<int> GetFavoriteProductIdsByUser(int userId);
+        public User? GetUserInfo(int userid);
 
-        public IEnumerable<UserShipAddress> GetUserShippingAddress(string userid);
+        public IEnumerable<UserShipAddress> GetUserShippingAddress(int userid);
 
-        public string AddUserShippingAddress(string userid, string address);
+        public Task AddUserShippingAddress(int userid, string address);
 
-        public string ModifyUserShippingAddress(string userid, string address);
+        public Task ModifyUserShippingAddress(int userid, string address);
 
-        public string DeleteUserShippingAddress(string userid, int addressId);
+        public Task DeleteUserShippingAddress(int userid, int addressId);
     }
 }

@@ -16,7 +16,7 @@
         public DateTime UpdatedAt { get; set; }
         public DateTime LastLogin { get; set; }
 
-        public ICollection<FavoriteProducts> FavoriteProducts { get; set; }
+        public ICollection<FavoriteProduct> FavoriteProducts { get; set; }
         public ICollection<UserShipAddress> UserShipAddresses { get; set; }
     }
 }

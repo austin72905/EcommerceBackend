@@ -1,6 +1,6 @@
 ﻿namespace Domain.Entities
 {
-    public class ProductImages
+    public class ProductImage
     {
         public int Id { get; set; }
         public int ProductId { get; set; }
