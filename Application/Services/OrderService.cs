@@ -19,7 +19,7 @@ namespace Application.Services
 
         public  async Task<ServiceResult<OrderInfomationDTO>> GetOrderInfo(int userid, string recordCode)
         {
-            var orderInfo =await _orderRepostory.GetOrderInfoByUserId(userid, recordCode);
+            //var orderInfo =await _orderRepostory.GetOrderInfoByUserId(userid, recordCode);
 
             var orderDto = new OrderInfomationDTO
             {
@@ -105,7 +105,7 @@ namespace Application.Services
 
         public async Task<ServiceResult<List<OrderInfomationDTO>>>  GetOrders(int userid)
         {
-            var orderList=await _orderRepostory.GetOrdersByUserId(userid);
+            //var orderList=await _orderRepostory.GetOrdersByUserId(userid);
 
             var ordersDto = new List<OrderInfomationDTO>()
             {
@@ -254,7 +254,7 @@ namespace Application.Services
 
         public async Task<ServiceResult<PaymentRequestDataWithUrl>> GenerateOrder()
         {
-            await _orderRepostory.GenerateOrder();
+            //await _orderRepostory.GenerateOrder();
 
             return new ServiceResult<PaymentRequestDataWithUrl>
             {

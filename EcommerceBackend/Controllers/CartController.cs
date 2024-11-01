@@ -1,4 +1,4 @@
-﻿using EcommerceBackend.Interfaces.Services;
+﻿using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EcommerceBackend.Controllers

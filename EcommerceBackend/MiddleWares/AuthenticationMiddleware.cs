@@ -1,5 +1,5 @@
-﻿using EcommerceBackend.Enums;
-
+﻿
+using Domain.Enums;
 using EcommerceBackend.Models;
 using Infrastructure.Interfaces;
 

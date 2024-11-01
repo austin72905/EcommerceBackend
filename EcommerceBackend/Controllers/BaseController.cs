@@ -1,5 +1,5 @@
 ﻿using Application.DTOs;
-using EcommerceBackend.Enums;
+using Domain.Enums;
 using EcommerceBackend.Models;
 
 using Microsoft.AspNetCore.Mvc;

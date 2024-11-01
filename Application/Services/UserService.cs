@@ -1,6 +1,7 @@
 ﻿using Application.DTOs;
 using Application.Interfaces;
 using Application.Oauth;
+using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Infrastructure.Interfaces;
 using Microsoft.AspNetCore.WebUtilities;
@@ -157,6 +158,7 @@ namespace Application.Services
                 var userInfo = new UserInfoDTO
                 {
                     //UserId = jwtUserInfo.Sub,
+                    UserId=1,
                     Email = jwtUserInfo.Email,
                     Username = jwtUserInfo.Name,
                     Picture = jwtUserInfo.Picture,

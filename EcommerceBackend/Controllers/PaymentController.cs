@@ -1,6 +1,6 @@
-﻿using EcommerceBackend.Interfaces.Services;
-using EcommerceBackend.Models;
-using EcommerceBackend.Services;
+﻿
+using Application;
+using Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
@@ -19,9 +19,9 @@ namespace EcommerceBackend.Controllers
 
         //綠界支付
         [HttpGet("ECPayPayment")]
-        public IActionResult ECPayPayment([FromQuery] PaymentRequestData requestData)
+        public async Task<IActionResult> ECPayPayment([FromQuery] PaymentRequestData requestData)
         {
-            var result = _paymentService.PayRedirect(requestData);
+            var result =await _paymentService.PayRedirect(requestData);
 
             if (!result.IsSuccess || result.Data == null)
             {
@@ -34,9 +34,9 @@ namespace EcommerceBackend.Controllers
 
         //回調通知
         [HttpPost("ECPayReturn")]
-        public IActionResult ECPayReturn()
+        public async Task<IActionResult> ECPayReturn()
         {
-            var result = _paymentService.PayReturn();
+            var result =await _paymentService.PayReturn();
             if (!result.IsSuccess || result.Data == null)
             {
                 return Content("支付回調異常，請聯繫管理員");

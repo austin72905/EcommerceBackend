@@ -30,6 +30,7 @@ namespace EcommerceBackend.Controllers
             }
 
             var result=await _orderService.GetOrders(UserInfo.UserId);
+
             if (result.IsSuccess)
             {
                 return Success(result.Data);

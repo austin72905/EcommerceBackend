@@ -1,4 +1,6 @@
-﻿using EcommerceBackend.Enums;
+﻿
+
+using Domain.Enums;
 
 namespace EcommerceBackend.Constants
 {
