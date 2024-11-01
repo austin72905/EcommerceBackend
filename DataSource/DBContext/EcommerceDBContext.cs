@@ -1,5 +1,7 @@
 ﻿using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace DataSource.DBContext
 {
@@ -28,6 +30,15 @@ namespace DataSource.DBContext
         public DbSet<OrderStep> OrderSteps { get; set; }
         public DbSet<Shipment> Shipments { get; set; }
         public DbSet<Payment> Payments { get; set; }
+
+        public DbSet<TenantConfig> TenantConfigs { get; set; }
+
+
+        public EcommerceDBContext(DbContextOptions<EcommerceDBContext> options) : base(options)
+        {
+
+        }
+
 
         // set seeding data
         protected override void OnModelCreating(ModelBuilder modelBuilder)

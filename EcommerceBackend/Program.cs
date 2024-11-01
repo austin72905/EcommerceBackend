@@ -1,8 +1,14 @@
-using EcommerceBackend.Interfaces.Repositorys;
-using EcommerceBackend.Interfaces.Services;
+using Application.Interfaces;
+using Application.Services;
+using DataSource.DBContext;
+using DataSource.Repositories;
+using Domain.Interfaces.Repositories;
 using EcommerceBackend.MiddleWares;
-using EcommerceBackend.Repositorys;
-using EcommerceBackend.Services;
+
+using Infrastructure.Cache;
+using Infrastructure.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +19,9 @@ if (string.IsNullOrEmpty(redisConnectionString))
 {
     throw new ArgumentNullException("RedisConnString", "Environment variable RedisConnString is not set or is empty.");
 }
+
+builder.Services.AddDbContext<EcommerceDBContext>(options =>
+    options.UseSqlite("Data Source=Ecommerce_Shop.db"));
 
 //ª`¤J IHttpContextAccessor
 builder.Services.AddHttpContextAccessor();

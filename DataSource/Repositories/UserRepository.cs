@@ -13,7 +13,8 @@ namespace DataSource.Repositories
 
         public IEnumerable<int> GetFavoriteProductIdsByUser(int userId)
         {
-            throw new NotImplementedException();
+            // UserFavorites 表
+            return new List<int>() { 26790367, 2, 3 };
         }
 
         public User? GetUserInfo(int userid)

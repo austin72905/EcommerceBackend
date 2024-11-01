@@ -1,6 +1,9 @@
-﻿using EcommerceBackend.Interfaces.Services;
-using EcommerceBackend.Models;
-using EcommerceBackend.Models.DTOs;
+﻿
+using Application;
+using Application.DTOs;
+using Application.Interfaces;
+using Application.Oauth;
+using Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -120,7 +123,7 @@ namespace EcommerceBackend.Controllers
      
             
             
-            
+            // 去redis緩存找
             if (SessionId != null)
             {
                 var userInfo = await _redisService.GetUserInfoAsync(SessionId);
@@ -138,12 +141,8 @@ namespace EcommerceBackend.Controllers
             }
             else
             {
-                var result = _userService.GetUserInfo(UserId);
-                if (result.IsSuccess)
-                {
-                    user = result.Data;
-                }
-                
+                return Fail("請重新登入");
+
             }
 
             return Success(user);
@@ -164,15 +163,15 @@ namespace EcommerceBackend.Controllers
         [HttpGet("GetUserShippingAddress")]
         public IActionResult GetUserShippingAddress()
         {
-            
-            string? userid = UserInfo != null ? UserInfo.UserId : null;
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
             if (UserInfo == null)
             {
                 return Fail("請重新登入");
               
             }
 
-            var address = _userService.GetUserShippingAddress(UserInfo.UserId);
+            var address = _userService.GetUserShippingAddress(userid);
             return Success(address);
          
         }
@@ -180,8 +179,8 @@ namespace EcommerceBackend.Controllers
         [HttpPost("ModifyDefaultShippingAddress")]
         public IActionResult ModifyDefaultShippingAddress([FromBody] UserShipAddressDTO address)
         {
-          
-            string? userid = UserInfo != null ? UserInfo.UserId : null;
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
             if (UserInfo == null)
             {
                 return Fail("請重新登入");
@@ -195,8 +194,8 @@ namespace EcommerceBackend.Controllers
         [HttpPost("AddShippingAddress")]
         public IActionResult AddShippingAddress([FromBody] UserShipAddressDTO address)
         {
-       
-            string? userid = UserInfo != null ? UserInfo.UserId : null;
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
             if (UserInfo == null)
             {
                 return Fail("請重新登入");
@@ -211,7 +210,7 @@ namespace EcommerceBackend.Controllers
         public IActionResult DeleteShippingAddress([FromBody] UserShipAddressDTO address)
         {
 
-            string? userid = UserInfo != null ? UserInfo.UserId : null;
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
             if (UserInfo == null)
             {
                 return Fail("請重新登入");

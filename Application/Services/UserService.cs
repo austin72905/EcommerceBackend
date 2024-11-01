@@ -1,10 +1,10 @@
-﻿
-using Application;
-using Application.DTOs;
+﻿using Application.DTOs;
 using Application.Interfaces;
 using Application.Oauth;
 using Domain.Interfaces.Repositories;
 using Infrastructure.Interfaces;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Configuration;
 using System.Text;
 using System.Text.Json;
 
@@ -22,72 +22,76 @@ namespace Application.Services
             _redisService = redisService;
         }
 
-        public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(string userid)
+        public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(int userid)
         {
             var addressList = _userRepository.GetUserShippingAddress(userid).ToList();
+
+            var addressListDto = new List<UserShipAddressDTO>();
 
             return new ServiceResult<List<UserShipAddressDTO>>()
             {
                 IsSuccess = true,
-                Data = addressList
+                Data = addressListDto
             };
 
         }
 
-        public ServiceResult<UserInfoDTO> GetUserInfo(string userid)
+        public ServiceResult<UserInfoDTO> GetUserInfo(int userid)
         {
-            if (userid == null)
-            {
-                return new ServiceResult<UserInfoDTO>() 
-                { 
-                    IsSuccess=false,
-                    ErrorMessage="userid不得為空"
+            //if (userid == null)
+            //{
+            //    return new ServiceResult<UserInfoDTO>()
+            //    {
+            //        IsSuccess = false,
+            //        ErrorMessage = "userid不得為空"
 
-                };
-            }
+            //    };
+            //}
 
             var user = _userRepository.GetUserInfo(userid);
+
+            var userInfoDto = new UserInfoDTO();
 
             return new ServiceResult<UserInfoDTO>()
             {
                 IsSuccess = true,
-                Data = user,
+                Data = userInfoDto,
             };
         }
 
-        public string AddUserShippingAddress(string userid, UserShipAddressDTO address)
+        public string AddUserShippingAddress(int userid, UserShipAddressDTO address)
         {
             if (userid == null)
             {
                 return "no";
             }
 
-            var msg = _userRepository.AddUserShippingAddress(userid, address);
+            _userRepository.AddUserShippingAddress(userid, "");
 
-            return msg;
+            return "ok";
         }
 
-        public string ModifyUserShippingAddress(string userid, UserShipAddressDTO address)
+        public string ModifyUserShippingAddress(int userid, UserShipAddressDTO address)
         {
             if (userid == null)
             {
                 return "no";
             }
 
-            var msg = _userRepository.ModifyUserShippingAddress(userid, address);
+             _userRepository.ModifyUserShippingAddress(userid, "");
 
-            return msg;
+            return "ok";
         }
 
-        public string DeleteUserShippingAddress(string userid, int addressId)
+        public string DeleteUserShippingAddress(int userid, int addressId)
         {
             if (userid == null)
             {
                 return "no";
             }
 
-            var msg = _userRepository.DeleteUserShippingAddress(userid, addressId);
-            return msg;
+            _userRepository.DeleteUserShippingAddress(userid, addressId);
+            return "ok";
         }
 
 
@@ -138,7 +142,7 @@ namespace Application.Services
                 //請求錯誤
                 if (result == null || result.id_token == null)
                 {
-                    return new GoogleOAuth { ErrorMessage="some error occured when request token"};
+                    return new GoogleOAuth { ErrorMessage = "some error occured when request token" };
                 }
 
                 var jwtUserInfo = DecodeIDToken(result.id_token);
@@ -152,16 +156,16 @@ namespace Application.Services
 
                 var userInfo = new UserInfoDTO
                 {
-                    UserId = jwtUserInfo.Sub,
+                    //UserId = jwtUserInfo.Sub,
                     Email = jwtUserInfo.Email,
                     Username = jwtUserInfo.Name,
                     Picture = jwtUserInfo.Picture,
                     Type = authLogin.state
                 };
 
-                
 
-                return new GoogleOAuth { UserInfo= userInfo,IsSuccess=true };
+
+                return new GoogleOAuth { UserInfo = userInfo, IsSuccess = true };
             }
             catch (Exception ex)
             {
@@ -170,9 +174,9 @@ namespace Application.Services
 
         }
 
-       
-        
-        
-        
+
+
+
+
     }
 }

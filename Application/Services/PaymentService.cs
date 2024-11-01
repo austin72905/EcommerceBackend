@@ -1,6 +1,9 @@
 ﻿
+using Application.DTOs;
 using Application.Interfaces;
 using Domain.Interfaces.Repositories;
+using Infrastructure.Utils.EncryptMethod;
+using Microsoft.AspNetCore.Http;
 using System.Collections;
 using System.Text.Encodings.Web;
 using System.Web;
@@ -25,7 +28,7 @@ namespace Application.Services
 
 
 
-        public ServiceResult<PaymentInfomation> PayRedirect(PaymentRequestData requestData)
+        public async Task<ServiceResult<PaymentInfomation>> PayRedirect(PaymentRequestData requestData)
         {
             try
             {
@@ -41,7 +44,16 @@ namespace Application.Services
 
 
 
-                //var tenantConfig = _paymentRepository.GetTenantConfig();
+                var config =await  _paymentRepository.GetTenantConfig(requestData.RecordNo);
+
+                var tenantConfig = new TenantConfigDTO() 
+                { 
+                    RecordNo = requestData.RecordNo,
+                    Amount = config.PaymentAmount.ToString(),
+                    MerchantId= config.TenantConfig.MerchantId,
+                    SecretKey=config.TenantConfig.SecretKey,
+                    HashIV=config.TenantConfig.HashIV
+                };
 
                 if (tenantConfig == null)
                 {
@@ -209,7 +221,7 @@ namespace Application.Services
             }
         }
 
-        public ServiceResult<object> PayReturn()
+        public async Task<ServiceResult<object>> PayReturn()
         {
             try
             {
@@ -221,7 +233,7 @@ namespace Application.Services
                 }
 
                 //請求配置
-                var tenantConfig = _paymentRepository.GetTenantConfig();
+                var tenantConfig =await _paymentRepository.GetTenantConfig(recordCode:RecordCode);
 
                 if (tenantConfig == null)
                 {
@@ -233,7 +245,7 @@ namespace Application.Services
                 }
 
                 //驗證回調簽名
-                if (!VerifySign(tenantConfig.SecretKey, tenantConfig.HashIV))
+                if (!VerifySign(tenantConfig.TenantConfig.SecretKey, tenantConfig.TenantConfig.HashIV))
                 {
                     return SignVerificationFailed();
                 }

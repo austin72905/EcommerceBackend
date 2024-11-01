@@ -1,5 +1,7 @@
-﻿using EcommerceBackend.Interfaces.Services;
+﻿
+using Application.Interfaces;
 using EcommerceBackend.Models;
+using Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EcommerceBackend.Controllers
@@ -27,7 +29,7 @@ namespace EcommerceBackend.Controllers
                 return UnAuthorized();
             }
 
-            var result= _orderService.GetOrders(UserInfo.UserId);
+            var result=await _orderService.GetOrders(UserInfo.UserId);
             if (result.IsSuccess)
             {
                 return Success(result.Data);
@@ -50,7 +52,7 @@ namespace EcommerceBackend.Controllers
                 return UnAuthorized();
             }
 
-            var result = _orderService.GetOrderInfo(UserInfo.UserId, recordCode);
+            var result = await _orderService.GetOrderInfo(UserInfo.UserId, recordCode);
             if (result.IsSuccess)
             {
                 return Success(result.Data);
@@ -66,7 +68,7 @@ namespace EcommerceBackend.Controllers
         public async Task<IActionResult> SubmitOrder()
         {
            
-            var result = _orderService.GenerateOrder();
+            var result = await _orderService.GenerateOrder();
             if (result.IsSuccess)
             {
                 return Success(result.Data);

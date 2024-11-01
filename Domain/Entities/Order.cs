@@ -16,8 +16,11 @@
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
+
         public User User { get; set; }
         public UserShipAddress Address { get; set; }
+        public Payment Payment { get; set; }
+
         public ICollection<OrderProduct> OrderProducts { get; set; }
         public ICollection<OrderStep> OrderSteps { get; set; }
 

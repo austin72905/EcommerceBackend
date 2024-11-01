@@ -3,7 +3,7 @@
     // 返回給用戶
     public class UserInfoDTO
     {
-        public string UserId { get; set; } = string.Empty;
+        public int UserId { get; set; } 
         public string? Username { get; set; }
         public string? Email { get; set; }
         public string? NickName { get; set; }  // 用戶自訂義名稱

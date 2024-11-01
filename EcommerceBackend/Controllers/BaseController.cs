@@ -1,8 +1,8 @@
-﻿using EcommerceBackend.Enums;
+﻿using Application.DTOs;
+using EcommerceBackend.Enums;
 using EcommerceBackend.Models;
-using EcommerceBackend.Models.DTOs;
+
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 
@@ -21,7 +21,7 @@ namespace EcommerceBackend.Controllers
 
 
 
-        protected UserInfoDTO? UserInfo
+        protected  UserInfoDTO? UserInfo
         {
             get
             {
@@ -100,8 +100,8 @@ namespace EcommerceBackend.Controllers
         /// <param name="url"></param>
         /// <param name="keyValues"></param>
         /// <returns></returns>
-        protected ContentResult AutoSubmitFormHtml(IEnumerable<KeyValuePair<string, string>> keyValues,string url)
-        {          
+        protected ContentResult AutoSubmitFormHtml(IEnumerable<KeyValuePair<string, string>> keyValues, string url)
+        {
             StringBuilder sb = new StringBuilder();
             sb.Append("<form action='" + url + $"' method='POST'>");
             foreach (KeyValuePair<string, string> kv in keyValues)

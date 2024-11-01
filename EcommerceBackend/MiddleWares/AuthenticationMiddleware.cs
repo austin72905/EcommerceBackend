@@ -1,6 +1,7 @@
 ﻿using EcommerceBackend.Enums;
-using EcommerceBackend.Interfaces.Services;
+
 using EcommerceBackend.Models;
+using Infrastructure.Interfaces;
 
 namespace EcommerceBackend.MiddleWares
 {

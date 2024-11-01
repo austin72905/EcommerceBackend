@@ -4,8 +4,8 @@ namespace Application.Interfaces
 {
     public interface IPaymentService
     {
-        public ServiceResult<PaymentInfomation> PayRedirect(PaymentRequestData requestData);
+        public Task<ServiceResult<PaymentInfomation>> PayRedirect(PaymentRequestData requestData);
 
-        public ServiceResult<object> PayReturn();
+        public Task<ServiceResult<object>> PayReturn();
     }
 }
