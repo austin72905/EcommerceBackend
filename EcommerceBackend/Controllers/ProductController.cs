@@ -114,7 +114,7 @@ namespace EcommerceBackend.Controllers
         {
 
             int userid = UserInfo != null ? UserInfo.UserId : 0;
-            var result = _productervice.GetRecommendationProduct(userid, productId);
+            var result =await _productervice.GetRecommendationProduct(userid, productId);
 
             if (!result.IsSuccess)
             {

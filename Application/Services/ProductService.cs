@@ -32,9 +32,9 @@ namespace Application.Services
 
             }
 
-            var productDto = new ProductInfomationDTO();
+            var productDto = product.ToProductInformationDTO();
 
-            productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
+            //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
 
             return new ServiceResult<ProductResponse>()
             {
@@ -62,9 +62,9 @@ namespace Application.Services
 
             }
 
-            var productDto = new ProductInfomationDTO();
+            var productDto = product.ToProductInformationDTO();
 
-            productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
+            //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
 
             var favoriteProductIds = _userRepository.GetFavoriteProductIdsByUser(userid);
 
@@ -160,6 +160,7 @@ namespace Application.Services
             var products = _repository.GetProductsByTag(tag);
 
             var productsDto = new List<ProductInfomationDTO>();
+
             return new ServiceResult<List<ProductInfomationDTO>>
             {
                 IsSuccess = true,
@@ -171,10 +172,23 @@ namespace Application.Services
 
        
 
-        public ServiceResult<List<ProductInfomationDTO>> GetRecommendationProduct(int userid, int productId)
+        public async Task<ServiceResult<ProductListResponse>> GetRecommendationProduct(int userid, int productId)
         {
-            var productDto = new List<ProductInfomationDTO>();
-            throw new NotImplementedException();
+            var products =await _repository.GetRecommendationProduct(userid, productId);
+            var productsDto = products.ToProductInformationDTOs();
+
+            var favoriteProductIds = _userRepository.GetFavoriteProductIdsByUser(userid);
+            var productWithFavorite = productsDto.Select(p => new ProductWithFavoriteStatusDTO
+            {
+                Product = p,
+                IsFavorite = favoriteProductIds.Contains(p.ProductId)
+            });
+
+            return new ServiceResult<ProductListResponse>
+            {
+                IsSuccess = true,
+                Data = new ProductListResponse { Products = productWithFavorite }
+            };
 
         }
 

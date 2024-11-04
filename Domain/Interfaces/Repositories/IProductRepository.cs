@@ -15,5 +15,7 @@ namespace Domain.Interfaces.Repositories
 
         public Task<Product?> GetProductById(int productId);
 
+        public Task<IEnumerable<Product>> GetRecommendationProduct(int userid, int productId);
+
     }
 }

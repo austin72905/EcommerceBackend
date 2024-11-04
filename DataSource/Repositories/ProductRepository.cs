@@ -33,8 +33,17 @@ namespace DataSource.Repositories
         public async Task<Product?> GetProductById(int productId)
         {
             return await _dbSet
+                .Include(p=>p.ProductVariants)
+                    .ThenInclude(pkt => pkt.Size)
+                .Include(p => p.ProductImages)
                 .Where(p => p.Id == productId)
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<Product>> GetRecommendationProduct(int userid, int productId)
+        {
+            return await _dbSet
+                .ToListAsync();
         }
     }
 }
