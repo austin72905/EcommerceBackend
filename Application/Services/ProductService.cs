@@ -1,6 +1,8 @@
 ﻿using Application.DTOs;
 using Application.Interfaces;
+using Domain.Entities;
 using Domain.Interfaces.Repositories;
+using static Application.Extensions.ProductExtensions;
 
 namespace Application.Services
 {
@@ -85,15 +87,19 @@ namespace Application.Services
                 products = await _repository.GetProductsByTag(tag);
 
             }
-
-            if (!string.IsNullOrEmpty(kind))
+            else if (!string.IsNullOrEmpty(kind))
             {
                 products = await _repository.GetProductsByKind(kind);
 
             }
+            else
+            {
+                products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+            }
 
+            var productsDtos = products.ToProductInformationDTOs();
 
-            var productWithFavorite = fakeProductList.Select(p => new ProductWithFavoriteStatusDTO { Product = p });
+            var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO { Product = p });
 
             return new ServiceResult<ProductListResponse>
             {

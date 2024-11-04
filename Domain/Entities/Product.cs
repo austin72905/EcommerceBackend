@@ -14,7 +14,10 @@
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
-        public ICollection<ProductKindTag> ProductKindTags { get; set; }
+        // 導航屬性
+        public ICollection<ProductTag> ProductTags { get; set; }
+
+        public ICollection<ProductKind> ProductKinds { get; set; }
 
         public ICollection<FavoriteProduct> FavoriteProducts { get; set; }
 

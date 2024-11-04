@@ -91,6 +91,19 @@ namespace DataSource.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Tags",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Tags", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "TenantConfigs",
                 columns: table => new
                 {
@@ -127,26 +140,6 @@ namespace DataSource.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Tags",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    KindId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Tags", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Tags_Kinds_KindId",
-                        column: x => x.KindId,
-                        principalTable: "Kinds",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -191,6 +184,32 @@ namespace DataSource.Migrations
                     table.PrimaryKey("PK_ProductImages", x => x.Id);
                     table.ForeignKey(
                         name: "FK_ProductImages_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProductKinds",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ProductId = table.Column<int>(type: "INTEGER", nullable: false),
+                    KindId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductKinds", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProductKinds_Kinds_KindId",
+                        column: x => x.KindId,
+                        principalTable: "Kinds",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductKinds_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "Id",
@@ -251,6 +270,32 @@ namespace DataSource.Migrations
                         name: "FK_ProductVariants_Sizes_SizeId",
                         column: x => x.SizeId,
                         principalTable: "Sizes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProductTags",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ProductId = table.Column<int>(type: "INTEGER", nullable: false),
+                    TagId = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductTags", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProductTags_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductTags_Tags_TagId",
+                        column: x => x.TagId,
+                        principalTable: "Tags",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -326,39 +371,6 @@ namespace DataSource.Migrations
                         name: "FK_UserShipAddresses_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ProductKindTags",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ProductId = table.Column<int>(type: "INTEGER", nullable: false),
-                    KindId = table.Column<int>(type: "INTEGER", nullable: false),
-                    TagId = table.Column<int>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProductKindTags", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ProductKindTags_Kinds_KindId",
-                        column: x => x.KindId,
-                        principalTable: "Kinds",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ProductKindTags_Products_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "Products",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ProductKindTags_Tags_TagId",
-                        column: x => x.TagId,
-                        principalTable: "Tags",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -557,15 +569,20 @@ namespace DataSource.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "Kinds",
+                columns: new[] { "Id", "Name" },
+                values: new object[] { 1, "clothes" });
+
+            migrationBuilder.InsertData(
                 table: "Products",
                 columns: new[] { "Id", "CoverImg", "CreatedAt", "Features", "HowToWash", "Material", "Price", "Stock", "Title", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, "http://localhost:9000/coat1.jpg", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2784), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 150, 60, "超時尚流蘇几皮外套", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2793) },
-                    { 2, "http://localhost:9000/coat4.jpg", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2795), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 598, 5, "紫色格紋大衣", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2795) },
-                    { 3, "http://localhost:9000/coat3.jpg", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2797), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 179, 18, "超質感綠色皮衣", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2797) },
-                    { 4, "http://localhost:9000/coat2.jpg", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2799), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 100, 60, "海島風情黑色短袖襯衫", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2799) },
-                    { 5, "http://localhost:9000/coat5.jpg", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2800), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 799, 60, "帥氣單寧", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2801) }
+                    { 1, "http://localhost:9000/coat1.jpg", new DateTime(2024, 11, 4, 21, 14, 20, 766, DateTimeKind.Local).AddTicks(9989), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 150, 60, "超時尚流蘇几皮外套", new DateTime(2024, 11, 4, 21, 14, 20, 766, DateTimeKind.Local).AddTicks(9998) },
+                    { 2, "http://localhost:9000/coat4.jpg", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 598, 5, "紫色格紋大衣", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local) },
+                    { 3, "http://localhost:9000/coat3.jpg", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(2), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 179, 18, "超質感綠色皮衣", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(2) },
+                    { 4, "http://localhost:9000/coat2.jpg", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(4), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 100, 60, "海島風情黑色短袖襯衫", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(4) },
+                    { 5, "http://localhost:9000/coat5.jpg", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(5), "其實我也不知道要說什麼...a", "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。", "聚酯纖維, 聚氨酯纖維", 799, 60, "帥氣單寧", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(6) }
                 });
 
             migrationBuilder.InsertData(
@@ -576,6 +593,22 @@ namespace DataSource.Migrations
                     { 1, "S" },
                     { 2, "M" },
                     { 3, "L" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Tags",
+                columns: new[] { "Id", "Name" },
+                values: new object[,]
+                {
+                    { 1, "t-shirt" },
+                    { 2, "shirt" },
+                    { 3, "jeans" },
+                    { 4, "shorts" },
+                    { 5, "windcoat" },
+                    { 6, "knitting" },
+                    { 7, "accessories" },
+                    { 8, "new-arrival" },
+                    { 9, "limit-time-offer" }
                 });
 
             migrationBuilder.InsertData(
@@ -611,34 +644,51 @@ namespace DataSource.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "ProductTags",
+                columns: new[] { "Id", "ProductId", "TagId" },
+                values: new object[,]
+                {
+                    { 1, 1, 1 },
+                    { 2, 1, 4 },
+                    { 3, 2, 2 },
+                    { 4, 3, 3 },
+                    { 5, 3, 5 },
+                    { 6, 3, 5 },
+                    { 7, 4, 6 },
+                    { 8, 5, 8 },
+                    { 9, 5, 8 },
+                    { 10, 5, 9 }
+                });
+
+            migrationBuilder.InsertData(
                 table: "ProductVariants",
                 columns: new[] { "Id", "Color", "CreatedAt", "ProductId", "SKU", "SizeId", "Stock", "UpdatedAt", "VariantPrice" },
                 values: new object[,]
                 {
-                    { 1, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2931), 1, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2931), 99 },
-                    { 2, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2933), 1, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2933), 283 },
-                    { 3, "米", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2935), 1, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2935), 150 },
-                    { 4, "咖啡", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2936), 1, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2937), 199 },
-                    { 5, "咖啡", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2938), 1, "BROWN-L", 3, 20, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2938), 211 },
-                    { 6, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2939), 2, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2940), 99 },
-                    { 7, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2941), 2, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2941), 283 },
-                    { 8, "米", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2942), 2, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2942), 150 },
-                    { 9, "咖啡", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2944), 2, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2944), 199 },
-                    { 10, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2945), 3, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2946), 99 },
-                    { 11, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2947), 3, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2947), 283 },
-                    { 12, "米", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2948), 3, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2948), 150 },
-                    { 13, "咖啡", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2950), 3, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2950), 199 },
-                    { 14, "咖啡", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2951), 3, "BROWN-L", 3, 20, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2951), 211 },
-                    { 15, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2952), 4, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2953), 99 },
-                    { 16, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2954), 4, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2954), 283 },
-                    { 17, "米", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2955), 4, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2956), 150 },
-                    { 18, "咖啡", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2957), 4, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2957), 199 },
-                    { 19, "咖啡", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2958), 4, "BROWN-L", 3, 20, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2958), 211 },
-                    { 20, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2960), 5, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2960), 99 },
-                    { 21, "黑", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2961), 5, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2961), 283 },
-                    { 22, "米", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2962), 5, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2963), 150 },
-                    { 23, "咖啡", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2964), 5, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2964), 199 },
-                    { 24, "咖啡", new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2965), 5, "BROWN-L", 3, 20, new DateTime(2024, 11, 4, 18, 21, 22, 421, DateTimeKind.Local).AddTicks(2965), 211 }
+                    { 1, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(138), 1, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(139), 99 },
+                    { 2, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(141), 1, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(142), 283 },
+                    { 3, "米", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(143), 1, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(144), 150 },
+                    { 4, "咖啡", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(145), 1, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(145), 199 },
+                    { 5, "咖啡", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(146), 1, "BROWN-L", 3, 20, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(147), 211 },
+                    { 6, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(148), 2, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(148), 99 },
+                    { 7, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(150), 2, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(150), 283 },
+                    { 8, "米", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(151), 2, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(151), 150 },
+                    { 9, "咖啡", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(153), 2, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(153), 199 },
+                    { 10, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(154), 3, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(155), 99 },
+                    { 11, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(156), 3, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(156), 283 },
+                    { 12, "米", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(157), 3, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(158), 150 },
+                    { 13, "咖啡", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(159), 3, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(159), 199 },
+                    { 14, "咖啡", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(160), 3, "BROWN-L", 3, 20, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(161), 211 },
+                    { 15, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(162), 4, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(162), 99 },
+                    { 16, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(163), 4, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(164), 283 },
+                    { 17, "米", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(165), 4, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(165), 150 },
+                    { 18, "咖啡", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(166), 4, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(166), 199 },
+                    { 19, "咖啡", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(167), 4, "BROWN-L", 3, 20, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(168), 211 },
+                    { 20, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(169), 5, "BLACK-S", 1, 2, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(169), 99 },
+                    { 21, "黑", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(170), 5, "BLACK-L", 3, 16, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(171), 283 },
+                    { 22, "米", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(172), 5, "WHEAT-L", 3, 3, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(172), 150 },
+                    { 23, "咖啡", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(173), 5, "BROWN-M", 2, 17, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(173), 199 },
+                    { 24, "咖啡", new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(174), 5, "BROWN-L", 3, 20, new DateTime(2024, 11, 4, 21, 14, 20, 767, DateTimeKind.Local).AddTicks(175), 211 }
                 });
 
             migrationBuilder.CreateIndex(
@@ -665,6 +715,12 @@ namespace DataSource.Migrations
                 name: "IX_FavoriteProducts_UserId_ProductId",
                 table: "FavoriteProducts",
                 columns: new[] { "UserId", "ProductId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Kinds_Name",
+                table: "Kinds",
+                column: "Name",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -719,19 +775,14 @@ namespace DataSource.Migrations
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductKindTags_KindId",
-                table: "ProductKindTags",
+                name: "IX_ProductKinds_KindId",
+                table: "ProductKinds",
                 column: "KindId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductKindTags_ProductId",
-                table: "ProductKindTags",
+                name: "IX_ProductKinds_ProductId",
+                table: "ProductKinds",
                 column: "ProductId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ProductKindTags_TagId",
-                table: "ProductKindTags",
-                column: "TagId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductMaterials_MaterialId",
@@ -747,6 +798,16 @@ namespace DataSource.Migrations
                 name: "IX_Products_Title",
                 table: "Products",
                 column: "Title");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductTags_ProductId",
+                table: "ProductTags",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductTags_TagId",
+                table: "ProductTags",
+                column: "TagId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductVariantDiscounts_DiscountId",
@@ -774,9 +835,10 @@ namespace DataSource.Migrations
                 column: "OrderId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Tags_KindId",
+                name: "IX_Tags_Name",
                 table: "Tags",
-                column: "KindId");
+                column: "Name",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
@@ -821,10 +883,13 @@ namespace DataSource.Migrations
                 name: "ProductImages");
 
             migrationBuilder.DropTable(
-                name: "ProductKindTags");
+                name: "ProductKinds");
 
             migrationBuilder.DropTable(
                 name: "ProductMaterials");
+
+            migrationBuilder.DropTable(
+                name: "ProductTags");
 
             migrationBuilder.DropTable(
                 name: "ProductVariantDiscounts");
@@ -839,10 +904,13 @@ namespace DataSource.Migrations
                 name: "TenantConfigs");
 
             migrationBuilder.DropTable(
-                name: "Tags");
+                name: "Kinds");
 
             migrationBuilder.DropTable(
                 name: "Materials");
+
+            migrationBuilder.DropTable(
+                name: "Tags");
 
             migrationBuilder.DropTable(
                 name: "Discounts");
@@ -852,9 +920,6 @@ namespace DataSource.Migrations
 
             migrationBuilder.DropTable(
                 name: "Orders");
-
-            migrationBuilder.DropTable(
-                name: "Kinds");
 
             migrationBuilder.DropTable(
                 name: "Products");

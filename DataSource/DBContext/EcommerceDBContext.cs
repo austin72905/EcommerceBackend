@@ -9,7 +9,9 @@ namespace DataSource.DBContext
         public DbSet<Product> Products { get; set; }
         public DbSet<Kind> Kinds { get; set; }
         public DbSet<Tag> Tags { get; set; }
-        public DbSet<ProductKindTag> ProductKindTags { get; set; }
+        public DbSet<ProductTag> ProductTags { get; set; }
+
+        public DbSet<ProductKind> ProductKinds { get; set; }
         public DbSet<Discount> Discounts { get; set; }
         public DbSet<ProductDiscount> ProductDiscounts { get; set; }
         public DbSet<ProductVariant> ProductVariants { get; set; }
@@ -93,24 +95,48 @@ namespace DataSource.DBContext
             modelBuilder.Entity<OrderStep>()
                 .HasIndex(os => os.OrderId);
 
+            // Kind 表的 Name 欄位索引
+            modelBuilder.Entity<Kind>()
+                .HasIndex(k => k.Name)
+                .IsUnique();
+
+            // Tag 表的 Name  欄位索引
+            modelBuilder.Entity<Tag>()
+                .HasIndex(t => t.Name)
+                .IsUnique();
+
+
 
             //  設置外鍵關係
 
-            // ProductKindTag 與 Product、Kind、Tag 表的關係
-            modelBuilder.Entity<ProductKindTag>()
-                .HasOne(pkt => pkt.Product)
-                .WithMany(p => p.ProductKindTags)
-                .HasForeignKey(pkt => pkt.ProductId);
+            // 配置 ProductKind 表
+            modelBuilder.Entity<ProductKind>()
+                .HasKey(pk => pk.Id);
 
-            modelBuilder.Entity<ProductKindTag>()
-                .HasOne(pkt => pkt.Kind)
-                .WithMany(k => k.ProductKindTags)
-                .HasForeignKey(pkt => pkt.KindId);
+            modelBuilder.Entity<ProductKind>()
+                .HasOne(pk => pk.Product)
+                .WithMany(p => p.ProductKinds)
+                .HasForeignKey(pk => pk.ProductId);
 
-            modelBuilder.Entity<ProductKindTag>()
-                .HasOne(pkt => pkt.Tag)
-                .WithMany(t => t.ProductKindTags)
-                .HasForeignKey(pkt => pkt.TagId);
+            modelBuilder.Entity<ProductKind>()
+                .HasOne(pk => pk.Kind)
+                .WithMany(k => k.ProductKinds)
+                .HasForeignKey(pk => pk.KindId);
+
+            // 配置 ProductTag 表
+            modelBuilder.Entity<ProductTag>()
+                .HasKey(pt => pt.Id);
+
+            modelBuilder.Entity<ProductTag>()
+                .HasOne(pt => pt.Product)
+                .WithMany(p => p.ProductTags)
+                .HasForeignKey(pt => pt.ProductId);
+
+            modelBuilder.Entity<ProductTag>()
+                .HasOne(pt => pt.Tag)
+                .WithMany(t => t.ProductTags)
+                .HasForeignKey(pt => pt.TagId);
+
 
             // ProductDiscount 與 Product、Discount 表的關係
             modelBuilder.Entity<ProductDiscount>()
@@ -594,6 +620,42 @@ namespace DataSource.DBContext
                 new ProductImage { Id = 24, ProductId = 5, ImageUrl = "http://localhost:9000/coat2.jpg" },
                 new ProductImage { Id = 25, ProductId = 5, ImageUrl = "http://localhost:9000/coat1.jpg" }
             );
+
+
+            // Kind 種子數據
+            modelBuilder.Entity<Kind>().HasData(
+                new Kind { Id = 1, Name = "clothes" }
+            );
+
+            // Tag 種子數據，與 Kind 進行關聯
+            modelBuilder.Entity<Tag>().HasData(
+                new Tag { Id = 1,  Name = "t-shirt" },
+                new Tag { Id = 2,  Name = "shirt" },
+                new Tag { Id = 3,  Name = "jeans" },
+                new Tag { Id = 4,  Name = "shorts" },
+                new Tag { Id = 5,  Name = "windcoat" },
+                new Tag { Id = 6,  Name = "knitting" },
+                new Tag { Id = 7, Name = "accessories" },
+                new Tag { Id = 8, Name = "new-arrival" },
+                new Tag { Id = 9, Name = "limit-time-offer" }
+            );
+
+
+            // ProductTag 種子數據
+            modelBuilder.Entity<ProductTag>().HasData(
+                new ProductTag { Id = 1, ProductId = 1, TagId = 1 }, 
+                new ProductTag { Id = 2, ProductId = 1, TagId = 4 }, 
+                new ProductTag { Id = 3, ProductId = 2, TagId = 2 }, 
+                new ProductTag { Id = 4, ProductId = 3, TagId = 3 }, 
+                new ProductTag { Id = 5, ProductId = 3, TagId = 5 },
+                new ProductTag { Id = 6, ProductId = 3, TagId = 5 },
+                new ProductTag { Id = 7, ProductId = 4, TagId = 6 },
+                new ProductTag { Id = 8, ProductId = 5, TagId = 8 },
+                new ProductTag { Id = 9, ProductId = 5, TagId = 8 },
+                new ProductTag { Id = 10, ProductId = 5, TagId = 9 }
+            );
+
+
 
         }
     }

@@ -28,6 +28,11 @@ namespace Application.Extensions
             };
         }
 
+        public static IEnumerable<ProductInfomationDTO> ToProductInformationDTOs(this IEnumerable<Product> products)
+        {
+            return products.Select(p => p.ToProductInformationDTO());
+        }
+
         public static Product ToProductEntity(this ProductInfomationDTO productDTO)
         {
             return new Product

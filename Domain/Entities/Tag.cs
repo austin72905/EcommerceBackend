@@ -9,10 +9,9 @@ namespace Domain.Entities
     public class Tag
     {
         public int Id { get; set; }
-        public int KindId { get; set; }
         public string Name { get; set; }
 
-        public Kind Kind { get; set; }
-        public ICollection<ProductKindTag> ProductKindTags { get; set; }
+        // 導航屬性
+        public ICollection<ProductTag> ProductTags { get; set; }
     }
 }
