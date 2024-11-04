@@ -16,9 +16,9 @@ namespace Application.Services
 
        
 
-        public ServiceResult<ProductResponse> GetProductById(int productId)
+        public async Task<ServiceResult<ProductResponse>> GetProductById(int productId)
         {
-            var product = _repository.GetProductById(productId);
+            var product =await _repository.GetProductById(productId);
 
             if (product == null)
             {
@@ -46,9 +46,9 @@ namespace Application.Services
 
         }
 
-        public ServiceResult<ProductResponse> GetProductByIdForUser(int userid, int productId)
+        public async Task<ServiceResult<ProductResponse>> GetProductByIdForUser(int userid, int productId)
         {
-            var product = _repository.GetProductById(productId);
+            var product =await _repository.GetProductById(productId);
 
             if (product == null)
             {
@@ -77,20 +77,20 @@ namespace Application.Services
         }
 
        
-        public ServiceResult<ProductListResponse> GetProducts(string kind, string tag)
+        public async Task<ServiceResult<ProductListResponse>> GetProducts(string kind, string tag)
         {
-            Domain.Entities.Product products;
-            //if (!string.IsNullOrEmpty(tag))
-            //{
-            //    products = _repository.GetProductsByTag(tag);
+            IEnumerable<Domain.Entities.Product> products;
+            if (!string.IsNullOrEmpty(tag))
+            {
+                products = await _repository.GetProductsByTag(tag);
 
-            //}
+            }
 
-            //if (!string.IsNullOrEmpty(kind))
-            //{
-            //    products = _repository.GetProductsByKind(kind);
+            if (!string.IsNullOrEmpty(kind))
+            {
+                products = await _repository.GetProductsByKind(kind);
 
-            //}
+            }
 
 
             var productWithFavorite = fakeProductList.Select(p => new ProductWithFavoriteStatusDTO { Product = p });
@@ -104,20 +104,20 @@ namespace Application.Services
 
         }
 
-        public ServiceResult<ProductListResponse> GetProductsForUser(int userid, string kind, string tag)
+        public async Task<ServiceResult<ProductListResponse>> GetProductsForUser(int userid, string kind, string tag)
         {
-            Domain.Entities.Product products;
-            //if (!string.IsNullOrEmpty(tag))
-            //{
-            //    products = _repository.GetProductsByTag(tag);
+            IEnumerable<Domain.Entities.Product> products;
+            if (!string.IsNullOrEmpty(tag))
+            {
+                products =await _repository.GetProductsByTag(tag);
 
-            //}
+            }
 
-            //if (!string.IsNullOrEmpty(kind))
-            //{
-            //    products = _repository.GetProductsByKind(kind);
+            if (!string.IsNullOrEmpty(kind))
+            {
+                products = await _repository.GetProductsByKind(kind);
 
-            //}
+            }
 
             var favoriteProductIds = _userRepository.GetFavoriteProductIdsByUser(userid);
             var productWithFavorite = fakeProductList.Select(p => new ProductWithFavoriteStatusDTO

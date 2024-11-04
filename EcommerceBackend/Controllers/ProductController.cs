@@ -40,11 +40,11 @@ namespace EcommerceBackend.Controllers
             if(userid == 0)
             {
                 //未登錄
-                result = _productervice.GetProducts(filter.kind, filter.tag);
+                result =await _productervice.GetProducts(filter.kind, filter.tag);
             }
             else
             {
-                result = _productervice.GetProductsForUser(userid, filter.kind, filter.tag);
+                result =await _productervice.GetProductsForUser(userid, filter.kind, filter.tag);
             }
 
 
@@ -71,11 +71,11 @@ namespace EcommerceBackend.Controllers
             ServiceResult<ProductResponse> result;
             if (userid == 0)
             {
-                result = _productervice.GetProductById(productId);
+                result =await _productervice.GetProductById(productId);
             }
             else
             {
-                result = _productervice.GetProductByIdForUser(userid, productId);
+                result =await _productervice.GetProductByIdForUser(userid, productId);
             }
 
  

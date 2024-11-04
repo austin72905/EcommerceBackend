@@ -21,7 +21,11 @@ if (string.IsNullOrEmpty(redisConnectionString))
 }
 
 builder.Services.AddDbContext<EcommerceDBContext>(options =>
-    options.UseSqlite("Data Source=Ecommerce_Shop.db"));
+    options.UseSqlite("Data Source=Ecommerce_Shop.db")
+        .LogTo(Console.WriteLine, LogLevel.Information)
+        .EnableSensitiveDataLogging()  // 不要在production env使用
+        .EnableDetailedErrors()   // 不要在production env使用
+    );
 
 //注入 IHttpContextAccessor
 builder.Services.AddHttpContextAccessor();
