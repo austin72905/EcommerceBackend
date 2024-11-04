@@ -7,6 +7,12 @@ namespace Domain.Interfaces.Repositories
         public IEnumerable<int> GetFavoriteProductIdsByUser(int userId);
         public User? GetUserInfo(int userid);
 
+        public User? CheckUserExists(string userName);
+
+        public User? GetUserIfExistsByGoogleID(string gooleID);
+
+        public Task AddUser(User user);
+
         public IEnumerable<UserShipAddress> GetUserShippingAddress(int userid);
 
         public Task AddUserShippingAddress(int userid, string address);

@@ -17,5 +17,7 @@
         public Product Product { get; set; }
         public Size Size { get; set; }
         public ICollection<ProductVariantDiscount> ProductVariantDiscounts { get; set; }
+
+        public ICollection<OrderProduct> OrderProducts { get; set; }
     }
 }

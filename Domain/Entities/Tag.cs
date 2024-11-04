@@ -11,6 +11,8 @@ namespace Domain.Entities
         public int Id { get; set; }
         public int KindId { get; set; }
         public string Name { get; set; }
+
         public Kind Kind { get; set; }
+        public ICollection<ProductKindTag> ProductKindTags { get; set; }
     }
 }

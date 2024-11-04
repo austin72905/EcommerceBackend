@@ -5,7 +5,6 @@ using Domain.Interfaces.Repositories;
 using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.Http;
 using System.Collections;
-using System.Text.Encodings.Web;
 using System.Web;
 
 namespace Application.Services
@@ -44,15 +43,15 @@ namespace Application.Services
 
 
 
-                var config =await  _paymentRepository.GetTenantConfig(requestData.RecordNo);
+                var config = await _paymentRepository.GetTenantConfig(requestData.RecordNo);
 
-                var tenantConfig = new TenantConfigDTO() 
-                { 
+                var tenantConfig = new TenantConfigDTO()
+                {
                     RecordNo = requestData.RecordNo,
                     Amount = config.PaymentAmount.ToString(),
-                    MerchantId= config.TenantConfig.MerchantId,
-                    SecretKey=config.TenantConfig.SecretKey,
-                    HashIV=config.TenantConfig.HashIV
+                    MerchantId = config.TenantConfig.MerchantId,
+                    SecretKey = config.TenantConfig.SecretKey,
+                    HashIV = config.TenantConfig.HashIV
                 };
 
                 if (tenantConfig == null)
@@ -75,7 +74,7 @@ namespace Application.Services
                 }
 
                 //設置簽名參數
-                Dictionary<string, string> signDataKeyPairs = PrepareSignData(tenantConfig,requestData);
+                Dictionary<string, string> signDataKeyPairs = PrepareSignData(tenantConfig, requestData);
 
                 string sign = GenerateSign(signDataKeyPairs, tenantConfig.SecretKey, tenantConfig.HashIV);
 
@@ -233,7 +232,7 @@ namespace Application.Services
                 }
 
                 //請求配置
-                var tenantConfig =await _paymentRepository.GetTenantConfig(recordCode:RecordCode);
+                var tenantConfig = await _paymentRepository.GetTenantConfig(recordCode: RecordCode);
 
                 if (tenantConfig == null)
                 {

@@ -16,6 +16,8 @@
 
         public ICollection<ProductKindTag> ProductKindTags { get; set; }
 
+        public ICollection<FavoriteProduct> FavoriteProducts { get; set; }
+
         public ICollection<ProductDiscount> ProductDiscounts { get; set; }
         public ICollection<ProductVariant> ProductVariants { get; set; }
         public ICollection<ProductMaterial> ProductMaterials { get; set; }

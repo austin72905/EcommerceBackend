@@ -11,5 +11,6 @@ namespace Domain.Entities
         public int Id { get; set; }
         public string Name { get; set; }
         public ICollection<Tag> Tags { get; set; }
+        public ICollection<ProductKindTag> ProductKindTags { get; set; }
     }
 }

@@ -14,6 +14,7 @@ namespace Domain.Entities
         public int KindId { get; set; }
         public int TagId { get; set; }
 
+        //導航屬性
         public Product Product { get; set; }
         public Kind Kind { get; set; }
         public Tag Tag { get; set; }

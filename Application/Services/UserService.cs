@@ -102,6 +102,7 @@ namespace Application.Services
         {
             string[] jwtContent = idToken.Split('.');
             string jwtPayloadString = Encoding.UTF8.GetString(Base64UrlTextEncoder.Decode(jwtContent[1]));
+            Console.WriteLine(jwtPayloadString);
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -153,12 +154,28 @@ namespace Application.Services
                     return new GoogleOAuth { ErrorMessage = "some error occured when parse token" };
                 }
 
+
+                //檢查DB 是否有該google id (sub)的用戶，沒有就註冊
+                //var user=_userRepository.GetUserIfExistsByGoogleID(jwtUserInfo.Sub);
+
+                //if(user == null)
+                //{
+                //    var userRegistInfo = new User()
+                //    {
+                //        Email=jwtUserInfo.Email,
+                //        GoogleId=jwtUserInfo.Sub,
+                //        Username=jwtUserInfo.Name,
+                //        CreatedAt = DateTime.Now
+                //    };
+                //    await _userRepository.AddUser(userRegistInfo);
+                //}
+
                 //將用戶訊息存到redis
 
                 var userInfo = new UserInfoDTO
                 {
                     //UserId = jwtUserInfo.Sub,
-                    UserId=1,
+                    UserId=1, // 改成 從 db 拿 user.Id
                     Email = jwtUserInfo.Email,
                     Username = jwtUserInfo.Name,
                     Picture = jwtUserInfo.Picture,

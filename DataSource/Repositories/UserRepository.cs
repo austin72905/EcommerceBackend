@@ -52,5 +52,22 @@ namespace DataSource.Repositories
             await _context.UserShipAddresses.Where(us => us.UserId == userid && us.Id == addressId).ExecuteDeleteAsync();
 
         }
+
+        public User? CheckUserExists(string userName)
+        {
+            return _dbSet.Where(u => u.Username== userName).FirstOrDefault();
+        }
+
+        
+
+        public User? GetUserIfExistsByGoogleID(string gooleID)
+        {
+            return _dbSet.Where(u => u.GoogleId == gooleID).FirstOrDefault();
+        }
+
+        public async Task AddUser(User user)
+        {
+            await AddAsync(user);
+        }
     }
 }

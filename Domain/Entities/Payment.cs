@@ -4,6 +4,7 @@
     {
         public int Id { get; set; }
         public int OrderId { get; set; }
+        public int TenantConfigId { get; set; }
         public decimal PaymentAmount { get; set; }
         public byte PaymentStatus { get; set; }
         public string TransactionId { get; set; }
