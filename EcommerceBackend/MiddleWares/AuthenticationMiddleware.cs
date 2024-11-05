@@ -32,7 +32,7 @@ namespace EcommerceBackend.MiddleWares
             if (sessionId !=null)
             {
                 userInfo = await _redisService.GetUserInfoAsync(sessionId);
-                Console.WriteLine($"Setting UserInfo in Middleware: {userInfo}");
+                //Console.WriteLine($"Setting UserInfo in Middleware: {userInfo}");
             }
 
 

@@ -45,6 +45,7 @@ namespace Application.Services
 
                 var config = await _paymentRepository.GetTenantConfig(requestData.RecordNo);
 
+               
                 var tenantConfig = new TenantConfigDTO()
                 {
                     RecordNo = requestData.RecordNo,

@@ -15,6 +15,9 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetProductsByKind(string kind)
         {
             return await  _dbSet
+                 .Include(p => p.ProductVariants)
+                    .ThenInclude(pkt => pkt.Size)
+                .Include(p => p.ProductDiscounts)
                 .Include(p => p.ProductKinds)
                     .ThenInclude(pkt => pkt.Kind)
                 .Where(p => p.ProductKinds.Any(pkt => pkt.Kind.Name == kind))
@@ -25,6 +28,9 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetProductsByTag(string tag)
         {
             return await _dbSet
+                 .Include(p => p.ProductVariants)
+                    .ThenInclude(pkt => pkt.Size)
+                .Include(p => p.ProductDiscounts)
                 .Include(p => p.ProductTags)
                     .ThenInclude(pkt => pkt.Tag)
                 .Where(p => p.ProductTags.Any(pkt => pkt.Tag.Name == tag))

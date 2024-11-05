@@ -259,7 +259,13 @@ namespace Application.Services
             return new ServiceResult<PaymentRequestDataWithUrl>
             {
                 IsSuccess = true,
-                Data = new PaymentRequestDataWithUrl() { Amount="",RecordNo="",PaymentUrl="",PayType=""}
+                Data = new PaymentRequestDataWithUrl() 
+                { 
+                    Amount="100", // 訂單金額
+                    RecordNo="RK202411050642", // 後端生成的訂單號
+                    PaymentUrl= "http://localhost:5025/Payment/ECPayPayment", 
+                    PayType="ECPAY" // 支付類型 (銀行、綠界第三方支付)
+                }
             };
         }
     }
