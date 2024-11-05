@@ -125,6 +125,22 @@ namespace EcommerceBackend.Controllers
 
         }
 
+        [HttpGet("GetfavoriteList")]
+        public async Task<IActionResult> GetfavoriteList()
+        {
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+            var result = await _productervice.GetfavoriteList(userid);
+
+            if (!result.IsSuccess)
+            {
+                return Fail();
+            }
+
+            return Success(result.Data);
+
+        }
+
     }
 
     public class Filter

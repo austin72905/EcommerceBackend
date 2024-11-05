@@ -66,7 +66,7 @@ namespace Application.Services
 
             //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
 
-            var favoriteProductIds = _userRepository.GetFavoriteProductIdsByUser(userid);
+            var favoriteProductIds =await _userRepository.GetFavoriteProductIdsByUser(userid);
 
             return new ServiceResult<ProductResponse>()
             {
@@ -115,18 +115,22 @@ namespace Application.Services
             IEnumerable<Domain.Entities.Product> products;
             if (!string.IsNullOrEmpty(tag))
             {
-                products =await _repository.GetProductsByTag(tag);
+                products = await _repository.GetProductsByTag(tag);
 
             }
-
-            if (!string.IsNullOrEmpty(kind))
+            else if (!string.IsNullOrEmpty(kind))
             {
                 products = await _repository.GetProductsByKind(kind);
 
             }
+            else
+            {
+                products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+            }
 
-            var favoriteProductIds = _userRepository.GetFavoriteProductIdsByUser(userid);
-            var productWithFavorite = fakeProductList.Select(p => new ProductWithFavoriteStatusDTO
+            var productsDtos = products.ToProductInformationDTOs();
+            var favoriteProductIds =await _userRepository.GetFavoriteProductIdsByUser(userid);
+            var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO
             {
                 Product = p,
                 IsFavorite = favoriteProductIds.Contains(p.ProductId)
@@ -177,7 +181,7 @@ namespace Application.Services
             var products =await _repository.GetRecommendationProduct(userid, productId);
             var productsDto = products.ToProductInformationDTOs();
 
-            var favoriteProductIds = _userRepository.GetFavoriteProductIdsByUser(userid);
+            var favoriteProductIds =await _userRepository.GetFavoriteProductIdsByUser(userid);
             var productWithFavorite = productsDto.Select(p => new ProductWithFavoriteStatusDTO
             {
                 Product = p,
@@ -191,6 +195,27 @@ namespace Application.Services
             };
 
         }
+
+        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetfavoriteList(int userid)
+        {
+            var products = await _repository.GetfavoriteProducts(userid);
+
+            var productsDto = products.ToProductInformationDTOs();
+
+            var productWithFavorite = productsDto.Select(p => new ProductWithFavoriteStatusDTO
+            {
+                Product = p,
+                IsFavorite = true
+            }).ToList();
+
+            return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+            {
+                IsSuccess = true,
+                Data = productWithFavorite
+            };
+
+        }
+
 
 
         public static List<ProductInfomationDTO> fakeProductList = new List<ProductInfomationDTO>()

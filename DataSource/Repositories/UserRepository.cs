@@ -11,17 +11,22 @@ namespace DataSource.Repositories
         {
         }
 
-        public IEnumerable<int> GetFavoriteProductIdsByUser(int userId)
+        public async Task<IEnumerable<int>> GetFavoriteProductIdsByUser(int userId)
         {
             // UserFavorites 表
-            return new List<int>() { 26790367, 2, 3 };
+            //return new List<int>() { 26790367, 2, 3 };
+
+            return await _context.FavoriteProducts.
+                Where(x => x.UserId == userId)
+                .Select(x => x.ProductId)
+                .ToListAsync();
         }
 
-        public User? GetUserInfo(int userid)
+        public async Task<User?> GetUserInfo(int userid)
         {
-            return _dbSet
+            return await _dbSet
                 .Where(u => u.Id == userid)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync();
 
         }
 
@@ -60,14 +65,42 @@ namespace DataSource.Repositories
 
         
 
-        public User? GetUserIfExistsByGoogleID(string gooleID)
+        public async Task<User?> GetUserIfExistsByGoogleID(string gooleID)
         {
-            return _dbSet.Where(u => u.GoogleId == gooleID).FirstOrDefault();
+            return await _dbSet.Where(u => u.GoogleId == gooleID).FirstOrDefaultAsync();
         }
 
         public async Task AddUser(User user)
         {
             await AddAsync(user);
+            await SaveChangesAsync();
+        }
+
+        public async Task RemoveFromFavoriteList(int userid, int productId)
+        {
+            await _context.FavoriteProducts.Where(fp => fp.UserId == userid && fp.ProductId == productId).ExecuteDeleteAsync();
+        }
+
+        public async Task AddToFavoriteList(int userid, int productId)
+        {
+            var alreadyfavorited = await _context.FavoriteProducts
+                .AnyAsync(fp => fp.UserId == userid && fp.ProductId == productId);
+
+            if (alreadyfavorited)
+            {
+                return;
+            }
+
+            var favoriteProduct = new FavoriteProduct 
+            { 
+                ProductId = productId,
+                UserId=userid ,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+            
+            };
+            await _context.FavoriteProducts.AddAsync(favoriteProduct);
+            await SaveChangesAsync();
         }
     }
 }

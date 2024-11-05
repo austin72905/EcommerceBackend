@@ -23,9 +23,17 @@ namespace EcommerceBackend.MiddleWares
 
             //bool isAuthenticated = true;
             string? sessionId=context.Request.Cookies["session-id"];
+            //Console.WriteLine($"sessionId: {sessionId}");
+            //Console.WriteLine($" context.Request.Path: {context.Request.Path}");
+           
 
-            
-            string? userInfo=null;
+            string? userInfo= null;
+
+            if (sessionId !=null)
+            {
+                userInfo = await _redisService.GetUserInfoAsync(sessionId);
+                Console.WriteLine($"Setting UserInfo in Middleware: {userInfo}");
+            }
 
 
             var path = context.Request.Path.ToString().ToLower();
@@ -40,7 +48,7 @@ namespace EcommerceBackend.MiddleWares
                     return;
                 }
 
-                userInfo = await _redisService.GetUserInfoAsync(sessionId);
+                //userInfo = await _redisService.GetUserInfoAsync(sessionId);
 
                 if (userInfo == null)
                 {
@@ -56,6 +64,7 @@ namespace EcommerceBackend.MiddleWares
 
             // 先無條件的是登錄狀態，後續在做redis 驗證
             context.Items["UserInfo"] = userInfo; // context.Items是 ASP.NET Core 中的一個字典，允許你在請求的生命週期內儲存和共享資料。這個字典中的資料只在目前請求中有效，隨著請求的結束，這些資料會被清除。
+            //Console.WriteLine($"Setting UserInfo in Middleware: {context.Items["UserInfo"]}");
             await _next(context);
             return;
         }

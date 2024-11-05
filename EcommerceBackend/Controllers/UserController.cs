@@ -221,6 +221,27 @@ namespace EcommerceBackend.Controllers
 
         }
 
+        [HttpPost("AddTofavoriteList")]
+        public async Task<IActionResult> AddTofavoriteList([FromBody] favoriteRequest req)
+        {
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+
+            var result = await _userService.AddTofavoriteList(userid, req.ProductId);
+
+            return Success(result.Data);
+        }
+
+
+        [HttpPost("RemoveFromfavoriteList")]
+        public async Task<IActionResult> RemoveFromfavoriteList([FromBody] favoriteRequest req)
+        {
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+
+            var result = await _userService.RemoveFromfavoriteList(userid, req.ProductId);
+
+            return Success(result.Data);
+        }
+
 
 
         private async Task<string> SaveUserInfoToRedis(UserInfoDTO userInfo)
@@ -233,5 +254,12 @@ namespace EcommerceBackend.Controllers
 
             return guid;
         }
+
+        public class favoriteRequest
+        {
+            public int ProductId { get; set; }
+        }
+
+
     }
 }

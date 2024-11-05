@@ -1,4 +1,5 @@
 ﻿using Application.DTOs;
+using Application.Extensions;
 using Application.Interfaces;
 using Application.Oauth;
 using Domain.Entities;
@@ -36,6 +37,7 @@ namespace Application.Services
             };
 
         }
+
 
         public ServiceResult<UserInfoDTO> GetUserInfo(int userid)
         {
@@ -95,6 +97,30 @@ namespace Application.Services
             return "ok";
         }
 
+
+        // 對喜愛清單的操作
+        public async Task<ServiceResult<string>> RemoveFromfavoriteList(int userid, int productId)
+        {
+            await _userRepository.RemoveFromFavoriteList(userid, productId);
+
+            return new ServiceResult<string>()
+            {
+                IsSuccess = true,
+                Data = "ok"
+            };
+        }
+
+
+        public async Task<ServiceResult<string>> AddTofavoriteList(int userid, int productId)
+        {
+            await _userRepository.AddToFavoriteList(userid, productId);
+
+            return new ServiceResult<string>()
+            {
+                IsSuccess = true,
+                Data = "ok"
+            };
+        }
 
 
 
@@ -156,26 +182,30 @@ namespace Application.Services
 
 
                 //檢查DB 是否有該google id (sub)的用戶，沒有就註冊
-                //var user=_userRepository.GetUserIfExistsByGoogleID(jwtUserInfo.Sub);
+                var user =await _userRepository.GetUserIfExistsByGoogleID(jwtUserInfo.Sub);
 
-                //if(user == null)
-                //{
-                //    var userRegistInfo = new User()
-                //    {
-                //        Email=jwtUserInfo.Email,
-                //        GoogleId=jwtUserInfo.Sub,
-                //        Username=jwtUserInfo.Name,
-                //        CreatedAt = DateTime.Now
-                //    };
-                //    await _userRepository.AddUser(userRegistInfo);
-                //}
+                if (user == null)
+                {
+                    var userRegistInfo = jwtUserInfo.ToUserEntity();
+                    //var userRegistInfo = new User()
+                    //{
+                    //    Email = jwtUserInfo.Email,
+                    //    GoogleId = jwtUserInfo.Sub,
+                    //    Username = jwtUserInfo.Name,
+                    //    CreatedAt = DateTime.Now
+                    //};
+                    await _userRepository.AddUser(userRegistInfo);
+
+                    // 從新獲取
+                    user = await _userRepository.GetUserIfExistsByGoogleID(jwtUserInfo.Sub);
+                }
 
                 //將用戶訊息存到redis
 
                 var userInfo = new UserInfoDTO
                 {
                     //UserId = jwtUserInfo.Sub,
-                    UserId=1, // 改成 從 db 拿 user.Id
+                    UserId= user.Id, // 改成 從 db 拿 user.Id
                     Email = jwtUserInfo.Email,
                     Username = jwtUserInfo.Name,
                     Picture = jwtUserInfo.Picture,
@@ -193,9 +223,6 @@ namespace Application.Services
 
         }
 
-
-
-
-
+        
     }
 }

@@ -2,6 +2,7 @@
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace DataSource.Repositories
 {
@@ -43,6 +44,17 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetRecommendationProduct(int userid, int productId)
         {
             return await _dbSet
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Product>> GetfavoriteProducts(int userid)
+        {
+            return await _dbSet
+                .Include(p => p.ProductVariants)
+                    .ThenInclude(pkt => pkt.Size)
+                .Include(p => p.ProductDiscounts)
+                .Include(p => p.FavoriteProducts)
+                .Where(p => p.FavoriteProducts.Any(fp => fp.UserId == userid))
                 .ToListAsync();
         }
     }

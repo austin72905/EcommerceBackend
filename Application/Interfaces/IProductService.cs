@@ -15,5 +15,7 @@ namespace Application.Interfaces
         public ServiceResult<List<ProductInfomationDTO>> GetProductsByTag(string tag);
 
         public  Task<ServiceResult<ProductListResponse>> GetRecommendationProduct(int userid, int productId);
+
+        public Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetfavoriteList(int userid);
     }
 }

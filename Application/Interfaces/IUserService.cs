@@ -16,6 +16,10 @@ namespace Application.Interfaces
 
         public string DeleteUserShippingAddress(int userid, int addressId);
 
+        public Task<ServiceResult<string>> RemoveFromfavoriteList(int userid, int productId);
+
+        public Task<ServiceResult<string>> AddTofavoriteList(int userid, int productId);
+
         public Task<GoogleOAuth> UserAuthLogin(AuthLogin authLogin);
     }
 }
