@@ -63,5 +63,14 @@ namespace DataSource.Repositories
                 .Where(p => p.FavoriteProducts.Any(fp => fp.UserId == userid))
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<ProductVariant>> GetProductVariants(IEnumerable<int> variantIds)
+        {
+            return await _context.ProductVariants
+                .Include(pv => pv.ProductVariantDiscounts)
+                    .ThenInclude(pvd => pvd.Discount)
+                .Where(pv => variantIds.Contains(pv.Id))
+                .ToListAsync();
+        }
     }
 }

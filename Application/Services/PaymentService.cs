@@ -45,15 +45,32 @@ namespace Application.Services
 
                 var config = await _paymentRepository.GetTenantConfig(requestData.RecordNo);
 
-               
+                if (config == null) 
+                {
+                    return new ServiceResult<PaymentInfomation>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "請情配置失敗"
+                    };
+                }
+
                 var tenantConfig = new TenantConfigDTO()
                 {
                     RecordNo = requestData.RecordNo,
-                    Amount = config.PaymentAmount.ToString(),
+                    Amount = Convert.ToInt32(config.PaymentAmount).ToString(),
                     MerchantId = config.TenantConfig.MerchantId,
                     SecretKey = config.TenantConfig.SecretKey,
                     HashIV = config.TenantConfig.HashIV
                 };
+
+                //var tenantConfig = new TenantConfigDTO()
+                //{
+                //    RecordNo = requestData.RecordNo,
+                //    Amount = "100",
+                //    MerchantId = "3002607",
+                //    SecretKey = "pwFHCqoQZGmho4w6",
+                //    HashIV = "EkRm7iFT261dpevs"
+                //};
 
                 if (tenantConfig == null)
                 {

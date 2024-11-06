@@ -1,4 +1,5 @@
 ﻿
+using Application;
 using Application.Interfaces;
 using EcommerceBackend.Models;
 using Infrastructure.Interfaces;
@@ -8,28 +9,28 @@ namespace EcommerceBackend.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class OrderController: BaseController
+    public class OrderController : BaseController
     {
         private readonly IOrderService _orderService;
         private readonly IRedisService _redisService;
-        public OrderController(IOrderService orderService,IRedisService redisService) 
+        public OrderController(IOrderService orderService, IRedisService redisService)
         {
-            _orderService=orderService;
-            _redisService=redisService;
+            _orderService = orderService;
+            _redisService = redisService;
         }
 
         [HttpGet("GetOrders")]
         public async Task<IActionResult> GetOrders()
         {
             ApiResponse resp;
-            
+
             if (UserInfo == null)
             {
 
                 return UnAuthorized();
             }
 
-            var result=await _orderService.GetOrders(UserInfo.UserId);
+            var result = await _orderService.GetOrders(UserInfo.UserId);
 
             if (result.IsSuccess)
             {
@@ -39,11 +40,11 @@ namespace EcommerceBackend.Controllers
             {
                 return Fail();
             }
-            
+
         }
 
         [HttpGet("GetOrderInfo")]
-        public async Task<IActionResult> GetOrderInfo([FromQuery]string recordCode)
+        public async Task<IActionResult> GetOrderInfo([FromQuery] string recordCode)
         {
             ApiResponse resp;
 
@@ -66,10 +67,19 @@ namespace EcommerceBackend.Controllers
         }
 
         [HttpPost("SubmitOrder")]
-        public async Task<IActionResult> SubmitOrder()
+        public async Task<IActionResult> SubmitOrder([FromBody] SubmitOrderReq req)
         {
-           
-            var result = await _orderService.GenerateOrder();
+            var info = new OrderInfo
+            {
+                UserId = UserInfo != null ? UserInfo.UserId : 0,
+                Items=req.Items,
+                ReceiverName = req.ReceiverName,
+                ShippingAddress = req.ShippingAddress,
+                ReceiverPhone = req.ReceiverPhone,
+                ShippingFee = req.ShippingFee,
+            };
+
+            var result = await _orderService.GenerateOrder(info);
             if (result.IsSuccess)
             {
                 return Success(result.Data);
@@ -79,5 +89,33 @@ namespace EcommerceBackend.Controllers
                 return Fail();
             }
         }
+
+        public class SubmitOrderReq
+        {
+            /// <summary>
+            /// 訂單產品項目列表
+            /// </summary>
+            public List<OrderItem> Items { get; set; } = new List<OrderItem>();
+            /// <summary>
+            /// 訂單運費
+            /// </summary>
+            public decimal ShippingFee { get; set; }
+            /// <summary>
+            /// 訂單地址 (超商地址)
+            /// </summary>
+            public string ShippingAddress { get; set; }
+
+            /// <summary>
+            /// 收件人姓名
+            /// </summary>
+            public string ReceiverName { get; set; }
+
+            /// <summary>
+            /// 收件人電話
+            /// </summary>
+            public string ReceiverPhone { get; set; }
+        }
+
+       
     }
 }

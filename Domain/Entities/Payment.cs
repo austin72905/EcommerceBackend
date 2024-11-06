@@ -7,7 +7,8 @@
         public int TenantConfigId { get; set; }
         public decimal PaymentAmount { get; set; }
         public byte PaymentStatus { get; set; }
-        public string TransactionId { get; set; }
+        // ECPAY 平台的訂單號
+        public string TransactionId { get; set; }=string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 

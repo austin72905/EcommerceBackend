@@ -34,9 +34,9 @@ namespace DataSource.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task GenerateOrder()
+        public async Task GenerateOrder(Order order)
         {
-            await _dbSet.AddAsync(new Order());
+            await _dbSet.AddAsync(order);
             await _context.SaveChangesAsync();
 
         }

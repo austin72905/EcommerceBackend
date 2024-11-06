@@ -10,7 +10,9 @@
         public string PhoneNumber { get; set; }
         public string ShippingAddress { get; set; }
         public int OrderPrice { get; set; }
+        // 訂單狀態
         public int Status { get; set; }
+        // 支付方式
         public int PayWay { get; set; }
         public int ShippingPrice { get; set; }
         public DateTime CreatedAt { get; set; }

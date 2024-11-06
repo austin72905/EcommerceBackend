@@ -13,6 +13,6 @@ namespace Domain.Interfaces.Repositories
 
         public Task<Order?> GetOrderInfoByUserId(int userid, string recordCode);
 
-        public Task GenerateOrder();
+        public Task GenerateOrder(Order order);
     }
 }

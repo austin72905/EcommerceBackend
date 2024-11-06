@@ -19,5 +19,7 @@ namespace Domain.Interfaces.Repositories
 
         public Task<IEnumerable<Product>> GetfavoriteProducts(int userid);
 
+        public Task<IEnumerable<ProductVariant>> GetProductVariants(IEnumerable<int> variantIds);
+
     }
 }

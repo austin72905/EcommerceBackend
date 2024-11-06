@@ -10,5 +10,7 @@ namespace Domain.Interfaces.Repositories
     public interface IPaymentRepository
     {
         public Task<Payment?> GetTenantConfig(string recordCode);
+
+        public  Task GeneratePaymentRecord(Payment payment);
     }
 }

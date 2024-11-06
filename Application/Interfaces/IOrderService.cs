@@ -11,7 +11,7 @@ namespace Application.Interfaces
         public Task<ServiceResult<OrderInfomationDTO>> GetOrderInfo(int userid,string recordCode);
 
 
-        public Task<ServiceResult<PaymentRequestDataWithUrl>> GenerateOrder();
+        public Task<ServiceResult<PaymentRequestDataWithUrl>> GenerateOrder(OrderInfo info);
 
 
 

@@ -655,7 +655,17 @@ namespace DataSource.DBContext
                 new ProductTag { Id = 10, ProductId = 5, TagId = 9 }
             );
 
-
+            // TenantConfig 種子資料 ECPAY 公開測試密鑰
+            modelBuilder.Entity<TenantConfig>().HasData(
+                new TenantConfig
+                {
+                    Id = 1,
+                    MerchantId = "3002607",
+                    SecretKey = "pwFHCqoQZGmho4w6",
+                    HashIV = "EkRm7iFT261dpevs",
+                }
+                
+            );
 
         }
     }

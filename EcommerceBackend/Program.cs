@@ -3,6 +3,8 @@ using Application.Services;
 using DataSource.DBContext;
 using DataSource.Repositories;
 using Domain.Interfaces.Repositories;
+using Domain.Interfaces.Services;
+using Domain.Services;
 using EcommerceBackend.MiddleWares;
 
 using Infrastructure.Cache;
@@ -31,12 +33,17 @@ builder.Services.AddDbContext<EcommerceDBContext>(options =>
 builder.Services.AddHttpContextAccessor();
 
 // Add services to the container.
+// app service
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
+// domain servie
+builder.Services.AddScoped<IOrderDomainService, OrderDomainService>();
+
+// repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>(); 
 builder.Services.AddScoped<ICartRepository, CartRepository>();

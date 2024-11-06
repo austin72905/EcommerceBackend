@@ -4,17 +4,28 @@ using Application;
 using Application.DTOs;
 using Application.DummyData;
 using Application.Interfaces;
+using Domain.Entities;
 using Domain.Enums;
 using Domain.Interfaces.Repositories;
+using Domain.Interfaces.Services;
+using Domain.Services;
 
 namespace Application.Services
 {
     public class OrderService : IOrderService
     {
         private readonly IOrderRepostory _orderRepostory;
-        public OrderService(IOrderRepostory orderRepostory) 
+        private readonly IProductRepository _productRepository;
+        private readonly IPaymentRepository _paymentRepository;
+
+        private readonly IOrderDomainService _orderDomainService;
+        
+        public OrderService(IOrderRepostory orderRepostory, IProductRepository productRepository, IPaymentRepository paymentRepository , IOrderDomainService orderDomainService) 
         {
             _orderRepostory = orderRepostory;
+            _productRepository= productRepository;
+            _paymentRepository= paymentRepository;
+            _orderDomainService = orderDomainService;
         }
 
         public  async Task<ServiceResult<OrderInfomationDTO>> GetOrderInfo(int userid, string recordCode)
@@ -252,17 +263,78 @@ namespace Application.Services
         }
 
 
-        public async Task<ServiceResult<PaymentRequestDataWithUrl>> GenerateOrder()
+        public async Task<ServiceResult<PaymentRequestDataWithUrl>> GenerateOrder(OrderInfo info)
         {
-            //await _orderRepostory.GenerateOrder();
+
+            var variantIds = info.Items.Select(i=>i.VariantId).ToList();
+            var productVariants =await _productRepository.GetProductVariants(variantIds);
+
+            
+            var order = new Order
+            {
+                RecordCode=$"EC{Guid.NewGuid().ToString("N").Substring(0, 10)}",
+                UserId = info.UserId,
+                Status= (int)OrderStatus.Created,
+                Receiver = info.ReceiverName,
+                PhoneNumber = info.ReceiverPhone,
+                ShippingAddress = info.ShippingAddress,
+                ShippingPrice = (int)info.ShippingFee,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+                OrderProducts = new List<OrderProduct>()
+            };
+
+            foreach (var item in info.Items)
+            {
+                var productVariant = productVariants.FirstOrDefault(pv => pv.Id == item.VariantId);
+                
+                if (productVariant == null)
+                {
+                    return new ServiceResult<PaymentRequestDataWithUrl>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "品項不存在"
+                    };
+                }
+
+                var orderProduct = new OrderProduct
+                {
+                    ProductVariantId = productVariant.Id,
+                    ProductPrice = productVariant.VariantPrice,
+                    Count = item.Quantity,
+                    ProductVariant= productVariant,
+                };
+
+                // order entity 加入 OrderProduct entity
+                order.OrderProducts.Add(orderProduct);
+            }
+
+            // 計算總金額
+            order.OrderPrice = _orderDomainService.CalculateOrderTotal(order.OrderProducts.ToList(), order.ShippingPrice);
+
+            // savechanges 後 會有 astracking 笑我
+            await _orderRepostory.GenerateOrder(order);
+
+            // 生成 payment record
+            var payment = new Payment
+            {
+                OrderId = order.Id, // 此時 order.Id 已經有值 
+                PaymentAmount = (int)order.OrderPrice ,
+                PaymentStatus = (int)OrderStatus.WaitingForPayment, // 初始狀態，可以根據需求設置
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+                TenantConfigId = 1 // 假設預設值
+            };
+
+            await _paymentRepository.GeneratePaymentRecord(payment);
 
             return new ServiceResult<PaymentRequestDataWithUrl>
             {
                 IsSuccess = true,
                 Data = new PaymentRequestDataWithUrl() 
                 { 
-                    Amount="100", // 訂單金額
-                    RecordNo="RK202411050642", // 後端生成的訂單號
+                    Amount=order.OrderPrice.ToString(), // 訂單金額
+                    RecordNo= order.RecordCode, // 後端生成的訂單號
                     PaymentUrl= "http://localhost:5025/Payment/ECPayPayment", 
                     PayType="ECPAY" // 支付類型 (銀行、綠界第三方支付)
                 }
