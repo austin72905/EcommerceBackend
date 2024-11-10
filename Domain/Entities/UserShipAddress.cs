@@ -6,7 +6,11 @@
         public int UserId { get; set; }
         public string RecipientName { get; set; }
         public string PhoneNumber { get; set; }
-        public string Email { get; set; }
+        // 收件方式 (7-11 OR 全家)
+        public string RecieveWay { get; set; }
+        // 門市名稱
+        public string? RecieveStore { get; set; }
+
         public string AddressLine { get; set; }
         public bool IsDefault { get; set; }
 

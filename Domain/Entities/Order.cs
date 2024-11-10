@@ -9,6 +9,9 @@
         public string Receiver { get; set; }
         public string PhoneNumber { get; set; }
         public string ShippingAddress { get; set; }
+        public string RecieveWay { get; set; }
+        public string RecieveStore { get; set; }
+        public string Email { get; set; }
         public int OrderPrice { get; set; }
         // 訂單狀態
         public int Status { get; set; }

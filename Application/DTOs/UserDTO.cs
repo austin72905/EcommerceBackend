@@ -20,10 +20,11 @@
     public class UserShipAddressDTO
     {
         public int AddressId { get; set; }
-        public string? RecipientName { get; set; }  // 收件人姓名
-        public string? PhoneNumber { get; set; }  // 收件人電話
-        public string? Email { get; set; }  // 收件人電子信箱
-        public string? AddressLine { get; set; }  // 主要地址行
+        public string RecipientName { get; set; }  // 收件人姓名
+        public string PhoneNumber { get; set; }  // 收件人電話
+        public string RecieveWay { get; set; } // 收件方式
+        public string RecieveStore { get; set; } // 收件門市
+        public string AddressLine { get; set; }  // 主要地址行
         public bool IsDefault { get; set; }  // 是否為默認地址
 
     }

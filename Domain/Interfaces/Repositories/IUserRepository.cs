@@ -15,11 +15,19 @@ namespace Domain.Interfaces.Repositories
 
         public IEnumerable<UserShipAddress> GetUserShippingAddress(int userid);
 
-        public Task AddUserShippingAddress(int userid, string address);
+        public Task AddUserShippingAddress(int userid, UserShipAddress address);
 
-        public Task ModifyUserShippingAddress(int userid, string address);
+        public Task ModifyUserShippingAddress(int userid, UserShipAddress address);
 
         public Task DeleteUserShippingAddress(int userid, int addressId);
+
+        /// <summary>
+        /// 設定某個常用地址為預設地址
+        /// </summary>
+        /// <param name="userid"></param>
+        /// <param name="addressId"></param>
+        /// <returns></returns>
+        public Task SetDefaultShippingAddress(int userid, int addressId);
 
         public Task RemoveFromFavoriteList(int userid, int productId);
 

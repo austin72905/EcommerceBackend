@@ -171,13 +171,28 @@ namespace EcommerceBackend.Controllers
               
             }
 
-            var address = _userService.GetUserShippingAddress(userid);
-            return Success(address);
+            var result = _userService.GetUserShippingAddress(userid);
+            return Success(result.Data);
          
         }
 
-        [HttpPost("ModifyDefaultShippingAddress")]
-        public IActionResult ModifyDefaultShippingAddress([FromBody] UserShipAddressDTO address)
+        [HttpPost("SetDefaultShippingAddress")]
+        public IActionResult SetDefaultShippingAddress([FromBody] UserShipAddressDTO address)
+        {
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+            if (UserInfo == null)
+            {
+                return Fail("請重新登入");
+
+            }
+            var result = _userService.SetDefaultShippingAddress(UserInfo.UserId, address.AddressId);
+            return Success(result.Data);
+
+        }
+
+        [HttpPost("ModifyShippingAddress")]
+        public IActionResult ModifyShippingAddress([FromBody] UserShipAddressDTO address)
         {
 
             int userid = UserInfo != null ? UserInfo.UserId : 0;
@@ -186,8 +201,8 @@ namespace EcommerceBackend.Controllers
                 return Fail("請重新登入");
              
             }
-            var msg = _userService.ModifyUserShippingAddress(UserInfo.UserId, address);
-            return Success(address);
+            var result = _userService.ModifyUserShippingAddress(UserInfo.UserId, address);
+            return Success(result.Data);
             
         }
 
@@ -201,8 +216,8 @@ namespace EcommerceBackend.Controllers
                 return Fail("請重新登入");
            
             }
-            var msg = _userService.AddUserShippingAddress(UserInfo.UserId, address);
-            return Success(address);
+            var result = _userService.AddUserShippingAddress(UserInfo.UserId, address);
+            return Success(result.Data);
   
         }
 
@@ -216,8 +231,8 @@ namespace EcommerceBackend.Controllers
                 return Fail("請重新登入");
 
             }
-            var msg = _userService.DeleteUserShippingAddress(UserInfo.UserId, address.AddressId);
-            return Success(address);
+            var result = _userService.DeleteUserShippingAddress(UserInfo.UserId, address.AddressId);
+            return Success(result.Data);
 
         }
 

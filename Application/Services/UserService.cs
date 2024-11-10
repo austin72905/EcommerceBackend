@@ -26,10 +26,12 @@ namespace Application.Services
 
         public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(int userid)
         {
-            var addressList = _userRepository.GetUserShippingAddress(userid).ToList();
+            var addressList = _userRepository.GetUserShippingAddress(userid);
 
-            var addressListDto = new List<UserShipAddressDTO>();
+            var addressListDto = addressList.Select(address => address.ToUserShipAddressDTO()).ToList();
 
+         
+            
             return new ServiceResult<List<UserShipAddressDTO>>()
             {
                 IsSuccess = true,
@@ -62,39 +64,126 @@ namespace Application.Services
             };
         }
 
-        public string AddUserShippingAddress(int userid, UserShipAddressDTO address)
+        /// <summary>
+        /// 新增常用地址
+        /// </summary>
+        /// <param name="userid"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public ServiceResult<string> AddUserShippingAddress(int userid, UserShipAddressDTO address)
         {
-            if (userid == null)
+            if (userid == 0)
             {
-                return "no";
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    Data = "no",
+                };
             }
 
-            _userRepository.AddUserShippingAddress(userid, "");
-
-            return "ok";
-        }
-
-        public string ModifyUserShippingAddress(int userid, UserShipAddressDTO address)
-        {
-            if (userid == null)
+            var addressEntity = new UserShipAddress
             {
-                return "no";
+                UserId = userid,
+                RecipientName=address.RecipientName,
+                PhoneNumber = address.PhoneNumber,
+                RecieveStore=address.RecieveStore,
+                RecieveWay=address.RecieveWay,
+                AddressLine=address.AddressLine,
+                CreatedAt=DateTime.Now,
+                UpdatedAt=DateTime.Now,
+            };
+
+
+            _userRepository.AddUserShippingAddress(userid, addressEntity);
+            return new ServiceResult<string>()
+            {
+                IsSuccess = true,
+                Data = "ok",
+            };
+            
+        }
+        
+        /// <summary>
+        /// 修改常用地址
+        /// </summary>
+        /// <param name="userid"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public ServiceResult<string> ModifyUserShippingAddress(int userid, UserShipAddressDTO address)
+        {
+            if (userid == 0)
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    Data = "no",
+                };
             }
 
-             _userRepository.ModifyUserShippingAddress(userid, "");
+            var addressEntity = new UserShipAddress
+            {
+                Id=address.AddressId,
+                UserId = userid,
+                RecipientName = address.RecipientName,
+                PhoneNumber = address.PhoneNumber,
+                RecieveStore = address.RecieveStore,
+                RecieveWay = address.RecieveWay,
+                AddressLine = address.AddressLine,
+                //CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+            };
 
-            return "ok";
+            _userRepository.ModifyUserShippingAddress(userid, addressEntity);
+
+            return new ServiceResult<string>()
+            {
+                IsSuccess = true,
+                Data = "ok",
+            };
         }
 
-        public string DeleteUserShippingAddress(int userid, int addressId)
+        /// <summary>
+        /// 刪除常用地址
+        /// </summary>
+        /// <param name="userid"></param>
+        /// <param name="addressId"></param>
+        /// <returns></returns>
+        public ServiceResult<string> DeleteUserShippingAddress(int userid, int addressId)
         {
-            if (userid == null)
+            if (userid == 0)
             {
-                return "no";
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    Data = "no",
+                };
             }
 
             _userRepository.DeleteUserShippingAddress(userid, addressId);
-            return "ok";
+            return new ServiceResult<string>()
+            {
+                IsSuccess = true,
+                Data = "ok",
+            };
+        }
+
+        public ServiceResult<string> SetDefaultShippingAddress(int userid, int addressId)
+        {
+            if (userid == 0)
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    Data = "no",
+                };
+            }
+
+            _userRepository.SetDefaultShippingAddress(userid, addressId);
+            return new ServiceResult<string>()
+            {
+                IsSuccess = true,
+                Data = "ok",
+            };
         }
 
 

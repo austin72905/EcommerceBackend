@@ -10,12 +10,14 @@ namespace Application.Interfaces
 
         public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(int userid);
 
-        public string AddUserShippingAddress(int userid, UserShipAddressDTO address);
+        public ServiceResult<string> AddUserShippingAddress(int userid, UserShipAddressDTO address);
 
-        public string ModifyUserShippingAddress(int userid, UserShipAddressDTO address);
+        public ServiceResult<string> ModifyUserShippingAddress(int userid, UserShipAddressDTO address);
 
-        public string DeleteUserShippingAddress(int userid, int addressId);
+        public ServiceResult<string> DeleteUserShippingAddress(int userid, int addressId);
 
+        public ServiceResult<string> SetDefaultShippingAddress(int userid, int addressId);
+        
         public Task<ServiceResult<string>> RemoveFromfavoriteList(int userid, int productId);
 
         public Task<ServiceResult<string>> AddTofavoriteList(int userid, int productId);
