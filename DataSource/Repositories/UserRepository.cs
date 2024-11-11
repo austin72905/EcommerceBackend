@@ -2,6 +2,7 @@
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 
 namespace DataSource.Repositories
 {
@@ -98,8 +99,11 @@ namespace DataSource.Repositories
             return _dbSet.Where(u => u.Username== userName).FirstOrDefault();
         }
 
-        
 
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
         public async Task<User?> GetUserIfExistsByGoogleID(string gooleID)
         {
             return await _dbSet.Where(u => u.GoogleId == gooleID).FirstOrDefaultAsync();
@@ -109,6 +113,20 @@ namespace DataSource.Repositories
         {
             await AddAsync(user);
             await SaveChangesAsync();
+        }
+
+       
+
+        public async Task ModifyUserInfo(User user)
+        {
+            await _dbSet
+                    .Where(u => u.Id == user.Id )
+                    .ExecuteUpdateAsync(set => set
+                    .SetProperty(prop => prop.NickName, user.NickName)
+                    .SetProperty(prop => prop.Gender, user.Gender)
+                    .SetProperty(prop => prop.PhoneNumber, user.PhoneNumber)
+                    .SetProperty(prop => prop.Birthday, user.Birthday)
+                    .SetProperty(prop => prop.UpdatedAt, DateTime.Now));
         }
 
         public async Task RemoveFromFavoriteList(int userid, int productId)

@@ -13,6 +13,8 @@ namespace Domain.Interfaces.Repositories
 
         public Task AddUser(User user);
 
+        public Task ModifyUserInfo(User user);
+
         public IEnumerable<UserShipAddress> GetUserShippingAddress(int userid);
 
         public Task AddUserShippingAddress(int userid, UserShipAddress address);
@@ -32,5 +34,7 @@ namespace Domain.Interfaces.Repositories
         public Task RemoveFromFavoriteList(int userid, int productId);
 
         public Task AddToFavoriteList(int userid,int productId);
+
+        public  Task SaveChangesAsync();
     }
 }

@@ -41,7 +41,7 @@ namespace Application.Services
         }
 
 
-        public ServiceResult<UserInfoDTO> GetUserInfo(int userid)
+        public async Task<ServiceResult<UserInfoDTO>> GetUserInfo(int userid)
         {
             //if (userid == null)
             //{
@@ -53,14 +53,75 @@ namespace Application.Services
             //    };
             //}
 
-            var user = _userRepository.GetUserInfo(userid);
+            var user = await _userRepository.GetUserInfo(userid);
 
-            var userInfoDto = new UserInfoDTO();
+            if (user != null)
+            {
+                var userInfoDto = user.ToUserInfoDTO();
+                return new ServiceResult<UserInfoDTO>()
+                {
+                    IsSuccess = true,
+                    Data = userInfoDto,
+                };
+            }
+
 
             return new ServiceResult<UserInfoDTO>()
             {
+                IsSuccess = false,
+                ErrorMessage="沒有此用"
+            };
+
+
+
+
+        }
+
+
+        /// <summary>
+        /// 修改用戶資料
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task<ServiceResult<string>> ModifyUserInfo(UserInfoDTO userDto,string sessionId)
+        {
+
+            //var user =userDto.ToUserEntity();
+            //await _userRepository.ModifyUserInfo(user);
+
+            var user=await _userRepository.GetUserInfo(userDto.UserId);
+
+            if (user != null)
+            {
+                // 將user 資料改變
+                user = userDto.ToUserEntity();
+                await _userRepository.SaveChangesAsync();
+
+
+                // 修改 redis，可以做成transaction or mq
+                var redisUserInfo = await _redisService.GetUserInfoAsync(sessionId);
+
+                if (redisUserInfo != null)
+                {
+                    var userEntity = user.ToUserInfoDTO();
+                   
+                    await _redisService.SetUserInfoAsync(sessionId, JsonSerializer.Serialize(userEntity));
+                }
+
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = true,
+                    Data = "ok",
+                };
+
+            }
+
+            return new ServiceResult<string>()
+            {
                 IsSuccess = true,
-                Data = userInfoDto,
+                Data = "no",
+                ErrorMessage="用戶不存在"
             };
         }
 
@@ -226,6 +287,12 @@ namespace Application.Services
             return userInfo;
         }
 
+        /// <summary>
+        /// 使用Oauth  登陸
+        /// </summary>
+        /// <param name="authLogin"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public async Task<GoogleOAuth> UserAuthLogin(AuthLogin authLogin)
         {
             try
@@ -296,11 +363,16 @@ namespace Application.Services
                     //UserId = jwtUserInfo.Sub,
                     UserId= user.Id, // 改成 從 db 拿 user.Id
                     Email = jwtUserInfo.Email,
-                    Username = jwtUserInfo.Name,
-                    Picture = jwtUserInfo.Picture,
-                    Type = authLogin.state
+                    NickName = user.NickName,
+                    Picture = user.Picture,
+                    Type = authLogin.state,
+                    Birthday= user.Birthday.HasValue? user.Birthday.Value.ToString("yyyy/M/d"): string.Empty,
+                    Gender=user.Gender,
+                    PhoneNumber=user.PhoneNumber,
+                    Username=user.Username
                 };
 
+                Console.WriteLine(userInfo);
 
 
                 return new GoogleOAuth { UserInfo = userInfo, IsSuccess = true };

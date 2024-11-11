@@ -9,7 +9,7 @@
         public string? NickName { get; set; }  // 用戶自訂義名稱
         public string? PhoneNumber { get; set; }
         public string? Gender { get; set; }  // 性別
-        public DateTime? Birthday { get; set; }  // 生日
+        public string? Birthday { get; set; }  // 生日
 
         public string? Picture { get; set; }
 

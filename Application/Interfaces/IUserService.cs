@@ -6,7 +6,9 @@ namespace Application.Interfaces
 {
     public interface IUserService
     {
-        public ServiceResult<UserInfoDTO> GetUserInfo(int userid);
+        public Task<ServiceResult<UserInfoDTO>> GetUserInfo(int userid);
+
+        public Task<ServiceResult<string>> ModifyUserInfo(UserInfoDTO userDto,string sessionId);
 
         public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(int userid);
 

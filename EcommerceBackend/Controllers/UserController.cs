@@ -150,6 +150,28 @@ namespace EcommerceBackend.Controllers
             
         }
 
+        [HttpPost("ModifyUserInfo")]
+        public async Task<IActionResult> ModifyUserInfo([FromBody] UserInfoDTO user)
+        {
+                     
+            
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+            if (UserInfo == null)
+            {
+                return Fail("請重新登入");
+
+            }
+
+            // 去資料庫修改，修改完，要再修改redis
+            user.UserId = userid;
+            var result = await _userService.ModifyUserInfo(user,SessionId);
+
+            return Success(result.Data);
+
+
+        }
+
         // password
         [HttpPost("ModifyPassword")]
         public IActionResult ModifyPassword()
