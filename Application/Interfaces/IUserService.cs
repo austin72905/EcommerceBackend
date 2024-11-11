@@ -10,6 +10,10 @@ namespace Application.Interfaces
 
         public Task<ServiceResult<string>> ModifyUserInfo(UserInfoDTO userDto,string sessionId);
 
+        public Task<ServiceResult<string>> UserLogin(LoginDTO loginDto);
+
+        public Task<ServiceResult<string>> UserRegister(SignUpDTO signUpDto);
+
         public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(int userid);
 
         public ServiceResult<string> AddUserShippingAddress(int userid, UserShipAddressDTO address);

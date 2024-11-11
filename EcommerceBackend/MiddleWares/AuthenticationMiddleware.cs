@@ -38,7 +38,7 @@ namespace EcommerceBackend.MiddleWares
 
             var path = context.Request.Path.ToString().ToLower();
 
-            if (path.StartsWith("/user/")  && !path.Contains("userlogin", StringComparison.OrdinalIgnoreCase) && !path.Contains("AuthLogin",StringComparison.OrdinalIgnoreCase) || path.StartsWith("/order/"))
+            if (path.StartsWith("/user/")  && !path.Contains("UserRegister", StringComparison.OrdinalIgnoreCase) && !path.Contains("userlogin", StringComparison.OrdinalIgnoreCase) && !path.Contains("AuthLogin",StringComparison.OrdinalIgnoreCase) || path.StartsWith("/order/"))
             {
                 if (sessionId == null)
                 {

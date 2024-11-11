@@ -7,7 +7,7 @@ namespace Domain.Interfaces.Repositories
         public Task<IEnumerable<int>> GetFavoriteProductIdsByUser(int userId);
         public Task<User?> GetUserInfo(int userid);
 
-        public User? CheckUserExists(string userName);
+        public Task<User?> CheckUserExists(string userName,string email);
 
         public Task<User?> GetUserIfExistsByGoogleID(string gooleID);
 

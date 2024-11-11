@@ -29,4 +29,22 @@
 
     }
 
+
+    public class SignUpDTO
+    {
+        public string Username { get; set; }
+        public string Email { get; set; }
+        public string NickName { get; set; }  // 用戶自訂義名稱
+
+        public string Password { get; set; }
+    }
+
+    public class LoginDTO
+    {
+        public string Username { get; set; }
+
+        public string Password { get; set; }
+
+    }
+
 }

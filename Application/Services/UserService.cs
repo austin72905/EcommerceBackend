@@ -5,6 +5,7 @@ using Application.Oauth;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Infrastructure.Interfaces;
+using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using System.Text;
@@ -119,9 +120,113 @@ namespace Application.Services
 
             return new ServiceResult<string>()
             {
-                IsSuccess = true,
+                IsSuccess = false,
                 Data = "no",
                 ErrorMessage="用戶不存在"
+            };
+        }
+
+        /// <summary>
+        /// 用戶使用帳密登陸
+        /// </summary>
+        /// <param name="loginDto"></param>
+        /// <returns></returns>
+        public async Task<ServiceResult<string>> UserLogin(LoginDTO loginDto)
+        {
+            var user =await _userRepository.CheckUserExists(loginDto.Username, loginDto.Username);
+
+            // 用戶不存在
+            if (user == null) 
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    Data = null,
+                    ErrorMessage = "用戶不存在"
+                };
+            }
+
+            // 檢查密碼
+
+            var passwordHash = user.PasswordHash;
+
+            if(!BCryptUtils.VerifyPassword(loginDto.Password, passwordHash))
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "密碼錯誤"
+                };
+            }
+
+
+
+
+            var userDto = user.ToUserInfoDTO();
+
+            string redisKey = await SaveUserInfoToRedis(userDto);
+
+            return new ServiceResult<string>()
+            {
+                IsSuccess = true,
+                ErrorMessage = "登入成功",
+                Data = redisKey
+            };
+        }
+
+
+        /// <summary>
+        /// 用戶註冊
+        /// </summary>
+        /// <param name="signUpDto"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task<ServiceResult<string>> UserRegister(SignUpDTO signUpDto)
+        {
+            // 後端應該也要對input做一些驗證?
+            
+            var user=await _userRepository.CheckUserExists(signUpDto.Username, signUpDto.Email);
+
+            // 用戶已存在
+            if (user != null)
+            {
+
+                if (user.Email == signUpDto.Email)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = $"已有相同信箱{user.Email}",
+                    };
+                }
+                else
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = $"已有相同帳號{user.Username}",
+                    };
+                }
+               
+            }
+
+
+            // 新增用戶
+            var userEntity=signUpDto.ToUserEntity();
+            await _userRepository.AddUser(userEntity);
+
+            // 新增完了
+            user = await _userRepository.CheckUserExists(signUpDto.Username, signUpDto.Email);
+            // 將用戶資料存在redis，並將key返回給api 層
+            var userDto =user.ToUserInfoDTO();
+
+            string redisKey= await SaveUserInfoToRedis(userDto);
+
+            return new ServiceResult<string>()
+            {
+                IsSuccess = true,
+                ErrorMessage = $"註冊成功",
+                Data = redisKey
             };
         }
 
@@ -384,6 +489,20 @@ namespace Application.Services
 
         }
 
-        
+
+
+
+        private async Task<string> SaveUserInfoToRedis(UserInfoDTO userInfo)
+        {
+            string guid = Guid.NewGuid().ToString();
+
+            string result = JsonSerializer.Serialize(userInfo);
+
+            await _redisService.SetUserInfoAsync(guid, result);
+
+            return guid;
+        }
+
+       
     }
 }

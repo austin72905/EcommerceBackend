@@ -29,9 +29,85 @@ namespace EcommerceBackend.Controllers
         }
 
         [HttpPost("UserRegister")]
-        public IActionResult UserRegister()
+        public async Task<IActionResult> UserRegister([FromBody] SignUpDTO signUpDto)
         {
-            return Content("ok");
+            var result = await _userService.UserRegister(signUpDto);
+
+            if (!result.IsSuccess)
+            {
+                return Fail(result.Data,msg:result.ErrorMessage);
+            }
+
+
+
+            // 註冊成功的話，設置cookie
+            string redisKey = result.Data;
+
+            // SameSite 只要設為none，Secure 就必須為true
+            // https 會造成 無法寫給前端http cookie
+            var cookieOption = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.Now.AddHours(2),
+                //SameSite = SameSiteMode.None,
+                Secure = false,
+                //Domain = "localhost"
+            };
+
+            var cookieOption2 = new CookieOptions
+            {
+                HttpOnly = false,
+                Expires = DateTime.Now.AddHours(2),
+                //SameSite = SameSiteMode.None,
+                Secure = false,
+                //Domain= "localhost"
+            };
+
+            Response.Cookies.Append("session-id", redisKey, cookieOption);
+            Response.Cookies.Append("has-session-id", "true", cookieOption2);
+
+            return Success();
+        }
+
+
+        [HttpPost("UserLogin")]
+        public async Task<IActionResult> UserLogin([FromBody] LoginDTO loginDto)
+        {
+            var result = await _userService.UserLogin(loginDto);
+
+            if (!result.IsSuccess) 
+            {
+
+                return Fail(result.Data, msg: result.ErrorMessage);
+            }
+
+            // 註冊成功的話，設置cookie
+            string redisKey = result.Data;
+
+            // SameSite 只要設為none，Secure 就必須為true
+            // https 會造成 無法寫給前端http cookie
+            var cookieOption = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.Now.AddHours(2),
+                //SameSite = SameSiteMode.None,
+                Secure = false,
+                //Domain = "localhost"
+            };
+
+            var cookieOption2 = new CookieOptions
+            {
+                HttpOnly = false,
+                Expires = DateTime.Now.AddHours(2),
+                //SameSite = SameSiteMode.None,
+                Secure = false,
+                //Domain= "localhost"
+            };
+
+            Response.Cookies.Append("session-id", redisKey, cookieOption);
+            Response.Cookies.Append("has-session-id", "true", cookieOption2);
+
+            return Success();
         }
 
         [HttpPost("AuthLogin")]
@@ -87,15 +163,7 @@ namespace EcommerceBackend.Controllers
         }
 
 
-        [HttpPost("UserLogin")]
-        public async Task<IActionResult> UserLogin()
-        {
-            //var resp = await _userService.GetIDTokenFromGoogle();
-
-
-            return Ok("ok");
-        }
-
+    
 
         [HttpGet("UserLogout")]
         public async Task<IActionResult> UserLogout()

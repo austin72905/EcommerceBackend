@@ -94,9 +94,11 @@ namespace DataSource.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public User? CheckUserExists(string userName)
+        public async Task<User?> CheckUserExists(string userName,string email)
         {
-            return _dbSet.Where(u => u.Username== userName).FirstOrDefault();
+            return await _dbSet
+                .Where(u => u.Username== userName || u.Email==email)
+                .FirstOrDefaultAsync();
         }
 
 
