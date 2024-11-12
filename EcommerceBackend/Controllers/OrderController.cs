@@ -76,7 +76,10 @@ namespace EcommerceBackend.Controllers
                 ReceiverName = req.ReceiverName,
                 ShippingAddress = req.ShippingAddress,
                 ReceiverPhone = req.ReceiverPhone,
+                RecieveStore=req.RecieveStore,
+                RecieveWay = req.RecieveWay,
                 ShippingFee = req.ShippingFee,
+                Email =req.Email
             };
 
             var result = await _orderService.GenerateOrder(info);
@@ -106,6 +109,15 @@ namespace EcommerceBackend.Controllers
             public string ShippingAddress { get; set; }
 
             /// <summary>
+            /// 收件門市
+            /// </summary>
+            public string RecieveStore { get; set; }
+
+
+            public string RecieveWay { get; set; }
+
+
+            /// <summary>
             /// 收件人姓名
             /// </summary>
             public string ReceiverName { get; set; }
@@ -114,6 +126,8 @@ namespace EcommerceBackend.Controllers
             /// 收件人電話
             /// </summary>
             public string ReceiverPhone { get; set; }
+
+            public string Email { get; set; }
         }
 
        

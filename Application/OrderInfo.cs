@@ -30,9 +30,20 @@ namespace Application
         public string ReceiverName { get; set; }
 
         /// <summary>
+        ///  收件門市
+        /// </summary>
+
+        public string RecieveStore { get; set; }
+
+
+        public string RecieveWay { get; set; }
+
+        /// <summary>
         /// 收件人電話
         /// </summary>
         public string ReceiverPhone { get; set; }
+
+        public string Email { get; set; }
     }
 
     public class OrderItem

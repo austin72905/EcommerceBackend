@@ -383,9 +383,12 @@ namespace Application.Services
                 UserId = info.UserId,
                 Status = (int)OrderStatus.Created,
                 Receiver = info.ReceiverName,
+                RecieveStore=info.RecieveStore,
                 PhoneNumber = info.ReceiverPhone,
                 ShippingAddress = info.ShippingAddress,
                 ShippingPrice = (int)info.ShippingFee,
+                RecieveWay=info.RecieveWay,
+                Email = info.Email,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now,
                 OrderProducts = new List<OrderProduct>()
