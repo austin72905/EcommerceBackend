@@ -26,5 +26,17 @@ namespace DataSource.Repositories
         }
 
 
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+
+
+        public async Task AddAsync(Cart entity)
+        {
+            await _dbSet.AddAsync(entity);
+        }
+
     }
 }

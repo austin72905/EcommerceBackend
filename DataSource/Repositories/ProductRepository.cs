@@ -67,10 +67,15 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<ProductVariant>> GetProductVariants(IEnumerable<int> variantIds)
         {
             return await _context.ProductVariants
+                .Include(pv => pv.Product)
+                .Include(pv => pv.Size)
                 .Include(pv => pv.ProductVariantDiscounts)
                     .ThenInclude(pvd => pvd.Discount)
                 .Where(pv => variantIds.Contains(pv.Id))
                 .ToListAsync();
         }
+
+     
+
     }
 }

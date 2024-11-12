@@ -73,6 +73,11 @@ namespace DataSource.DBContext
             modelBuilder.Entity<OrderProduct>()
                 .HasIndex(op => op.ProductVariantId);
 
+
+            // 設置 UserId 在 Cart 表中唯一
+            modelBuilder.Entity<Cart>()
+                .HasIndex(c => c.UserId)
+                .IsUnique();
             // CartItem 表的 CartId 和 ProductVariantId 外鍵索引
             modelBuilder.Entity<CartItem>()
                 .HasIndex(ci => ci.CartId);
