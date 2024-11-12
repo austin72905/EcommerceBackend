@@ -230,6 +230,78 @@ namespace Application.Services
             };
         }
 
+
+        /// <summary>
+        /// 修改密碼
+        /// </summary>
+        /// <param name="userid"></param>
+        /// <param name="modifyPasswordDto"></param>
+        /// <returns></returns>
+        public async Task<ServiceResult<string>> ModifyPassword(int userid, ModifyPasswordDTO modifyPasswordDto)
+        {
+            
+
+            if (userid == 0)
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage="用戶不存在"
+                };
+            }
+
+
+            var user = await _userRepository.GetUserInfo(userid);
+
+            if (user == null)
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "用戶不存在"
+                };
+            }
+
+            // Oauh 登陸不需要密碼
+            if(user.PasswordHash == null)
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "此類型用戶無法修改密碼"
+                };
+            }
+
+            if(!BCryptUtils.VerifyPassword(modifyPasswordDto.OldPassword, user.PasswordHash))
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "舊密碼輸入錯誤"
+                };
+            }
+
+            // 新密碼不得與舊密碼相同
+            if(modifyPasswordDto.OldPassword == modifyPasswordDto.Password)
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "新密碼不得與舊密碼相同"
+                };
+            }
+
+            // 修改密碼
+            user.PasswordHash = BCryptUtils.HashPassword(modifyPasswordDto.Password);
+            await _userRepository.SaveChangesAsync();
+
+            return new ServiceResult<string>()
+            {
+                IsSuccess = true,
+                ErrorMessage = "修改密碼成功"
+            };
+        }
+
         /// <summary>
         /// 新增常用地址
         /// </summary>

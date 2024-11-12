@@ -28,6 +28,11 @@ namespace EcommerceBackend.Controllers
             return Content("ok");
         }
 
+        /// <summary>
+        /// 用戶註冊
+        /// </summary>
+        /// <param name="signUpDto"></param>
+        /// <returns></returns>
         [HttpPost("UserRegister")]
         public async Task<IActionResult> UserRegister([FromBody] SignUpDTO signUpDto)
         {
@@ -69,7 +74,11 @@ namespace EcommerceBackend.Controllers
             return Success();
         }
 
-
+        /// <summary>
+        /// 用戶登陸
+        /// </summary>
+        /// <param name="loginDto"></param>
+        /// <returns></returns>
         [HttpPost("UserLogin")]
         public async Task<IActionResult> UserLogin([FromBody] LoginDTO loginDto)
         {
@@ -110,6 +119,11 @@ namespace EcommerceBackend.Controllers
             return Success();
         }
 
+        /// <summary>
+        /// 使用Oauth 登入
+        /// </summary>
+        /// <param name="authLogin"></param>
+        /// <returns></returns>
         [HttpPost("AuthLogin")]
         public async Task<IActionResult> AuthLogin([FromBody] AuthLogin authLogin)
         {
@@ -164,7 +178,10 @@ namespace EcommerceBackend.Controllers
 
 
     
-
+        /// <summary>
+        /// 登出
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("UserLogout")]
         public async Task<IActionResult> UserLogout()
         {
@@ -184,6 +201,10 @@ namespace EcommerceBackend.Controllers
             return Ok(resp);
         }
 
+        /// <summary>
+        /// 獲取用戶資訊
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("GetUserInfo")]
         public async Task<IActionResult> GetUserInfo()
         {
@@ -218,6 +239,12 @@ namespace EcommerceBackend.Controllers
             
         }
 
+
+        /// <summary>
+        /// 修改用戶資訊
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         [HttpPost("ModifyUserInfo")]
         public async Task<IActionResult> ModifyUserInfo([FromBody] UserInfoDTO user)
         {
@@ -240,11 +267,29 @@ namespace EcommerceBackend.Controllers
 
         }
 
+        /// <summary>
+        /// 修改用戶密碼
+        /// </summary>
+        /// <returns></returns>
         // password
         [HttpPost("ModifyPassword")]
-        public IActionResult ModifyPassword()
+        public async Task<IActionResult> ModifyPassword([FromBody] ModifyPasswordDTO modifyPassword)
         {
-            return Content("ok");
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+            if (UserInfo == null)
+            {
+                return Fail("請重新登入");
+
+            }
+
+            var result =await _userService.ModifyPassword(userid, modifyPassword);
+
+            if (!result.IsSuccess)
+            {
+                return Fail(msg: result.ErrorMessage);
+            }
+
+            return Success(result.Data);
         }
 
 

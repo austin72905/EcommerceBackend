@@ -14,6 +14,8 @@ namespace Application.Interfaces
 
         public Task<ServiceResult<string>> UserRegister(SignUpDTO signUpDto);
 
+        public Task<ServiceResult<string>> ModifyPassword(int userid,ModifyPasswordDTO modifyPasswordDto);
+
         public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(int userid);
 
         public ServiceResult<string> AddUserShippingAddress(int userid, UserShipAddressDTO address);
