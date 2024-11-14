@@ -96,7 +96,16 @@ namespace Application.Services
             if (user != null)
             {
                 // 將user 資料改變
-                user = userDto.ToUserEntity();
+                var updateInfo = userDto.ToUserEntity();
+
+                user.Username = updateInfo.Username;
+                user.Email = updateInfo.Email ?? string.Empty;// 確保不為 null
+                user.NickName = updateInfo.NickName;
+                user.PhoneNumber = updateInfo.PhoneNumber;
+                user.Gender = updateInfo.Gender;
+                user.Picture = updateInfo.Picture;
+                user.Birthday = updateInfo.Birthday;
+                user.UpdatedAt = DateTime.Now;   // 新增或自訂
                 await _userRepository.SaveChangesAsync();
 
 
