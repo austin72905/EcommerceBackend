@@ -10,7 +10,7 @@
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
-        public ICollection<ProductDiscount> ProductDiscounts { get; set; }
+        //public ICollection<ProductDiscount> ProductDiscounts { get; set; }
         public ICollection<ProductVariantDiscount> ProductVariantDiscounts { get; set; }
     }
 }

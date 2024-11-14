@@ -15,8 +15,8 @@ namespace Application.DummyData
                 {
                     Title="超時尚流蘇几皮外套",
                     ProductId=26790367,
-                    Stock=60,
-                    Price=100,
+                    //Stock=60,
+                    //Price=100,
                     Material=new List<string>{ "聚酯纖維", "聚氨酯纖維"},
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",
@@ -89,8 +89,8 @@ namespace Application.DummyData
                 {
                     Title="紫色格紋大衣",
                     ProductId=26790368,
-                    Stock=5,
-                    Price=598,
+                    //Stock=5,
+                    //Price=598,
                     Material=new List<string>{ "聚酯纖維", "聚氨酯纖維"},
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",
@@ -163,8 +163,8 @@ namespace Application.DummyData
                 {
                     Title="超質感綠色皮衣",
                     ProductId=13790367,
-                    Stock=18,
-                    Price=179,
+                    //Stock=18,
+                    //Price=179,
                     Material=new List<string>{ "聚酯纖維", "聚氨酯纖維"},
                     HowToWash="洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features="其實我也不知道要說什麼...a 其實我也不知道要說什麼...a 其實我也不知道要說什麼...a",

@@ -144,15 +144,15 @@ namespace DataSource.DBContext
 
 
             // ProductDiscount 與 Product、Discount 表的關係
-            modelBuilder.Entity<ProductDiscount>()
-                .HasOne(pd => pd.Product)
-                .WithMany(p => p.ProductDiscounts)
-                .HasForeignKey(pd => pd.ProductId);
+            //modelBuilder.Entity<ProductDiscount>()
+            //    .HasOne(pd => pd.Product)
+            //    .WithMany(p => p.ProductDiscounts)
+            //    .HasForeignKey(pd => pd.ProductId);
 
-            modelBuilder.Entity<ProductDiscount>()
-                .HasOne(pd => pd.Discount)
-                .WithMany(d => d.ProductDiscounts)
-                .HasForeignKey(pd => pd.DiscountId);
+            //modelBuilder.Entity<ProductDiscount>()
+            //    .HasOne(pd => pd.Discount)
+            //    .WithMany(d => d.ProductDiscounts)
+            //    .HasForeignKey(pd => pd.DiscountId);
 
             // ProductVariantDiscount 與 ProductVariant、Discount 表的關係
             modelBuilder.Entity<ProductVariantDiscount>()
@@ -224,8 +224,8 @@ namespace DataSource.DBContext
                 {
                     Id = 1,
                     Title = "超時尚流蘇几皮外套",
-                    Price = 150,
-                    Stock = 60,
+                    //Price = 150,
+                    //Stock = 60,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "http://localhost:9000/coat1.jpg",
@@ -237,8 +237,8 @@ namespace DataSource.DBContext
                 {
                     Id = 2,
                     Title = "紫色格紋大衣",
-                    Price = 598,
-                    Stock = 5,
+                    //Price = 598,
+                    //Stock = 5,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "http://localhost:9000/coat4.jpg",
@@ -250,8 +250,8 @@ namespace DataSource.DBContext
                 {
                     Id = 3,
                     Title = "超質感綠色皮衣",
-                    Price = 179,
-                    Stock = 18,
+                    //Price = 179,
+                    //Stock = 18,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "http://localhost:9000/coat3.jpg",
@@ -263,8 +263,8 @@ namespace DataSource.DBContext
                 {
                     Id = 4,
                     Title = "海島風情黑色短袖襯衫",
-                    Price = 100,
-                    Stock = 60,
+                    //Price = 100,
+                    //Stock = 60,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "http://localhost:9000/coat2.jpg",
@@ -276,8 +276,8 @@ namespace DataSource.DBContext
                 {
                     Id = 5,
                     Title = "帥氣單寧",
-                    Price = 799,
-                    Stock = 60,
+                    //Price = 799,
+                    //Stock = 60,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "http://localhost:9000/coat5.jpg",
@@ -370,15 +370,15 @@ namespace DataSource.DBContext
                 },
                 new ProductVariant
                 {
-                     Id = 7,
-                     ProductId = 2,
-                     Color = "黑",
-                     SizeId = 3, // 對應 L
-                     SKU = "BLACK-L",
-                     Stock = 16,
-                     VariantPrice = 283,
-                     CreatedAt = DateTime.Now,
-                     UpdatedAt = DateTime.Now
+                    Id = 7,
+                    ProductId = 2,
+                    Color = "黑",
+                    SizeId = 3, // 對應 L
+                    SKU = "BLACK-L",
+                    Stock = 16,
+                    VariantPrice = 283,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
                 },
                 new ProductVariant
                 {
@@ -586,6 +586,95 @@ namespace DataSource.DBContext
                 }
             );
 
+            //  Discount 種子數據
+            modelBuilder.Entity<Discount>().HasData(
+                new Discount
+                {
+                    Id = 1,
+                    DiscountAmount = 100,
+                    StartDate = new DateTime(2024, 1, 1),
+                    EndDate = new DateTime(2025, 12, 31),
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new Discount
+                {
+                    Id = 2,
+                    DiscountAmount = 199,
+                    StartDate = new DateTime(2024, 2, 1),
+                    EndDate = new DateTime(2025, 12, 31),
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                }
+            );
+
+            // 設定 ProductVariantDiscount 種子資料
+            modelBuilder.Entity<ProductVariantDiscount>().HasData(
+                new ProductVariantDiscount
+                {
+                    Id = 1,
+                    VariantId = 2, 
+                    DiscountId = 1,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new ProductVariantDiscount
+                {
+                    Id = 2,
+                    VariantId = 4, 
+                    DiscountId = 1,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new ProductVariantDiscount
+                {
+                    Id = 3,
+                    VariantId = 8,
+                    DiscountId = 1,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new ProductVariantDiscount
+                {
+                    Id = 4,
+                    VariantId = 11,
+                    DiscountId = 1,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new ProductVariantDiscount
+                {
+                    Id = 5,
+                    VariantId = 12,
+                    DiscountId = 1,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                 new ProductVariantDiscount
+                 {
+                     Id = 6,
+                     VariantId = 19,
+                     DiscountId = 2,
+                     CreatedAt = DateTime.Now,
+                     UpdatedAt = DateTime.Now
+                 },
+                new ProductVariantDiscount
+                {
+                    Id = 7,
+                    VariantId = 22,
+                    DiscountId = 2,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new ProductVariantDiscount
+                {
+                    Id = 8,
+                    VariantId = 24,
+                    DiscountId = 2,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                }
+            );
 
 
             // ProductImages 種子數據
@@ -634,12 +723,12 @@ namespace DataSource.DBContext
 
             // Tag 種子數據，與 Kind 進行關聯
             modelBuilder.Entity<Tag>().HasData(
-                new Tag { Id = 1,  Name = "t-shirt" },
-                new Tag { Id = 2,  Name = "shirt" },
-                new Tag { Id = 3,  Name = "jeans" },
-                new Tag { Id = 4,  Name = "shorts" },
-                new Tag { Id = 5,  Name = "windcoat" },
-                new Tag { Id = 6,  Name = "knitting" },
+                new Tag { Id = 1, Name = "t-shirt" },
+                new Tag { Id = 2, Name = "shirt" },
+                new Tag { Id = 3, Name = "jeans" },
+                new Tag { Id = 4, Name = "shorts" },
+                new Tag { Id = 5, Name = "windcoat" },
+                new Tag { Id = 6, Name = "knitting" },
                 new Tag { Id = 7, Name = "accessories" },
                 new Tag { Id = 8, Name = "new-arrival" },
                 new Tag { Id = 9, Name = "limit-time-offer" }
@@ -648,10 +737,10 @@ namespace DataSource.DBContext
 
             // ProductTag 種子數據
             modelBuilder.Entity<ProductTag>().HasData(
-                new ProductTag { Id = 1, ProductId = 1, TagId = 1 }, 
-                new ProductTag { Id = 2, ProductId = 1, TagId = 4 }, 
-                new ProductTag { Id = 3, ProductId = 2, TagId = 2 }, 
-                new ProductTag { Id = 4, ProductId = 3, TagId = 3 }, 
+                new ProductTag { Id = 1, ProductId = 1, TagId = 1 },
+                new ProductTag { Id = 2, ProductId = 1, TagId = 4 },
+                new ProductTag { Id = 3, ProductId = 2, TagId = 2 },
+                new ProductTag { Id = 4, ProductId = 3, TagId = 3 },
                 new ProductTag { Id = 5, ProductId = 3, TagId = 5 },
                 new ProductTag { Id = 6, ProductId = 3, TagId = 5 },
                 new ProductTag { Id = 7, ProductId = 4, TagId = 6 },
@@ -669,7 +758,7 @@ namespace DataSource.DBContext
                     SecretKey = "pwFHCqoQZGmho4w6",
                     HashIV = "EkRm7iFT261dpevs",
                 }
-                
+
             );
 
         }

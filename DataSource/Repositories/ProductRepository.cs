@@ -17,7 +17,9 @@ namespace DataSource.Repositories
             return await  _dbSet
                  .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
-                .Include(p => p.ProductDiscounts)
+                .Include(p => p.ProductVariants)
+                    .ThenInclude(pv => pv.ProductVariantDiscounts)
+                        .ThenInclude(pkd => pkd.Discount)
                 .Include(p => p.ProductKinds)
                     .ThenInclude(pkt => pkt.Kind)
                 .Where(p => p.ProductKinds.Any(pkt => pkt.Kind.Name == kind))
@@ -30,7 +32,9 @@ namespace DataSource.Repositories
             return await _dbSet
                  .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
-                .Include(p => p.ProductDiscounts)
+                .Include(p => p.ProductVariants)
+                    .ThenInclude(pv => pv.ProductVariantDiscounts)
+                        .ThenInclude(pkd => pkd.Discount)
                 .Include(p => p.ProductTags)
                     .ThenInclude(pkt => pkt.Tag)
                 .Where(p => p.ProductTags.Any(pkt => pkt.Tag.Name == tag))
@@ -42,6 +46,9 @@ namespace DataSource.Repositories
             return await _dbSet
                 .Include(p=>p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
+                .Include(p => p.ProductVariants)
+                    .ThenInclude(pv => pv.ProductVariantDiscounts)
+                        .ThenInclude(pkd => pkd.Discount)
                 .Include(p => p.ProductImages)
                 .Where(p => p.Id == productId)
                 .FirstOrDefaultAsync();
@@ -58,7 +65,9 @@ namespace DataSource.Repositories
             return await _dbSet
                 .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
-                .Include(p => p.ProductDiscounts)
+                .Include(p => p.ProductVariants)
+                    .ThenInclude(pv => pv.ProductVariantDiscounts)
+                        .ThenInclude(pkd => pkd.Discount)
                 .Include(p => p.FavoriteProducts)
                 .Where(p => p.FavoriteProducts.Any(fp => fp.UserId == userid))
                 .ToListAsync();

@@ -39,7 +39,7 @@ namespace Application.Extensions
                 {
                     ProductId = cartItem.ProductVariant.Product.Id,
                     Title = cartItem.ProductVariant.Product.Title,
-                    Price = cartItem.ProductVariant.Product.Price,
+                    //Price = cartItem.ProductVariant.Product.Price,
                     CoverImg=cartItem.ProductVariant.Product.CoverImg,
                     // 填寫其他產品信息
                 },
@@ -52,10 +52,27 @@ namespace Application.Extensions
                     Price = cartItem.ProductVariant.VariantPrice,
                     Stock= cartItem.ProductVariant.Stock,
                     SKU= cartItem.ProductVariant.SKU,
+                    DiscountPrice= CalculateDiscountPrice(cartItem.ProductVariant)
 
                     // 填寫其他變體信息
                 }
             };
+        }
+
+
+        // 計算折扣價格的函數
+        private static int? CalculateDiscountPrice(ProductVariant productVariant)
+        {
+            // 查找當前有效的折扣
+            var currentDiscount = productVariant.ProductVariantDiscounts
+                .Where(pvd => pvd.Discount.StartDate <= DateTime.Now && pvd.Discount.EndDate >= DateTime.Now)
+                .OrderByDescending(pvd => pvd.Discount.DiscountAmount) // 若有多個折扣，選擇最大折扣
+                .FirstOrDefault();
+
+            // 計算並返回折扣價格，如果沒有有效折扣則返回原價
+            return currentDiscount != null
+                ? currentDiscount.Discount.DiscountAmount
+                : (int?)null; // 若無折扣，則返回 null 或可視為原價
         }
 
         // 批量轉換擴充方法

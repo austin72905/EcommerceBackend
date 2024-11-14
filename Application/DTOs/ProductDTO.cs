@@ -6,11 +6,11 @@
 
         public int ProductId { get; set; }
 
-        public int Price { get; set; }
+        //public int Price { get; set; }
 
-        public int DiscountPrice { get; set; }
+        //public int DiscountPrice { get; set; }
 
-        public int Stock { get; set; }
+        //public int Stock { get; set; }
 
 
         public List<string>? Material { get; set; }
@@ -56,6 +56,6 @@
 
         public int Price { get; set; }
 
-        public int DiscountPrice { get; set; }
+        public int? DiscountPrice { get; set; }
     }
 }
