@@ -1,11 +1,13 @@
 ﻿
 using Application.DTOs;
 using Application.Interfaces;
+using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.Http;
 using System.Collections;
 using System.Web;
+using static System.Net.WebRequestMethods;
 
 namespace Application.Services
 {
@@ -166,7 +168,7 @@ namespace Application.Services
                 // 商品名稱
                 { "ItemName","item" },
                 // 付款完成通知回傳網址
-                { "ReturnURL"," https://7476-114-46-6-241.ngrok-free.app/Payment/ECPayReturn" },
+                { "ReturnURL","https://bdec-1-168-26-39.ngrok-free.app/api/ecpay-return" },  //https://7476-114-46-6-241.ngrok-free.app/Payment/ECPayReturn
                 // 選擇預設付款方式
                 { "ChoosePayment","Credit" },
                 // CheckMacValue加密類型 (請固定填入1，使用SHA256加密。)
@@ -246,7 +248,8 @@ namespace Application.Services
                 //檢查是否交易成功
                 if (!IsSuccessfulTransaction())
                 {
-                    return TransactionFail();
+
+                    return await TransactionFail();
                 }
 
                 //請求配置
@@ -267,7 +270,10 @@ namespace Application.Services
                     return SignVerificationFailed();
                 }
 
-                return TransactionSuccess();
+                
+             
+
+                return await TransactionSuccess();
             }
             catch (Exception ex)
             {
@@ -362,8 +368,29 @@ namespace Application.Services
             return null;
         }
 
-        private ServiceResult<object> TransactionFail()
+        private async Task<ServiceResult<object>> TransactionFail()
         {
+            // 修改資料庫狀態
+            var payment = await _paymentRepository.GetPaymentRecord(recordCode: RecordCode);
+
+            if (payment != null)
+            {
+                payment.PaymentStatus = (byte)OrderStepStatus.OrderCanceled;
+                payment.Order.Status = (int)OrderStepStatus.OrderCanceled;
+                payment.Order.OrderSteps.Add(new Domain.Entities.OrderStep
+                {
+                    OrderId = payment.OrderId,
+                    StepStatus = (int)OrderStepStatus.OrderCanceled,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
+                });
+
+                await _paymentRepository.SaveChangesAsync();
+
+
+            }
+
+
             return new ServiceResult<object>
             {
                 IsSuccess = false,
@@ -383,8 +410,29 @@ namespace Application.Services
             };
         }
 
-        private ServiceResult<object> TransactionSuccess()
+        private async Task<ServiceResult<object>> TransactionSuccess()
         {
+
+            // 修改資料庫狀態
+            var payment = await _paymentRepository.GetPaymentRecord(recordCode: RecordCode);
+
+            if (payment != null)
+            {
+                payment.PaymentStatus = (byte)OrderStepStatus.PaymentReceived;
+                payment.Order.Status = (int)OrderStepStatus.PaymentReceived;
+                payment.Order.OrderSteps.Add(new Domain.Entities.OrderStep
+                {
+                    OrderId = payment.OrderId,
+                    StepStatus = (int)OrderStepStatus.PaymentReceived,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
+                });
+
+                await _paymentRepository.SaveChangesAsync();
+
+
+            }
+
             return new ServiceResult<object>
             {
                 IsSuccess = true,

@@ -12,5 +12,9 @@ namespace Domain.Interfaces.Repositories
         public Task<Payment?> GetTenantConfig(string recordCode);
 
         public  Task GeneratePaymentRecord(Payment payment);
+
+        public Task<Payment?> GetPaymentRecord(string recordCode);
+
+        public Task SaveChangesAsync();
     }
 }

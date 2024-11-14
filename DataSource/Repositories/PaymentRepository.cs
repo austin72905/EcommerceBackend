@@ -25,5 +25,16 @@ namespace DataSource.Repositories
             await _dbSet.AddAsync(payment);
             await SaveChangesAsync();
         }
+
+        public async Task<Payment?> GetPaymentRecord(string recordCode)
+        {
+            return await _dbSet
+                .Include(p => p.Order)
+                    .ThenInclude(p => p.OrderSteps)
+                .Include(p => p.Order)
+                    .ThenInclude(p => p.Shipments)
+                .Where(p => p.Order.RecordCode == recordCode)
+                .FirstOrDefaultAsync();
+        }
     }
 }

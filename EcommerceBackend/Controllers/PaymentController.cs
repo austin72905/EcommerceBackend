@@ -39,9 +39,9 @@ namespace EcommerceBackend.Controllers
             var result =await _paymentService.PayReturn();
             if (!result.IsSuccess || result.Data == null)
             {
-                return Content("支付回調異常，請聯繫管理員");
+                return Fail("支付回調異常，請聯繫管理員");
             }
-            return Ok("1|OK");
+            return Success("1|OK");
         }
 
         
