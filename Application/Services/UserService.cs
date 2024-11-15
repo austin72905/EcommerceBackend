@@ -4,6 +4,7 @@ using Application.Interfaces;
 using Application.Oauth;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
+using Domain.Interfaces.Services;
 using Infrastructure.Interfaces;
 using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.WebUtilities;
@@ -18,11 +19,14 @@ namespace Application.Services
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
         private readonly IRedisService _redisService;
-        public UserService(IUserRepository userRepository, IConfiguration configuration, IRedisService redisService)
+        private readonly IUserDomainService _userDomainService;
+
+        public UserService(IUserRepository userRepository, IConfiguration configuration, IRedisService redisService, IUserDomainService userDomainService)
         {
             _userRepository = userRepository;
             _configuration = configuration;
             _redisService = redisService;
+            _userDomainService = userDomainService;
         }
 
         public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(int userid)
@@ -31,8 +35,8 @@ namespace Application.Services
 
             var addressListDto = addressList.Select(address => address.ToUserShipAddressDTO()).ToList();
 
-         
-            
+
+
             return new ServiceResult<List<UserShipAddressDTO>>()
             {
                 IsSuccess = true,
@@ -70,7 +74,7 @@ namespace Application.Services
             return new ServiceResult<UserInfoDTO>()
             {
                 IsSuccess = false,
-                ErrorMessage="沒有此用"
+                ErrorMessage = "沒有此用"
             };
 
 
@@ -85,39 +89,27 @@ namespace Application.Services
         /// <param name="user"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public async Task<ServiceResult<string>> ModifyUserInfo(UserInfoDTO userDto,string sessionId)
+        public async Task<ServiceResult<string>> ModifyUserInfo(UserInfoDTO userDto, string sessionId)
         {
 
             //var user =userDto.ToUserEntity();
             //await _userRepository.ModifyUserInfo(user);
 
-            var user=await _userRepository.GetUserInfo(userDto.UserId);
+            var user = await _userRepository.GetUserInfo(userDto.UserId);
 
             if (user != null)
             {
                 // 將user 資料改變
                 var updateInfo = userDto.ToUserEntity();
 
-                user.Username = updateInfo.Username;
-                user.Email = updateInfo.Email ?? string.Empty;// 確保不為 null
-                user.NickName = updateInfo.NickName;
-                user.PhoneNumber = updateInfo.PhoneNumber;
-                user.Gender = updateInfo.Gender;
-                user.Picture = updateInfo.Picture;
-                user.Birthday = updateInfo.Birthday;
-                user.UpdatedAt = DateTime.Now;   // 新增或自訂
+                // 將user 資料改變
+                _userDomainService.UpdateUser(user, updateInfo);
+
                 await _userRepository.SaveChangesAsync();
 
 
                 // 修改 redis，可以做成transaction or mq
-                var redisUserInfo = await _redisService.GetUserInfoAsync(sessionId);
-
-                if (redisUserInfo != null)
-                {
-                    var userEntity = user.ToUserInfoDTO();
-                   
-                    await _redisService.SetUserInfoAsync(sessionId, JsonSerializer.Serialize(userEntity));
-                }
+                await UpdateRedisUserInfoAsync(sessionId, user);
 
                 return new ServiceResult<string>()
                 {
@@ -131,7 +123,7 @@ namespace Application.Services
             {
                 IsSuccess = false,
                 Data = "no",
-                ErrorMessage="用戶不存在"
+                ErrorMessage = "用戶不存在"
             };
         }
 
@@ -142,10 +134,10 @@ namespace Application.Services
         /// <returns></returns>
         public async Task<ServiceResult<string>> UserLogin(LoginDTO loginDto)
         {
-            var user =await _userRepository.CheckUserExists(loginDto.Username, loginDto.Username);
+            var user = await _userRepository.CheckUserExists(loginDto.Username, loginDto.Username);
 
             // 用戶不存在
-            if (user == null) 
+            if (user == null)
             {
                 return new ServiceResult<string>()
                 {
@@ -159,7 +151,7 @@ namespace Application.Services
 
             var passwordHash = user.PasswordHash;
 
-            if(!BCryptUtils.VerifyPassword(loginDto.Password, passwordHash))
+            if (!BCryptUtils.VerifyPassword(loginDto.Password, passwordHash))
             {
                 return new ServiceResult<string>()
                 {
@@ -193,50 +185,41 @@ namespace Application.Services
         public async Task<ServiceResult<string>> UserRegister(SignUpDTO signUpDto)
         {
             // 後端應該也要對input做一些驗證?
-            
-            var user=await _userRepository.CheckUserExists(signUpDto.Username, signUpDto.Email);
-
-            // 用戶已存在
-            if (user != null)
+            try
             {
+                // 檢查用戶是否存在
+                await _userDomainService.EnsureUserNotExists(signUpDto.Username, signUpDto.Email);
 
-                if (user.Email == signUpDto.Email)
+
+                // 新增用戶
+                var userEntity = signUpDto.ToUserEntity();
+                await _userRepository.AddUser(userEntity);
+
+                // 新增完了
+                var user = await _userRepository.CheckUserExists(signUpDto.Username, signUpDto.Email);
+                // 將用戶資料存在redis，並將key返回給api 層
+                var userDto = user.ToUserInfoDTO();
+
+                string redisKey = await SaveUserInfoToRedis(userDto);
+
+                return new ServiceResult<string>()
                 {
-                    return new ServiceResult<string>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = $"已有相同信箱{user.Email}",
-                    };
-                }
-                else
+                    IsSuccess = true,
+                    ErrorMessage = $"註冊成功",
+                    Data = redisKey
+                };
+
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<string>()
                 {
-                    return new ServiceResult<string>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = $"已有相同帳號{user.Username}",
-                    };
-                }
-               
+                    IsSuccess = true,
+                    ErrorMessage = ex.Message,
+
+                };
             }
 
-
-            // 新增用戶
-            var userEntity=signUpDto.ToUserEntity();
-            await _userRepository.AddUser(userEntity);
-
-            // 新增完了
-            user = await _userRepository.CheckUserExists(signUpDto.Username, signUpDto.Email);
-            // 將用戶資料存在redis，並將key返回給api 層
-            var userDto =user.ToUserInfoDTO();
-
-            string redisKey= await SaveUserInfoToRedis(userDto);
-
-            return new ServiceResult<string>()
-            {
-                IsSuccess = true,
-                ErrorMessage = $"註冊成功",
-                Data = redisKey
-            };
         }
 
 
@@ -248,14 +231,14 @@ namespace Application.Services
         /// <returns></returns>
         public async Task<ServiceResult<string>> ModifyPassword(int userid, ModifyPasswordDTO modifyPasswordDto)
         {
-            
+
 
             if (userid == 0)
             {
                 return new ServiceResult<string>()
                 {
                     IsSuccess = false,
-                    ErrorMessage="用戶不存在"
+                    ErrorMessage = "用戶不存在"
                 };
             }
 
@@ -271,38 +254,28 @@ namespace Application.Services
                 };
             }
 
-            // Oauh 登陸不需要密碼
-            if(user.PasswordHash == null)
+
+
+            try
             {
-                return new ServiceResult<string>()
+                // 調用 Domain Service 執行業務邏輯
+                _userDomainService.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password);
+
+                // 修改密碼
+                _userDomainService.ChangePassword(user, modifyPasswordDto.Password);
+
+                // 保存到數據庫
+                await _userRepository.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<string>
                 {
                     IsSuccess = false,
-                    ErrorMessage = "此類型用戶無法修改密碼"
+                    ErrorMessage = ex.Message
                 };
             }
 
-            if(!BCryptUtils.VerifyPassword(modifyPasswordDto.OldPassword, user.PasswordHash))
-            {
-                return new ServiceResult<string>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "舊密碼輸入錯誤"
-                };
-            }
-
-            // 新密碼不得與舊密碼相同
-            if(modifyPasswordDto.OldPassword == modifyPasswordDto.Password)
-            {
-                return new ServiceResult<string>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "新密碼不得與舊密碼相同"
-                };
-            }
-
-            // 修改密碼
-            user.PasswordHash = BCryptUtils.HashPassword(modifyPasswordDto.Password);
-            await _userRepository.SaveChangesAsync();
 
             return new ServiceResult<string>()
             {
@@ -331,13 +304,13 @@ namespace Application.Services
             var addressEntity = new UserShipAddress
             {
                 UserId = userid,
-                RecipientName=address.RecipientName,
+                RecipientName = address.RecipientName,
                 PhoneNumber = address.PhoneNumber,
-                RecieveStore=address.RecieveStore,
-                RecieveWay=address.RecieveWay,
-                AddressLine=address.AddressLine,
-                CreatedAt=DateTime.Now,
-                UpdatedAt=DateTime.Now,
+                RecieveStore = address.RecieveStore,
+                RecieveWay = address.RecieveWay,
+                AddressLine = address.AddressLine,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
             };
 
 
@@ -347,9 +320,9 @@ namespace Application.Services
                 IsSuccess = true,
                 Data = "ok",
             };
-            
+
         }
-        
+
         /// <summary>
         /// 修改常用地址
         /// </summary>
@@ -369,7 +342,7 @@ namespace Application.Services
 
             var addressEntity = new UserShipAddress
             {
-                Id=address.AddressId,
+                Id = address.AddressId,
                 UserId = userid,
                 RecipientName = address.RecipientName,
                 PhoneNumber = address.PhoneNumber,
@@ -524,7 +497,7 @@ namespace Application.Services
 
 
                 //檢查DB 是否有該google id (sub)的用戶，沒有就註冊
-                var user =await _userRepository.GetUserIfExistsByGoogleID(jwtUserInfo.Sub);
+                var user = await _userRepository.GetUserIfExistsByGoogleID(jwtUserInfo.Sub);
 
                 if (user == null)
                 {
@@ -547,15 +520,15 @@ namespace Application.Services
                 var userInfo = new UserInfoDTO
                 {
                     //UserId = jwtUserInfo.Sub,
-                    UserId= user.Id, // 改成 從 db 拿 user.Id
+                    UserId = user.Id, // 改成 從 db 拿 user.Id
                     Email = jwtUserInfo.Email,
                     NickName = user.NickName,
                     Picture = user.Picture,
                     Type = authLogin.state,
-                    Birthday= user.Birthday.HasValue? user.Birthday.Value.ToString("yyyy/M/d"): string.Empty,
-                    Gender=user.Gender,
-                    PhoneNumber=user.PhoneNumber,
-                    Username=user.Username
+                    Birthday = user.Birthday.HasValue ? user.Birthday.Value.ToString("yyyy/M/d") : string.Empty,
+                    Gender = user.Gender,
+                    PhoneNumber = user.PhoneNumber,
+                    Username = user.Username
                 };
 
                 Console.WriteLine(userInfo);
@@ -584,6 +557,23 @@ namespace Application.Services
             return guid;
         }
 
-       
+
+
+        /// <summary>
+        /// 更新 用戶資料到redis
+        /// </summary>
+        /// <param name="sessionId"></param>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        private async Task UpdateRedisUserInfoAsync(string sessionId, User user)
+        {
+            var redisUserInfo = await _redisService.GetUserInfoAsync(sessionId);
+            if (redisUserInfo != null)
+            {
+                var userEntity = user.ToUserInfoDTO();
+                await _redisService.SetUserInfoAsync(sessionId, JsonSerializer.Serialize(userEntity));
+            }
+        }
+
     }
 }
