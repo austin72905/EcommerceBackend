@@ -70,6 +70,7 @@ namespace EcommerceBackend.Controllers
 
             Response.Cookies.Append("session-id", redisKey, cookieOption);
             Response.Cookies.Append("has-session-id", "true", cookieOption2);
+            Response.Cookies.Append("X-CSRF-Token", Guid.NewGuid().ToString(), cookieOption2);
 
             return Success();
         }
@@ -115,6 +116,7 @@ namespace EcommerceBackend.Controllers
 
             Response.Cookies.Append("session-id", redisKey, cookieOption);
             Response.Cookies.Append("has-session-id", "true", cookieOption2);
+            Response.Cookies.Append("X-CSRF-Token", Guid.NewGuid().ToString(), cookieOption2);
 
             return Success();
         }
@@ -158,6 +160,7 @@ namespace EcommerceBackend.Controllers
 
                     Response.Cookies.Append("session-id", sessionId, cookieOption);
                     Response.Cookies.Append("has-session-id", "true", cookieOption2);
+                    Response.Cookies.Append("X-CSRF-Token", Guid.NewGuid().ToString(), cookieOption2);
                 }
                
                 var loginResponse = new LoginReponse { UserInfo = result.UserInfo, RedirectUrl = authLogin.redirect_url };
@@ -196,6 +199,7 @@ namespace EcommerceBackend.Controllers
            
             Response.Cookies.Delete("session-id");
             Response.Cookies.Delete("has-session-id");
+            Response.Cookies.Delete("X-CSRF-Token");
 
             var resp = Success();
             return Ok(resp);
