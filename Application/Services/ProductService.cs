@@ -18,13 +18,13 @@ namespace Application.Services
 
        
 
-        public async Task<ServiceResult<ProductResponse>> GetProductById(int productId)
+        public async Task<ServiceResult<ProductWithFavoriteStatusDTO>> GetProductById(int productId)
         {
             var product =await _repository.GetProductById(productId);
 
             if (product == null)
             {
-                return new ServiceResult<ProductResponse>()
+                return new ServiceResult<ProductWithFavoriteStatusDTO>()
                 {
                     IsSuccess = false,
                     ErrorMessage = "產品不存在"
@@ -36,25 +36,26 @@ namespace Application.Services
 
             //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
 
-            return new ServiceResult<ProductResponse>()
+            return new ServiceResult<ProductWithFavoriteStatusDTO>()
             {
                 IsSuccess = true,
-                Data = new ProductResponse
+                Data = new ProductWithFavoriteStatusDTO
                 {
-                    Product = new ProductWithFavoriteStatusDTO { Product = productDto }
-                }
+                    Product= productDto
+                } 
+                
             };
 
 
         }
 
-        public async Task<ServiceResult<ProductResponse>> GetProductByIdForUser(int userid, int productId)
+        public async Task<ServiceResult<ProductWithFavoriteStatusDTO>> GetProductByIdForUser(int userid, int productId)
         {
             var product =await _repository.GetProductById(productId);
 
             if (product == null)
             {
-                return new ServiceResult<ProductResponse>()
+                return new ServiceResult<ProductWithFavoriteStatusDTO>()
                 {
                     IsSuccess = false,
                     ErrorMessage = "產品不存在"
@@ -68,18 +69,20 @@ namespace Application.Services
 
             var favoriteProductIds =await _userRepository.GetFavoriteProductIdsByUser(userid);
 
-            return new ServiceResult<ProductResponse>()
+            return new ServiceResult<ProductWithFavoriteStatusDTO>()
             {
                 IsSuccess = true,
-                Data = new ProductResponse
-                {
-                    Product = new ProductWithFavoriteStatusDTO { Product = productDto, IsFavorite = favoriteProductIds.Contains(productDto.ProductId) }
+                Data = new ProductWithFavoriteStatusDTO 
+                { 
+                    Product = productDto, 
+                    IsFavorite = favoriteProductIds.Contains(productDto.ProductId) 
                 }
+                
             };
         }
 
        
-        public async Task<ServiceResult<ProductListResponse>> GetProducts(string kind, string tag)
+        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string kind, string tag)
         {
             IEnumerable<Domain.Entities.Product> products;
             if (!string.IsNullOrEmpty(tag))
@@ -101,16 +104,18 @@ namespace Application.Services
 
             var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO { Product = p });
 
-            return new ServiceResult<ProductListResponse>
+
+            return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
             {
                 IsSuccess = true,
-                Data = new ProductListResponse { Products = productWithFavorite }
+                Data= productWithFavorite.ToList() 
             };
 
+            
 
         }
 
-        public async Task<ServiceResult<ProductListResponse>> GetProductsForUser(int userid, string kind, string tag)
+        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProductsForUser(int userid, string kind, string tag)
         {
             IEnumerable<Domain.Entities.Product> products;
             if (!string.IsNullOrEmpty(tag))
@@ -136,47 +141,48 @@ namespace Application.Services
                 IsFavorite = favoriteProductIds.Contains(p.ProductId)
             });
 
- 
-            return new ServiceResult<ProductListResponse>
+            return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
             {
                 IsSuccess = true,
-                Data = new ProductListResponse { Products = productWithFavorite }
+                Data = productWithFavorite.ToList()
             };
-        }
 
-        public ServiceResult<List<ProductInfomationDTO>> GetProductsByKind(string kind)
-        {
-            var products = _repository.GetProductsByKind(kind);
-
-            var productsDto =new List<ProductInfomationDTO>();
-
-            return new ServiceResult<List<ProductInfomationDTO>>
-            {
-                IsSuccess = true,
-                Data = productsDto
-
-            };
 
         }
 
-        public ServiceResult<List<ProductInfomationDTO>> GetProductsByTag(string tag)
-        {
-            var products = _repository.GetProductsByTag(tag);
+        //public ServiceResult<List<ProductInfomationDTO>> GetProductsByKind(string kind)
+        //{
+        //    var products = _repository.GetProductsByKind(kind);
 
-            var productsDto = new List<ProductInfomationDTO>();
+        //    var productsDto =new List<ProductInfomationDTO>();
 
-            return new ServiceResult<List<ProductInfomationDTO>>
-            {
-                IsSuccess = true,
-                Data = productsDto
+        //    return new ServiceResult<List<ProductInfomationDTO>>
+        //    {
+        //        IsSuccess = true,
+        //        Data = productsDto
 
-            };
+        //    };
 
-        }
+        //}
+
+        //public ServiceResult<List<ProductInfomationDTO>> GetProductsByTag(string tag)
+        //{
+        //    var products = _repository.GetProductsByTag(tag);
+
+        //    var productsDto = new List<ProductInfomationDTO>();
+
+        //    return new ServiceResult<List<ProductInfomationDTO>>
+        //    {
+        //        IsSuccess = true,
+        //        Data = productsDto
+
+        //    };
+
+        //}
 
        
 
-        public async Task<ServiceResult<ProductListResponse>> GetRecommendationProduct(int userid, int productId)
+        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetRecommendationProduct(int userid, int productId)
         {
             var products =await _repository.GetRecommendationProduct(userid, productId);
             var productsDto = products.ToProductInformationDTOs();
@@ -188,12 +194,13 @@ namespace Application.Services
                 IsFavorite = favoriteProductIds.Contains(p.ProductId)
             });
 
-            return new ServiceResult<ProductListResponse>
+            return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
             {
                 IsSuccess = true,
-                Data = new ProductListResponse { Products = productWithFavorite }
+                Data = productWithFavorite.ToList(),
             };
 
+           
         }
 
         public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetfavoriteList(int userid)

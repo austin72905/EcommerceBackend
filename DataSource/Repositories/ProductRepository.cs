@@ -57,6 +57,11 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetRecommendationProduct(int userid, int productId)
         {
             return await _dbSet
+                .Include(p => p.ProductVariants)
+                    .ThenInclude(pkt => pkt.Size)
+                .Include(p => p.ProductVariants)
+                    .ThenInclude(pv => pv.ProductVariantDiscounts)
+                            .ThenInclude(pkd => pkd.Discount)
                 .ToListAsync();
         }
 

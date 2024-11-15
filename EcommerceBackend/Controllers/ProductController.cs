@@ -1,5 +1,6 @@
 ﻿
 using Application;
+using Application.DTOs;
 using Application.Interfaces;
 using Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -35,7 +36,7 @@ namespace EcommerceBackend.Controllers
 
             int userid = UserInfo != null ? UserInfo.UserId : 0;
 
-            ServiceResult<ProductListResponse> result;
+            ServiceResult<List<ProductWithFavoriteStatusDTO>> result;
 
             if(userid == 0)
             {
@@ -52,7 +53,7 @@ namespace EcommerceBackend.Controllers
 
             if (!result.IsSuccess)
             {
-                return Fail();
+                return Fail(msg:result.ErrorMessage);
             }
 
 
@@ -68,7 +69,7 @@ namespace EcommerceBackend.Controllers
         {
 
             int userid = UserInfo != null ? UserInfo.UserId : 0;
-            ServiceResult<ProductResponse> result;
+            ServiceResult<ProductWithFavoriteStatusDTO> result;
             if (userid == 0)
             {
                 result =await _productervice.GetProductById(productId);
