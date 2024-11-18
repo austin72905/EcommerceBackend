@@ -16,9 +16,6 @@ namespace Application.Extensions
             {
                 Title = product.Title,
                 ProductId = product.Id,
-                //Price = product.Price,
-                //DiscountPrice = product.ProductDiscounts?.FirstOrDefault()?.Discount.DiscountAmount ?? product.Price,
-                //Stock = product.Stock,
                 Material = product.Material.Split(',').Select(m => m.Trim()).ToList(),
                 Variants = product.ProductVariants?.Select(v => v.ToProductVariantDTO()).ToList(),              
                 HowToWash = product.HowToWash,
@@ -42,8 +39,6 @@ namespace Application.Extensions
             {
                 Id = productDTO.ProductId,
                 Title = productDTO.Title,
-                //Price = productDTO.Price,
-                //Stock = productDTO.Stock,
                 Material = string.Join(", ", productDTO.Material), // 將材料列表轉換為字符串存儲
                 HowToWash = productDTO.HowToWash,
                 Features = productDTO.Features,

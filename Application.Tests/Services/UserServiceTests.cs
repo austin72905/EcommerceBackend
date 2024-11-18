@@ -1,4 +1,5 @@
-﻿using Application.Services;
+﻿using Application.DTOs;
+using Application.Services;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
@@ -9,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Application.Tests.Services
@@ -93,6 +95,43 @@ namespace Application.Tests.Services
             Assert.IsNull(result.Data);
 
             Assert.AreEqual("沒有此用戶", result.ErrorMessage);
+        }
+
+
+        /*
+            1. 當用戶存在時，驗證：
+                 * 正確更新用戶資料。
+                 * 調用了 UpdateUser 和 SaveChangesAsync 方法。
+                 * 用戶資料被更新到 Redis 中。
+            
+            2. 當用戶不存在時，返回錯誤信息。
+            3. 驗證對 Redis 操作的行為是否正確。 
+         
+         
+        */
+        
+
+        [Test]
+        public async Task ModifyUserInfo_UserDoesNotExist_ReturnsError()
+        {
+            // Arrange
+            var userId = 999;
+            var sessionId = "session123";
+            var userDto = new UserInfoDTO { UserId = userId };
+
+            _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync((User)null);
+
+            // Act
+            var result = await _userService.ModifyUserInfo(userDto, sessionId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("no", result.Data);
+            Assert.AreEqual("用戶不存在", result.ErrorMessage);
+
+            _userDomainServiceMock.Verify(service => service.UpdateUser(It.IsAny<User>(), It.IsAny<User>()), Times.Never);
+            _userRepositoryMock.Verify(repo => repo.SaveChangesAsync(), Times.Never);
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
     }
