@@ -7,11 +7,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EcommerceBackend", "Ecommer
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataSource", "DataSource\DataSource.csproj", "{1A807CFE-286C-4314-BDA6-8FBBD428CF44}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Domain\Domain.csproj", "{2A2A3D7A-5608-4AE9-A1D4-E88043FE129E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Domain", "Domain\Domain.csproj", "{2A2A3D7A-5608-4AE9-A1D4-E88043FE129E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "Application\Application.csproj", "{8F9F1F30-A06B-4F63-8BBD-94A7B89CDDE5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Application", "Application\Application.csproj", "{8F9F1F30-A06B-4F63-8BBD-94A7B89CDDE5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "Infrastructure\Infrastructure.csproj", "{30098C74-FCEB-467F-99F0-ADE0577A0F5C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Infrastructure", "Infrastructure\Infrastructure.csproj", "{30098C74-FCEB-467F-99F0-ADE0577A0F5C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{EB4283A6-5D37-4A54-889C-2E8798F7CEC1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application.Tests", "Application.Tests\Application.Tests.csproj", "{303979FC-634F-4039-BE6B-4BAC1C018F6A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,9 +43,16 @@ Global
 		{30098C74-FCEB-467F-99F0-ADE0577A0F5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30098C74-FCEB-467F-99F0-ADE0577A0F5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{30098C74-FCEB-467F-99F0-ADE0577A0F5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{303979FC-634F-4039-BE6B-4BAC1C018F6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{303979FC-634F-4039-BE6B-4BAC1C018F6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{303979FC-634F-4039-BE6B-4BAC1C018F6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{303979FC-634F-4039-BE6B-4BAC1C018F6A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{303979FC-634F-4039-BE6B-4BAC1C018F6A} = {EB4283A6-5D37-4A54-889C-2E8798F7CEC1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6094CE06-6CAE-4045-9380-5931287A81F0}

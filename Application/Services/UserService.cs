@@ -74,7 +74,7 @@ namespace Application.Services
             return new ServiceResult<UserInfoDTO>()
             {
                 IsSuccess = false,
-                ErrorMessage = "沒有此用"
+                ErrorMessage = "沒有此用戶"
             };
 
 
