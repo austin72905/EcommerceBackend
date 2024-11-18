@@ -41,6 +41,12 @@ namespace Application.Extensions
         // 計算折扣價格的函數
         private static int? CalculateDiscountPrice(ProductVariant productVariant)
         {
+
+            if(productVariant.ProductVariantDiscounts == null)
+            {
+                return null;
+            }
+
             // 查找當前有效的折扣
             var currentDiscount = productVariant.ProductVariantDiscounts
                 .Where(pvd => pvd.Discount.StartDate <= DateTime.Now && pvd.Discount.EndDate >= DateTime.Now)

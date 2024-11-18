@@ -25,55 +25,55 @@ namespace Application.Tests.Extensions
                 Features = "Lightweight, Durable",
                 CoverImg = "cover.jpg",
                 ProductVariants = new List<ProductVariant>
-            {
-                new ProductVariant 
-                { 
-                    Id = 1,
-                    Color = "紅",
-                    Stock = 20,
-                    SKU = "紅-x",
-                    VariantPrice = 20,
-                    Size = new Size { SizeValue = "X" },
-                    ProductVariantDiscounts=new List<ProductVariantDiscount>()
-                    {
-                        new ProductVariantDiscount()
+                {
+                    new ProductVariant 
+                    { 
+                        Id = 1,
+                        Color = "紅",
+                        Stock = 20,
+                        SKU = "紅-x",
+                        VariantPrice = 20,
+                        Size = new Size { SizeValue = "X" },
+                        ProductVariantDiscounts=new List<ProductVariantDiscount>()
                         {
-                            Discount=new Discount()
+                            new ProductVariantDiscount()
                             {
-                                DiscountAmount=100,
-                                StartDate=DateTime.Now,
-                                CreatedAt=DateTime.Now,
+                                Discount=new Discount()
+                                {
+                                    DiscountAmount=100,
+                                    StartDate=DateTime.Now,
+                                    CreatedAt=DateTime.Now,
+                                }
+                            }
+                        }
+                    },
+                    new ProductVariant 
+                    { 
+                        Id = 2,
+                        Color = "綠",
+                        Stock = 20,
+                        SKU = "綠-x",
+                        VariantPrice = 20,
+                        Size = new Size { SizeValue = "X" },
+                        ProductVariantDiscounts=new List<ProductVariantDiscount>()
+                        {
+                            new ProductVariantDiscount()
+                            {
+                                Discount=new Discount()
+                                {
+                                    DiscountAmount=100,
+                                    StartDate=DateTime.Now,
+                                    CreatedAt=DateTime.Now,
+                                }
                             }
                         }
                     }
                 },
-                new ProductVariant 
-                { 
-                    Id = 2,
-                    Color = "綠",
-                    Stock = 20,
-                    SKU = "綠-x",
-                    VariantPrice = 20,
-                    Size = new Size { SizeValue = "X" },
-                    ProductVariantDiscounts=new List<ProductVariantDiscount>()
-                    {
-                        new ProductVariantDiscount()
-                        {
-                            Discount=new Discount()
-                            {
-                                DiscountAmount=100,
-                                StartDate=DateTime.Now,
-                                CreatedAt=DateTime.Now,
-                            }
-                        }
-                    }
-                }
-            },
                 ProductImages = new List<ProductImage>
-            {
-                new ProductImage { ImageUrl = "img1.jpg" },
-                new ProductImage { ImageUrl = "img2.jpg" }
-            }
+                {
+                    new ProductImage { ImageUrl = "img1.jpg" },
+                    new ProductImage { ImageUrl = "img2.jpg" }
+                }
             };
 
             // Act
