@@ -29,55 +29,45 @@ namespace Application.Services
             _userDomainService = userDomainService;
         }
 
-        public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(int userid)
-        {
-            var addressList = _userRepository.GetUserShippingAddress(userid);
-
-            var addressListDto = addressList.Select(address => address.ToUserShipAddressDTO()).ToList();
-
-
-
-            return new ServiceResult<List<UserShipAddressDTO>>()
-            {
-                IsSuccess = true,
-                Data = addressListDto
-            };
-
-        }
+        
 
 
         public async Task<ServiceResult<UserInfoDTO>> GetUserInfo(int userid)
         {
-            //if (userid == null)
-            //{
-            //    return new ServiceResult<UserInfoDTO>()
-            //    {
-            //        IsSuccess = false,
-            //        ErrorMessage = "userid不得為空"
-
-            //    };
-            //}
-
-            var user = await _userRepository.GetUserInfo(userid);
-
-            if (user != null)
+            try
             {
-                var userInfoDto = user.ToUserInfoDTO();
+
+
+                var user = await _userRepository.GetUserInfo(userid);
+
+                if (user != null)
+                {
+                    var userInfoDto = user.ToUserInfoDTO();
+                    return new ServiceResult<UserInfoDTO>()
+                    {
+                        IsSuccess = true,
+                        Data = userInfoDto,
+                    };
+                }
+
+
                 return new ServiceResult<UserInfoDTO>()
                 {
-                    IsSuccess = true,
-                    Data = userInfoDto,
+                    IsSuccess = false,
+                    ErrorMessage = "沒有此用戶"
                 };
+
             }
-
-
-            return new ServiceResult<UserInfoDTO>()
+            catch (Exception ex) 
             {
-                IsSuccess = false,
-                ErrorMessage = "沒有此用戶"
-            };
 
+                return new ServiceResult<UserInfoDTO>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "操作異常，請聯繫管理員"
+                };
 
+            }
 
 
         }
@@ -91,40 +81,53 @@ namespace Application.Services
         /// <exception cref="NotImplementedException"></exception>
         public async Task<ServiceResult<string>> ModifyUserInfo(UserInfoDTO userDto, string sessionId)
         {
-
-            //var user =userDto.ToUserEntity();
-            //await _userRepository.ModifyUserInfo(user);
-
-            var user = await _userRepository.GetUserInfo(userDto.UserId);
-
-            if (user != null)
+            try
             {
-                // 將user 資料改變
-                var updateInfo = userDto.ToUserEntity();
+                //var user =userDto.ToUserEntity();
+                //await _userRepository.ModifyUserInfo(user);
 
-                // 將user 資料改變
-                _userDomainService.UpdateUser(user, updateInfo);
+                var user = await _userRepository.GetUserInfo(userDto.UserId);
 
-                await _userRepository.SaveChangesAsync();
+                if (user != null)
+                {
+                    // 將user 資料改變
+                    var updateInfo = userDto.ToUserEntity();
+
+                    // 將user 資料改變
+                    _userDomainService.UpdateUser(user, updateInfo);
+
+                    await _userRepository.SaveChangesAsync();
 
 
-                // 修改 redis，可以做成transaction or mq
-                await UpdateRedisUserInfoAsync(sessionId, user);
+                    // 修改 redis，可以做成transaction or mq
+                    await UpdateRedisUserInfoAsync(sessionId, user);
+
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = true,
+                        Data = "操作成功",
+                    };
+
+                }
 
                 return new ServiceResult<string>()
                 {
-                    IsSuccess = true,
-                    Data = "ok",
+                    IsSuccess = false,
+                    ErrorMessage = "用戶不存在"
+                };
+
+
+            }
+            catch (Exception ex) 
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "操作異常，請聯繫管理員"
                 };
 
             }
-
-            return new ServiceResult<string>()
-            {
-                IsSuccess = false,
-                Data = "no",
-                ErrorMessage = "用戶不存在"
-            };
+            
         }
 
         /// <summary>
@@ -134,45 +137,63 @@ namespace Application.Services
         /// <returns></returns>
         public async Task<ServiceResult<string>> UserLogin(LoginDTO loginDto)
         {
-            var user = await _userRepository.CheckUserExists(loginDto.Username, loginDto.Username);
+            try
+            {
 
-            // 用戶不存在
-            if (user == null)
+                var user = await _userRepository.CheckUserExists(loginDto.Username, loginDto.Username);
+
+                // 用戶不存在
+                if (user == null)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        Data = null,
+                        ErrorMessage = "用戶不存在"
+                    };
+                }
+
+                // 檢查密碼
+
+                var passwordHash = user.PasswordHash;
+
+                if (!BCryptUtils.VerifyPassword(loginDto.Password, passwordHash))
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "密碼錯誤"
+                    };
+                }
+
+
+
+
+                var userDto = user.ToUserInfoDTO();
+
+                string redisKey = await SaveUserInfoToRedis(userDto);
+
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = true,
+                    ErrorMessage = "登入成功",
+                    Data = redisKey
+                };
+
+
+            }
+            catch (Exception ex) 
             {
                 return new ServiceResult<string>()
                 {
                     IsSuccess = false,
-                    Data = null,
-                    ErrorMessage = "用戶不存在"
+                    ErrorMessage = "操作異常，請聯繫管理員"
                 };
-            }
 
-            // 檢查密碼
-
-            var passwordHash = user.PasswordHash;
-
-            if (!BCryptUtils.VerifyPassword(loginDto.Password, passwordHash))
-            {
-                return new ServiceResult<string>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "密碼錯誤"
-                };
             }
 
 
-
-
-            var userDto = user.ToUserInfoDTO();
-
-            string redisKey = await SaveUserInfoToRedis(userDto);
-
-            return new ServiceResult<string>()
-            {
-                IsSuccess = true,
-                ErrorMessage = "登入成功",
-                Data = redisKey
-            };
+           
         }
 
 
@@ -214,8 +235,8 @@ namespace Application.Services
             {
                 return new ServiceResult<string>()
                 {
-                    IsSuccess = true,
-                    ErrorMessage = ex.Message,
+                    IsSuccess = false,
+                    ErrorMessage = "操作異常，請聯繫管理員",
 
                 };
             }
@@ -232,57 +253,120 @@ namespace Application.Services
         public async Task<ServiceResult<string>> ModifyPassword(int userid, ModifyPasswordDTO modifyPasswordDto)
         {
 
-
-            if (userid == 0)
-            {
-                return new ServiceResult<string>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "用戶不存在"
-                };
-            }
-
-
-            var user = await _userRepository.GetUserInfo(userid);
-
-            if (user == null)
-            {
-                return new ServiceResult<string>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "用戶不存在"
-                };
-            }
-
-
-
             try
             {
-                // 調用 Domain Service 執行業務邏輯
-                _userDomainService.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password);
+                if (userid == 0)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "用戶不存在"
+                    };
+                }
 
-                // 修改密碼
-                _userDomainService.ChangePassword(user, modifyPasswordDto.Password);
 
-                // 保存到數據庫
-                await _userRepository.SaveChangesAsync();
+                var user = await _userRepository.GetUserInfo(userid);
+
+                if (user == null)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "用戶不存在"
+                    };
+                }
+
+
+
+                try
+                {
+                    // 調用 Domain Service 執行業務邏輯
+                    _userDomainService.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password);
+
+                    // 修改密碼
+                    _userDomainService.ChangePassword(user, modifyPasswordDto.Password);
+
+                    // 保存到數據庫
+                    await _userRepository.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    return new ServiceResult<string>
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = ex.Message
+                    };
+                }
+
+
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = true,
+                    ErrorMessage = "修改密碼成功"
+                };
+
+
+            }
+            catch(Exception ex)
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "操作異常，請聯繫管理員"
+                };
+
+            }
+
+        }
+
+
+
+        /// <summary>
+        /// 獲取用戶常用地址
+        /// </summary>
+        /// <param name="userid"></param>
+        /// <returns></returns>
+        public ServiceResult<List<UserShipAddressDTO>> GetUserShippingAddress(int userid)
+        {
+            try
+            {
+                if (userid == 0)
+                {
+                    return new ServiceResult<List<UserShipAddressDTO>>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "用戶不存在"
+                    };
+                }
+
+                var addressList = _userRepository.GetUserShippingAddress(userid);
+
+                var addressListDto = addressList.Select(address => address.ToUserShipAddressDTO()).ToList();
+
+
+
+                return new ServiceResult<List<UserShipAddressDTO>>()
+                {
+                    IsSuccess = true,
+                    Data = addressListDto
+                };
+
+
             }
             catch (Exception ex)
             {
-                return new ServiceResult<string>
+                return new ServiceResult<List<UserShipAddressDTO>>()
                 {
                     IsSuccess = false,
-                    ErrorMessage = ex.Message
+                    ErrorMessage = "操作異常，請聯繫管理員"
                 };
+
             }
 
 
-            return new ServiceResult<string>()
-            {
-                IsSuccess = true,
-                ErrorMessage = "修改密碼成功"
-            };
+
         }
+
 
         /// <summary>
         /// 新增常用地址
@@ -292,34 +376,46 @@ namespace Application.Services
         /// <returns></returns>
         public ServiceResult<string> AddUserShippingAddress(int userid, UserShipAddressDTO address)
         {
-            if (userid == 0)
+            try
+            {
+                if (userid == 0)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage="不存在的用戶"
+                    };
+                }
+
+                var addressEntity = new UserShipAddress
+                {
+                    UserId = userid,
+                    RecipientName = address.RecipientName,
+                    PhoneNumber = address.PhoneNumber,
+                    RecieveStore = address.RecieveStore,
+                    RecieveWay = address.RecieveWay,
+                    AddressLine = address.AddressLine,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
+                };
+
+
+                _userRepository.AddUserShippingAddress(userid, addressEntity);
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = true,
+                    Data = "ok",
+                };
+            }
+            catch (Exception ex) 
             {
                 return new ServiceResult<string>()
                 {
                     IsSuccess = false,
-                    Data = "no",
+                    ErrorMessage = "系統異常，請聯繫管理員",
                 };
             }
-
-            var addressEntity = new UserShipAddress
-            {
-                UserId = userid,
-                RecipientName = address.RecipientName,
-                PhoneNumber = address.PhoneNumber,
-                RecieveStore = address.RecieveStore,
-                RecieveWay = address.RecieveWay,
-                AddressLine = address.AddressLine,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-            };
-
-
-            _userRepository.AddUserShippingAddress(userid, addressEntity);
-            return new ServiceResult<string>()
-            {
-                IsSuccess = true,
-                Data = "ok",
-            };
+            
 
         }
 
@@ -331,35 +427,47 @@ namespace Application.Services
         /// <returns></returns>
         public ServiceResult<string> ModifyUserShippingAddress(int userid, UserShipAddressDTO address)
         {
-            if (userid == 0)
+            try
+            {
+                if (userid == 0)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "不存在的用戶",
+                    };
+                }
+
+                var addressEntity = new UserShipAddress
+                {
+                    Id = address.AddressId,
+                    UserId = userid,
+                    RecipientName = address.RecipientName,
+                    PhoneNumber = address.PhoneNumber,
+                    RecieveStore = address.RecieveStore,
+                    RecieveWay = address.RecieveWay,
+                    AddressLine = address.AddressLine,
+                    //CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
+                };
+
+                _userRepository.ModifyUserShippingAddress(userid, addressEntity);
+
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = true,
+                    ErrorMessage = "修改成功",
+                };
+            }
+            catch(Exception ex)
             {
                 return new ServiceResult<string>()
                 {
                     IsSuccess = false,
-                    Data = "no",
+                    ErrorMessage = "系統異常，請聯繫管理員",
                 };
             }
-
-            var addressEntity = new UserShipAddress
-            {
-                Id = address.AddressId,
-                UserId = userid,
-                RecipientName = address.RecipientName,
-                PhoneNumber = address.PhoneNumber,
-                RecieveStore = address.RecieveStore,
-                RecieveWay = address.RecieveWay,
-                AddressLine = address.AddressLine,
-                //CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-            };
-
-            _userRepository.ModifyUserShippingAddress(userid, addressEntity);
-
-            return new ServiceResult<string>()
-            {
-                IsSuccess = true,
-                Data = "ok",
-            };
+            
         }
 
         /// <summary>
@@ -370,65 +478,152 @@ namespace Application.Services
         /// <returns></returns>
         public ServiceResult<string> DeleteUserShippingAddress(int userid, int addressId)
         {
-            if (userid == 0)
+            try
+            {
+                if (userid == 0)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        Data = "不存在的用戶",
+                    };
+                }
+
+                _userRepository.DeleteUserShippingAddress(userid, addressId);
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = true,
+                    ErrorMessage = "操作成功",
+                };
+            }
+            catch(Exception ex)
             {
                 return new ServiceResult<string>()
                 {
                     IsSuccess = false,
-                    Data = "no",
+                    ErrorMessage = "系統異常，請聯繫管理員",
                 };
             }
-
-            _userRepository.DeleteUserShippingAddress(userid, addressId);
-            return new ServiceResult<string>()
-            {
-                IsSuccess = true,
-                Data = "ok",
-            };
+            
         }
 
+        /// <summary>
+        /// 設定預設地址
+        /// </summary>
+        /// <param name="userid"></param>
+        /// <param name="addressId"></param>
+        /// <returns></returns>
         public ServiceResult<string> SetDefaultShippingAddress(int userid, int addressId)
         {
-            if (userid == 0)
+            try
+            {
+
+                if (userid == 0)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        Data = "不存在的用戶",
+                    };
+                }
+
+                _userRepository.SetDefaultShippingAddress(userid, addressId);
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = true,
+                    ErrorMessage = "操作成功",
+                };
+
+            }
+            catch(Exception ex)
             {
                 return new ServiceResult<string>()
                 {
                     IsSuccess = false,
-                    Data = "no",
+                    ErrorMessage = "系統異常，請聯繫管理員",
                 };
             }
 
-            _userRepository.SetDefaultShippingAddress(userid, addressId);
-            return new ServiceResult<string>()
-            {
-                IsSuccess = true,
-                Data = "ok",
-            };
+            
         }
+
+
 
 
         // 對喜愛清單的操作
         public async Task<ServiceResult<string>> RemoveFromfavoriteList(int userid, int productId)
         {
-            await _userRepository.RemoveFromFavoriteList(userid, productId);
-
-            return new ServiceResult<string>()
+            try
             {
-                IsSuccess = true,
-                Data = "ok"
-            };
+
+                if (userid == 0)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        Data = "不存在的用戶",
+                    };
+                }
+
+
+                await _userRepository.RemoveFromFavoriteList(userid, productId);
+
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = true,
+                    ErrorMessage = "操作成功"
+                };
+
+            }
+            catch(Exception ex)
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統異常，請聯繫管理員",
+                };
+            }
+
+            
         }
 
 
         public async Task<ServiceResult<string>> AddTofavoriteList(int userid, int productId)
         {
-            await _userRepository.AddToFavoriteList(userid, productId);
 
-            return new ServiceResult<string>()
+            try
             {
-                IsSuccess = true,
-                Data = "ok"
-            };
+                if (userid == 0)
+                {
+                    return new ServiceResult<string>()
+                    {
+                        IsSuccess = false,
+                        Data = "不存在的用戶",
+                    };
+                }
+
+
+
+                await _userRepository.AddToFavoriteList(userid, productId);
+
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = true,
+                    Data = "操作成功"
+                };
+
+
+            }
+            catch(Exception ex)
+            {
+                return new ServiceResult<string>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統異常，請聯繫管理員",
+                };
+            }
+
+           
         }
 
 
@@ -545,7 +740,11 @@ namespace Application.Services
 
 
 
-
+        /// <summary>
+        /// 將用戶session寫進redis
+        /// </summary>
+        /// <param name="userInfo"></param>
+        /// <returns></returns>
         private async Task<string> SaveUserInfoToRedis(UserInfoDTO userInfo)
         {
             string guid = Guid.NewGuid().ToString();
