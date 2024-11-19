@@ -7,7 +7,6 @@ using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.Http;
 using System.Collections;
 using System.Web;
-using static System.Net.WebRequestMethods;
 
 namespace Application.Services
 {
@@ -47,7 +46,7 @@ namespace Application.Services
 
                 var config = await _paymentRepository.GetTenantConfig(requestData.RecordNo);
 
-                if (config == null) 
+                if (config == null)
                 {
                     return new ServiceResult<PaymentInfomation>()
                     {
@@ -270,8 +269,8 @@ namespace Application.Services
                     return SignVerificationFailed();
                 }
 
-                
-             
+
+
 
                 return await TransactionSuccess();
             }
