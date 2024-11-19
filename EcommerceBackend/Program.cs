@@ -43,6 +43,8 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 // domain servie
 builder.Services.AddScoped<IOrderDomainService, OrderDomainService>();
 builder.Services.AddScoped<IUserDomainService, UserDomainService>();
+builder.Services.AddScoped<ICartDomainService, CartDomainService>();
+
 
 // repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
