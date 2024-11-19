@@ -100,6 +100,56 @@ namespace Application.Tests.Services
         }
 
 
+        [Test]
+        public async Task GetProductById_WhenRepositoryThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            int productId = 1;
+
+            // 模擬存儲庫方法拋出例外
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductById(productId))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _productService.GetProductById(productId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess); // 驗證返回值標誌
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage); // 驗證錯誤信息
+            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+        }
+
+
+
+        [Test]
+        public async Task GetProductById_WhenToProductInformationDTOThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            int productId = 101;
+
+            var product = new Product
+            {
+                Id = productId,
+                Title = null // 模擬數據問題，導致 ToProductInformationDTO 拋出 NullReferenceException
+            };
+
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductById(productId))
+                .ReturnsAsync(product);
+
+            // Act
+            var result = await _productService.GetProductById(productId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+
+        }
+
+
 
         [Test]
         public async Task GetProductByIdForUser_ProductExistsAndIsFavorite_ReturnsFavoriteTrue()
@@ -193,6 +243,96 @@ namespace Application.Tests.Services
 
             _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Never);
+        }
+
+
+
+        [Test]
+        public async Task GetProductByIdForUser_WhenRepositoryThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            int userId = 1;
+            int productId = 101;
+
+            // 模擬存儲庫拋出異常
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductById(productId))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _productService.GetProductByIdForUser(userId, productId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(It.IsAny<int>()), Times.Never); // 確保沒有調用
+        }
+
+        [Test]
+        public async Task GetProductByIdForUser_WhenUserRepositoryThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            int userId = 1;
+            int productId = 101;
+
+            var product = new Product
+            {
+                Id = productId,
+                Title = "Test Product",
+                Material = "Cotton",
+                HowToWash = "Hand wash only",
+                Features = "Lightweight",
+                CoverImg = "cover.jpg"
+            };
+
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductById(productId))
+                .ReturnsAsync(product);
+
+            // 模擬用戶存儲庫拋出異常
+            _userRepositoryMock
+                .Setup(repo => repo.GetFavoriteProductIdsByUser(userId))
+                .ThrowsAsync(new Exception("database error"));
+
+            // Act
+            var result = await _productService.GetProductByIdForUser(userId, productId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Once);
+        }
+
+        [Test]
+        public async Task GetProductByIdForUser_WhenToProductInformationDTOThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            int userId = 1;
+            int productId = 101;
+
+            var product = new Product
+            {
+                Id = productId,
+                Title = null // 模擬數據問題，導致 ToProductInformationDTO 拋出 NullReferenceException
+            };
+
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductById(productId))
+                .ReturnsAsync(product);
+
+            // Act
+            var result = await _productService.GetProductByIdForUser(userId, productId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(It.IsAny<int>()), Times.Never);
         }
 
 
@@ -440,6 +580,54 @@ namespace Application.Tests.Services
 
 
 
+        [Test]
+        public async Task GetProducts_WhenGetProductsByTagThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            string tag = "sports";
+            string kind = null;
+
+            // 模擬存儲庫的 GetProductsByTag 拋出異常
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductsByTag(tag))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _productService.GetProducts(kind, tag);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(tag), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>()), Times.Never); // 確保未調用其他方法
+        }
+
+        [Test]
+        public async Task GetProducts_WhenGetProductsByKindThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            string tag = null;
+            string kind = "electronics";
+
+            // 模擬存儲庫的 GetProductsByKind 拋出異常
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductsByKind(kind))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _productService.GetProducts(kind, tag);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>()), Times.Never); // 確保未調用其他方法
+        }
+
+
+
         /*
             測試當有推薦產品且部分產品被收藏時，返回的產品列表中 IsFavorite 的值是否正確。 
         */
@@ -557,7 +745,158 @@ namespace Application.Tests.Services
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Once);
         }
 
+        [Test]
+        public async Task GetProductsForUser_WhenGetProductsByTagThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            int userId = 1;
+            string tag = "sports";
+            string kind = null;
 
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductsByTag(tag))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _productService.GetProductsForUser(userId, kind, tag);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(tag), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>()), Times.Never);
+            _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(It.IsAny<int>()), Times.Never);
+        }
+
+
+        [Test]
+        public async Task GetProductsForUser_WhenGetProductsByKindThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            int userId = 1;
+            string tag = null;
+            string kind = "electronics";
+
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductsByKind(kind))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _productService.GetProductsForUser(userId, kind, tag);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>()), Times.Never);
+            _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(It.IsAny<int>()), Times.Never);
+        }
+
+        [Test]
+        public async Task GetProductsForUser_WhenGetFavoriteProductIdsThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            int userId = 1;
+            string tag = null;
+            string kind = "electronics";
+
+            var products = new List<Product>
+            {
+                new Product
+                {
+                    Id = 1,
+                    Title = "Product 1",
+                    Material = "Cotton, Polyester",
+                    HowToWash = "Hand wash only",
+                    Features = "Lightweight, Durable",
+                    CoverImg = "cover.jpg",
+                    ProductVariants = new List<ProductVariant>
+                    {
+                        new ProductVariant
+                        {
+                            Id = 1,
+                            Color = "紅",
+                            Stock = 20,
+                            SKU = "紅-x",
+                            VariantPrice = 20,
+                            Size = new Size { SizeValue = "X" },
+
+                        },
+                        new ProductVariant
+                        {
+                            Id = 2,
+                            Color = "綠",
+                            Stock = 20,
+                            SKU = "綠-x",
+                            VariantPrice = 20,
+                            Size = new Size { SizeValue = "X" },
+
+                        }
+                    },
+                    ProductImages = new List<ProductImage>
+                    {
+                        new ProductImage { ImageUrl = "img1.jpg" },
+                        new ProductImage { ImageUrl = "img2.jpg" }
+                    }
+                },
+                new Product
+                {
+                    Id = 2,
+                    Title = "Product 2",
+                    Material = "Cotton, Polyester",
+                    HowToWash = "Hand wash only",
+                    Features = "Lightweight, Durable",
+                    CoverImg = "cover.jpg",
+                    ProductVariants = new List<ProductVariant>
+                    {
+                        new ProductVariant
+                        {
+                            Id = 1,
+                            Color = "紅",
+                            Stock = 20,
+                            SKU = "紅-x",
+                            VariantPrice = 20,
+                            Size = new Size { SizeValue = "X" },
+                        },
+                        new ProductVariant
+                        {
+                            Id = 2,
+                            Color = "綠",
+                            Stock = 20,
+                            SKU = "綠-x",
+                            VariantPrice = 20,
+                            Size = new Size { SizeValue = "X" },
+
+                        }
+                    },
+                    ProductImages = new List<ProductImage>
+                    {
+                        new ProductImage { ImageUrl = "img1.jpg" },
+                        new ProductImage { ImageUrl = "img2.jpg" }
+                    }
+                }
+            };
+
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductsByKind(kind))
+                .ReturnsAsync(products);
+
+            _userRepositoryMock
+                .Setup(repo => repo.GetFavoriteProductIdsByUser(userId))
+                .ThrowsAsync(new Exception("database error"));
+
+            // Act
+            var result = await _productService.GetProductsForUser(userId, kind, tag);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Once);
+        }
 
 
         /*
@@ -692,6 +1031,25 @@ namespace Application.Tests.Services
         }
 
 
+        [Test]
+        public async Task GetfavoriteList_WhenRepositoryThrowsException_ReturnsErrorResult()
+        {
+            // Arrange
+            int userId = 1;
 
+            // 模擬 _repository.GetfavoriteProducts 拋出異常
+            _productRepositoryMock
+                .Setup(repo => repo.GetfavoriteProducts(userId))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _productService.GetfavoriteList(userId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+
+            _productRepositoryMock.Verify(repo => repo.GetfavoriteProducts(userId), Times.Once);
+        }
     }
 }

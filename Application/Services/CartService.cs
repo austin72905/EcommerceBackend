@@ -19,27 +19,7 @@ namespace Application.Services
             _cartRepository = cartRepository;
         }
 
-        public ServiceResult<ProductWithCountDTO> GetCartContent(int userid)
-        {
-            var productSelectionList = new List<ProductWithCountDTO>();
-
-            var cartId = _cartRepository.GetCartByUserId(userid);
-            //var cartItemList = _cartRepository.GetCartItemByCartId(userid);
-
-            //foreach (var cartItem in cartItemList) 
-            //{
-            //   var product = _productRepository.GetProductById(cartItem.ProductId);
-
-            //    productSelectionList.Add(new ProductWithCountDTO
-            //    { 
-            //        Product = product,
-            //        Count =cartItem.Quantity
-            //    });
-            //}
-
-            //return productSelectionList;
-            throw new NotImplementedException();
-        }
+       
 
         /// <summary>
         /// 合併購物車

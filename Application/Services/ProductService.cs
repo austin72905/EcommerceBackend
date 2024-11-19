@@ -18,210 +18,254 @@ namespace Application.Services
 
 
 
-       
+
 
         public async Task<ServiceResult<ProductWithFavoriteStatusDTO>> GetProductById(int productId)
         {
-            var product =await _repository.GetProductById(productId);
+            try
+            {
+                var product = await _repository.GetProductById(productId);
 
-            if (product == null)
+                if (product == null)
+                {
+                    return new ServiceResult<ProductWithFavoriteStatusDTO>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "產品不存在"
+                    };
+
+                }
+
+                var productDto = product.ToProductInformationDTO();
+
+                //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
+
+                return new ServiceResult<ProductWithFavoriteStatusDTO>()
+                {
+                    IsSuccess = true,
+                    Data = new ProductWithFavoriteStatusDTO
+                    {
+                        Product = productDto
+                    }
+
+                };
+            }
+            catch (Exception ex)
             {
                 return new ServiceResult<ProductWithFavoriteStatusDTO>()
                 {
                     IsSuccess = false,
-                    ErrorMessage = "產品不存在"
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
                 };
-
             }
 
-            var productDto = product.ToProductInformationDTO();
-
-            //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
-
-            return new ServiceResult<ProductWithFavoriteStatusDTO>()
-            {
-                IsSuccess = true,
-                Data = new ProductWithFavoriteStatusDTO
-                {
-                    Product= productDto
-                } 
-                
-            };
 
 
         }
+
+
+
 
         public async Task<ServiceResult<ProductWithFavoriteStatusDTO>> GetProductByIdForUser(int userid, int productId)
         {
-            var product =await _repository.GetProductById(productId);
+            try
+            {
+                var product = await _repository.GetProductById(productId);
 
-            if (product == null)
+                if (product == null)
+                {
+                    return new ServiceResult<ProductWithFavoriteStatusDTO>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "產品不存在"
+                    };
+
+                }
+
+                var productDto = product.ToProductInformationDTO();
+
+                //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
+
+                var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userid);
+
+                return new ServiceResult<ProductWithFavoriteStatusDTO>()
+                {
+                    IsSuccess = true,
+                    Data = new ProductWithFavoriteStatusDTO
+                    {
+                        Product = productDto,
+                        IsFavorite = favoriteProductIds.Contains(productDto.ProductId)
+                    }
+
+                };
+            }
+            catch (Exception ex) 
             {
                 return new ServiceResult<ProductWithFavoriteStatusDTO>()
                 {
                     IsSuccess = false,
-                    ErrorMessage = "產品不存在"
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
+            }
+            
+        }
+
+
+        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string kind, string tag)
+        {
+            try
+            {
+                IEnumerable<Domain.Entities.Product> products;
+                if (!string.IsNullOrEmpty(tag))
+                {
+                    products = await _repository.GetProductsByTag(tag);
+
+                }
+                else if (!string.IsNullOrEmpty(kind))
+                {
+                    products = await _repository.GetProductsByKind(kind);
+
+                }
+                else
+                {
+                    products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+                }
+
+                var productsDtos = products.ToProductInformationDTOs();
+
+                var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO { Product = p });
+
+
+                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                {
+                    IsSuccess = true,
+                    Data = productWithFavorite.ToList()
                 };
 
             }
-
-            var productDto = product.ToProductInformationDTO();
-
-            //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
-
-            var favoriteProductIds =await _userRepository.GetFavoriteProductIdsByUser(userid);
-
-            return new ServiceResult<ProductWithFavoriteStatusDTO>()
+            catch (Exception ex) 
             {
-                IsSuccess = true,
-                Data = new ProductWithFavoriteStatusDTO 
-                { 
-                    Product = productDto, 
-                    IsFavorite = favoriteProductIds.Contains(productDto.ProductId) 
-                }
-                
-            };
-        }
-
-       
-        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string kind, string tag)
-        {
-            IEnumerable<Domain.Entities.Product> products;
-            if (!string.IsNullOrEmpty(tag))
-            {
-                products = await _repository.GetProductsByTag(tag);
-
+                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage= "系統錯誤，請聯繫管理員"
+                };
             }
-            else if (!string.IsNullOrEmpty(kind))
-            {
-                products = await _repository.GetProductsByKind(kind);
-
-            }
-            else
-            {
-                products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
-            }
-
-            var productsDtos = products.ToProductInformationDTOs();
-
-            var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO { Product = p });
-
-
-            return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-            {
-                IsSuccess = true,
-                Data= productWithFavorite.ToList() 
-            };
-
-            
 
         }
 
         public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProductsForUser(int userid, string kind, string tag)
         {
-            IEnumerable<Domain.Entities.Product> products;
-            if (!string.IsNullOrEmpty(tag))
+            try
             {
-                products = await _repository.GetProductsByTag(tag);
+                IEnumerable<Domain.Entities.Product> products;
+                if (!string.IsNullOrEmpty(tag))
+                {
+                    products = await _repository.GetProductsByTag(tag);
+
+                }
+                else if (!string.IsNullOrEmpty(kind))
+                {
+                    products = await _repository.GetProductsByKind(kind);
+
+                }
+                else
+                {
+                    products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+                }
+
+                var productsDtos = products.ToProductInformationDTOs();
+                var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userid);
+                var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO
+                {
+                    Product = p,
+                    IsFavorite = favoriteProductIds.Contains(p.ProductId)
+                });
+
+                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                {
+                    IsSuccess = true,
+                    Data = productWithFavorite.ToList()
+                };
+            }
+            catch (Exception ex) 
+            {
+                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
 
             }
-            else if (!string.IsNullOrEmpty(kind))
-            {
-                products = await _repository.GetProductsByKind(kind);
-
-            }
-            else
-            {
-                products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
-            }
-
-            var productsDtos = products.ToProductInformationDTOs();
-            var favoriteProductIds =await _userRepository.GetFavoriteProductIdsByUser(userid);
-            var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO
-            {
-                Product = p,
-                IsFavorite = favoriteProductIds.Contains(p.ProductId)
-            });
-
-            return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-            {
-                IsSuccess = true,
-                Data = productWithFavorite.ToList()
-            };
-
-
+            
         }
 
-        //public ServiceResult<List<ProductInfomationDTO>> GetProductsByKind(string kind)
-        //{
-        //    var products = _repository.GetProductsByKind(kind);
+        
 
-        //    var productsDto =new List<ProductInfomationDTO>();
-
-        //    return new ServiceResult<List<ProductInfomationDTO>>
-        //    {
-        //        IsSuccess = true,
-        //        Data = productsDto
-
-        //    };
-
-        //}
-
-        //public ServiceResult<List<ProductInfomationDTO>> GetProductsByTag(string tag)
-        //{
-        //    var products = _repository.GetProductsByTag(tag);
-
-        //    var productsDto = new List<ProductInfomationDTO>();
-
-        //    return new ServiceResult<List<ProductInfomationDTO>>
-        //    {
-        //        IsSuccess = true,
-        //        Data = productsDto
-
-        //    };
-
-        //}
-
-       
 
         public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetRecommendationProduct(int userid, int productId)
         {
-            var products =await _repository.GetRecommendationProduct(userid, productId);
-            var productsDto = products.ToProductInformationDTOs();
-
-            var favoriteProductIds =await _userRepository.GetFavoriteProductIdsByUser(userid);
-            var productWithFavorite = productsDto.Select(p => new ProductWithFavoriteStatusDTO
+            try
             {
-                Product = p,
-                IsFavorite = favoriteProductIds.Contains(p.ProductId)
-            });
+                var products = await _repository.GetRecommendationProduct(userid, productId);
+                var productsDto = products.ToProductInformationDTOs();
 
-            return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userid);
+                var productWithFavorite = productsDto.Select(p => new ProductWithFavoriteStatusDTO
+                {
+                    Product = p,
+                    IsFavorite = favoriteProductIds.Contains(p.ProductId)
+                });
+
+                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                {
+                    IsSuccess = true,
+                    Data = productWithFavorite.ToList(),
+                };
+            }
+            catch (Exception ex) 
             {
-                IsSuccess = true,
-                Data = productWithFavorite.ToList(),
-            };
+                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
+            }
+            
 
-           
+
         }
 
         public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetfavoriteList(int userid)
         {
-            var products = await _repository.GetfavoriteProducts(userid);
-
-            var productsDto = products.ToProductInformationDTOs();
-
-            var productWithFavorite = productsDto.Select(p => new ProductWithFavoriteStatusDTO
+            try
             {
-                Product = p,
-                IsFavorite = true
-            }).ToList();
+                var products = await _repository.GetfavoriteProducts(userid);
 
-            return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                var productsDto = products.ToProductInformationDTOs();
+
+                var productWithFavorite = productsDto.Select(p => new ProductWithFavoriteStatusDTO
+                {
+                    Product = p,
+                    IsFavorite = true
+                }).ToList();
+
+                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                {
+                    IsSuccess = true,
+                    Data = productWithFavorite
+                };
+            }
+            catch (Exception ex) 
             {
-                IsSuccess = true,
-                Data = productWithFavorite
-            };
+                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
+
+            }
+            
 
         }
 

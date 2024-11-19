@@ -13,13 +13,7 @@ namespace EcommerceBackend.Controllers
         {
             _cartService = cartService;
         }
-
-        [HttpGet("GetCartContent")]
-        public IActionResult GetCartContent([FromQuery] int userid)
-        {
-            var cartcontent = _cartService.GetCartContent(userid);
-            return Ok(cartcontent);
-        }
+        
 
         [HttpPost("AddToCart")] // 登入時，
         public IActionResult AddToCart([FromQuery] string? userid)
