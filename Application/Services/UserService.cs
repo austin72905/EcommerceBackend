@@ -20,13 +20,15 @@ namespace Application.Services
         private readonly IConfiguration _configuration;
         private readonly IRedisService _redisService;
         private readonly IUserDomainService _userDomainService;
+        private readonly IHttpUtils _httpUtils;
 
-        public UserService(IUserRepository userRepository, IConfiguration configuration, IRedisService redisService, IUserDomainService userDomainService)
+        public UserService(IUserRepository userRepository, IConfiguration configuration, IRedisService redisService, IUserDomainService userDomainService, IHttpUtils httpUtils)
         {
             _userRepository = userRepository;
             _configuration = configuration;
             _redisService = redisService;
             _userDomainService = userDomainService;
+            _httpUtils = httpUtils;
         }
 
         
@@ -627,8 +629,12 @@ namespace Application.Services
         }
 
 
-
-        private GoogleUserInfo? DecodeIDToken(string idToken)
+        /// <summary>
+        /// 解碼jwt token
+        /// </summary>
+        /// <param name="idToken"></param>
+        /// <returns></returns>
+        internal GoogleUserInfo? DecodeIDToken(string idToken)
         {
             string[] jwtContent = idToken.Split('.');
             string jwtPayloadString = Encoding.UTF8.GetString(Base64UrlTextEncoder.Decode(jwtContent[1]));
@@ -668,13 +674,17 @@ namespace Application.Services
                     //{"code_verifier","" },
                 };
 
-                var client = new HttpClient();
+                //var client = new HttpClient();
 
-                var resp = await client.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(body));
+                //var resp = await client.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(body));
 
-                var jsonResp = await resp.Content.ReadAsStringAsync();
+                //var jsonResp = await resp.Content.ReadAsStringAsync();
 
-                var result = JsonSerializer.Deserialize<OAuth2GoogleResp>(jsonResp);
+                //var result = JsonSerializer.Deserialize<OAuth2GoogleResp>(jsonResp);
+
+
+
+                var result = await _httpUtils.PostFormAsync<OAuth2GoogleResp>("https://oauth2.googleapis.com/token", body);
 
 
                 //請求錯誤
@@ -704,7 +714,9 @@ namespace Application.Services
                     //    Username = jwtUserInfo.Name,
                     //    CreatedAt = DateTime.Now
                     //};
-                    await _userRepository.AddUser(userRegistInfo);
+                    //await _userRepository.AddUser(userRegistInfo);
+                    await _userRepository.AddAsync(userRegistInfo);
+                    await _userRepository.SaveChangesAsync();
 
                     // 從新獲取
                     user = await _userRepository.GetUserIfExistsByGoogleID(jwtUserInfo.Sub);
@@ -716,14 +728,14 @@ namespace Application.Services
                 {
                     //UserId = jwtUserInfo.Sub,
                     UserId = user.Id, // 改成 從 db 拿 user.Id
-                    Email = jwtUserInfo.Email,
+                    Email = user.Email,
                     NickName = user.NickName,
                     Picture = user.Picture,
                     Type = authLogin.state,
                     Birthday = user.Birthday.HasValue ? user.Birthday.Value.ToString("yyyy/M/d") : string.Empty,
                     Gender = user.Gender,
                     PhoneNumber = user.PhoneNumber,
-                    Username = user.Username
+                  
                 };
 
                 Console.WriteLine(userInfo);

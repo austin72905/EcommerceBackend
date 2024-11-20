@@ -8,6 +8,7 @@ using Domain.Services;
 using EcommerceBackend.MiddleWares;
 
 using Infrastructure.Cache;
+using Infrastructure.Http;
 using Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,6 +32,9 @@ builder.Services.AddDbContext<EcommerceDBContext>(options =>
 
 //注入 IHttpContextAccessor
 builder.Services.AddHttpContextAccessor();
+
+// httpclient
+builder.Services.AddHttpClient<IHttpUtils, HttpUtils>(); //依賴注入的範圍（Scoped），每次請求都會提供一個新的 HttpClient 實例，但共用其內部的 HttpMessageHandler，有效管理了資源。
 
 // Add services to the container.
 // app service

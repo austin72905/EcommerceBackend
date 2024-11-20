@@ -1,11 +1,16 @@
 ﻿using Application.DTOs;
+using Application.Extensions;
+using Application.Oauth;
 using Application.Services;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
 using Infrastructure.Interfaces;
+using Infrastructure.Utils.EncryptMethod;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Moq;
+using System.Net;
 
 namespace Application.Tests.Services
 {
@@ -17,6 +22,7 @@ namespace Application.Tests.Services
         private Mock<IConfiguration> _configurationMock;
         private Mock<IRedisService> _redisServiceMock;
         private Mock<IUserDomainService> _userDomainServiceMock;
+        private Mock<IHttpUtils> _httpUtilsMock;
 
         [SetUp]
         public void Setup()
@@ -26,13 +32,16 @@ namespace Application.Tests.Services
             _configurationMock = new Mock<IConfiguration>();
             _redisServiceMock = new Mock<IRedisService>();
             _userDomainServiceMock = new Mock<IUserDomainService>();
+            _httpUtilsMock = new Mock<IHttpUtils>();
+           
 
-            // 注入模擬對象到 UserService
-            _userService = new UserService(
+        // 注入模擬對象到 UserService
+        _userService = new UserService(
                 _userRepositoryMock.Object,
                 _configurationMock.Object,
                 _redisServiceMock.Object,
-                _userDomainServiceMock.Object
+                _userDomainServiceMock.Object,
+                _httpUtilsMock.Object
             );
         }
 
@@ -173,7 +182,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("no", result.Data);
+            Assert.AreEqual(null, result.Data);
             Assert.AreEqual("用戶不存在", result.ErrorMessage);
 
             _userDomainServiceMock.Verify(service => service.UpdateUser(It.IsAny<User>(), It.IsAny<User>()), Times.Never);
@@ -209,6 +218,590 @@ namespace Application.Tests.Services
         }
 
 
+
+        /*
+            ModifyPassword 
+         
+        */
+
+        [Test]
+        public async Task ModifyPassword_WhenUserIdIsZero_ReturnsError()
+        {
+            // Arrange
+            int userId = 0;
+            var modifyPasswordDto = new ModifyPasswordDTO
+            {
+                OldPassword = "oldPass123",
+                Password = "newPass123"
+            };
+
+            // Act
+            var result = await _userService.ModifyPassword(userId, modifyPasswordDto);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("用戶不存在", result.ErrorMessage);
+
+            _userRepositoryMock.Verify(repo => repo.GetUserInfo(It.IsAny<int>()), Times.Never);
+        }
+
+        [Test]
+        public async Task ModifyPassword_WhenUserDoesNotExist_ReturnsError()
+        {
+            // Arrange
+            int userId = 1;
+            var modifyPasswordDto = new ModifyPasswordDTO
+            {
+                OldPassword = "oldPass123",
+                Password = "newPass123"
+            };
+
+            _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync((User)null);
+
+            // Act
+            var result = await _userService.ModifyPassword(userId, modifyPasswordDto);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("用戶不存在", result.ErrorMessage);
+
+            _userRepositoryMock.Verify(repo => repo.GetUserInfo(userId), Times.Once);
+            _userDomainServiceMock.Verify(service => service.EnsurePasswordCanBeChanged(It.IsAny<User>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Test]
+        public async Task ModifyPassword_WhenDomainServiceThrowsException_ReturnsError()
+        {
+            // Arrange
+            int userId = 1;
+            var modifyPasswordDto = new ModifyPasswordDTO
+            {
+                OldPassword = "wrongOldPassword",
+                Password = "newPass123"
+            };
+
+            var user = new User { Id = userId, PasswordHash = "hashedOldPassword" };
+
+            _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync(user);
+            _userDomainServiceMock
+                .Setup(service => service.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password))
+                .Throws(new Exception("舊密碼不正確"));
+
+            // Act
+            var result = await _userService.ModifyPassword(userId, modifyPasswordDto);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("舊密碼不正確", result.ErrorMessage);
+
+            _userRepositoryMock.Verify(repo => repo.GetUserInfo(userId), Times.Once);
+            _userDomainServiceMock.Verify(service => service.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password), Times.Once);
+            _userDomainServiceMock.Verify(service => service.ChangePassword(It.IsAny<User>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Test]
+        public async Task ModifyPassword_WhenPasswordChangedSuccessfully_ReturnsSuccess()
+        {
+            // Arrange
+            int userId = 1;
+            var modifyPasswordDto = new ModifyPasswordDTO
+            {
+                OldPassword = "oldPass123",
+                Password = "newPass123"
+            };
+
+            var user = new User { Id = userId, PasswordHash = "hashedOldPassword" };
+
+            _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync(user);
+
+            _userDomainServiceMock
+                .Setup(service => service.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password));
+
+            _userDomainServiceMock
+                .Setup(service => service.ChangePassword(user, modifyPasswordDto.Password));
+
+            _userRepositoryMock.Setup(repo => repo.SaveChangesAsync()).Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _userService.ModifyPassword(userId, modifyPasswordDto);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("修改密碼成功", result.ErrorMessage);
+
+            _userRepositoryMock.Verify(repo => repo.GetUserInfo(userId), Times.Once);
+            _userDomainServiceMock.Verify(service => service.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password), Times.Once);
+            _userDomainServiceMock.Verify(service => service.ChangePassword(user, modifyPasswordDto.Password), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.SaveChangesAsync(), Times.Once);
+        }
+
+
+
+        /*
+            UserRegister 
+         
+        */
+
+        [Test]
+        public async Task UserRegister_WhenUserAlreadyExists_ReturnsError()
+        {
+            // Arrange
+            var signUpDto = new SignUpDTO
+            {
+                Username = "existingUser",
+                Email = "existing@example.com",
+                Password = "password123",
+                NickName = "Test User"
+            };
+
+            _userDomainServiceMock
+                .Setup(service => service.EnsureUserNotExists(signUpDto.Username, signUpDto.Email))
+                .Throws(new Exception("User already exists"));
+
+            // Act
+            var result = await _userService.UserRegister(signUpDto);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("操作異常，請聯繫管理員", result.ErrorMessage);
+
+            _userRepositoryMock.Verify(repo => repo.AddUser(It.IsAny<User>()), Times.Never);
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Test]
+        public async Task UserRegister_WhenRegistrationSuccessful_ReturnsRedisKey()
+        {
+            // Arrange
+            var signUpDto = new SignUpDTO
+            {
+                Username = "newUser",
+                Email = "newuser@example.com",
+                Password = "password123",
+                NickName = "New User"
+            };
+
+            var userEntity = signUpDto.ToUserEntity();
+            var createdUser = new User
+            {
+                Id = 1,
+                Username = signUpDto.Username,
+                Email = signUpDto.Email,
+                NickName = signUpDto.NickName,
+                Role = "user",
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+
+            var userInfoDto = createdUser.ToUserInfoDTO();
+
+            //檢查email、用戶銘是否存在
+            _userDomainServiceMock
+                .Setup(service => service.EnsureUserNotExists(signUpDto.Username, signUpDto.Email));
+
+            _userRepositoryMock
+                .Setup(repo => repo.AddUser(It.IsAny<User>()))
+                .Callback<User>(user => user.Id = createdUser.Id);
+
+            _userRepositoryMock
+                .Setup(repo => repo.CheckUserExists(signUpDto.Username, signUpDto.Email))
+                .ReturnsAsync(createdUser);
+
+            _redisServiceMock
+                .Setup(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _userService.UserRegister(signUpDto);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("註冊成功", result.ErrorMessage);
+
+            Assert.IsNotNull(result.Data);
+
+            _userDomainServiceMock.Verify(service => service.EnsureUserNotExists(signUpDto.Username, signUpDto.Email), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.AddUser(It.IsAny<User>()), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.CheckUserExists(signUpDto.Username, signUpDto.Email), Times.Once);
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.Is<string>(data => data.Contains(userInfoDto.Username))), Times.Once);
+        }
+
+        [Test]
+        public async Task UserRegister_WhenExceptionThrown_ReturnsError()
+        {
+            // Arrange
+            var signUpDto = new SignUpDTO
+            {
+                Username = "newUser",
+                Email = "newuser@example.com",
+                Password = "password123",
+                NickName = "New User"
+            };
+
+            _userDomainServiceMock
+                .Setup(service => service.EnsureUserNotExists(signUpDto.Username, signUpDto.Email))
+                .Throws(new Exception("Unexpected exception"));
+
+            // Act
+            var result = await _userService.UserRegister(signUpDto);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("操作異常，請聯繫管理員", result.ErrorMessage);
+
+            _userRepositoryMock.Verify(repo => repo.AddUser(It.IsAny<User>()), Times.Never);
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+
+
+        /*
+            UserLogin 
+         
+        */
+
+        [Test]
+        public async Task UserLogin_WhenUserDoesNotExist_ReturnsError()
+        {
+            // Arrange
+            var loginDto = new LoginDTO
+            {
+                Username = "nonexistentUser",
+                Password = "password123"
+            };
+
+            _userRepositoryMock
+                .Setup(repo => repo.CheckUserExists(loginDto.Username, loginDto.Username))
+                .ReturnsAsync((User)null);
+
+            // Act
+            var result = await _userService.UserLogin(loginDto);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("用戶不存在", result.ErrorMessage);
+
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Test]
+        public async Task UserLogin_WhenPasswordIsIncorrect_ReturnsError()
+        {
+            // Arrange
+            var loginDto = new LoginDTO
+            {
+                Username = "existingUser",
+                Password = "wrongPassword"
+            };
+
+            var user = new User
+            {
+                Id = 1,
+                Username = loginDto.Username,
+                PasswordHash = BCryptUtils.HashPassword("correctPassword")
+            };
+
+            _userRepositoryMock
+                .Setup(repo => repo.CheckUserExists(loginDto.Username, loginDto.Username))
+                .ReturnsAsync(user);
+
+            // Act
+            var result = await _userService.UserLogin(loginDto);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("密碼錯誤", result.ErrorMessage);
+
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+
+        [Test]
+        public async Task UserLogin_WhenLoginIsSuccessful_ReturnsRedisKey()
+        {
+            // Arrange
+            var loginDto = new LoginDTO
+            {
+                Username = "existingUser",
+                Password = "correctPassword"
+            };
+
+            var user = new User
+            {
+                Id = 1,
+                Username = loginDto.Username,
+                PasswordHash = BCryptUtils.HashPassword(loginDto.Password),
+                Email = "test@example.com",
+                Role = "user"
+            };
+
+            var userInfoDto = user.ToUserInfoDTO();
+
+            _userRepositoryMock
+                .Setup(repo => repo.CheckUserExists(loginDto.Username, loginDto.Username))
+                .ReturnsAsync(user);
+
+            _redisServiceMock
+                .Setup(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _userService.UserLogin(loginDto);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("登入成功", result.ErrorMessage);
+            Assert.IsNotNull(result.Data);
+
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.Is<string>(data => data.Contains(userInfoDto.Username))), Times.Once);
+        }
+
+        [Test]
+        public async Task UserLogin_WhenExceptionThrown_ReturnsError()
+        {
+            // Arrange
+            var loginDto = new LoginDTO
+            {
+                Username = "existingUser",
+                Password = "password123"
+            };
+
+            _userRepositoryMock
+                .Setup(repo => repo.CheckUserExists(It.IsAny<string>(), It.IsAny<string>()))
+                .Throws(new Exception("Unexpected exception"));
+
+            // Act
+            var result = await _userService.UserLogin(loginDto);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("操作異常，請聯繫管理員", result.ErrorMessage);
+
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        }
+
+
+
+        /*
+            UserAuthLogin  
+         
+        */
+        [Test]
+        public async Task UserAuthLogin_Success_ReturnsUserInfo()
+        {
+            // Arrange
+            var authLogin = new AuthLogin { code = "valid-code", state = "user" };
+
+            var googleResponse = new OAuth2GoogleResp
+            {
+                id_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoxNzAwMDAzNjAwfQ.2wX5oJmOMF-UQW4YdYmJHXPZC7TSXHSN_yD1ivSYgWQ",
+                access_token = "valid-access-token",
+                expires_in = 3600,
+                token_type = "Bearer"
+            };
+
+            var jwtUserInfo = new GoogleUserInfo
+            {
+                Sub = "1234567890",
+                Email = "test@example.com",
+                Name = "TestNick",
+                Picture = "https://example.com/picture.jpg",
+                EmailVerified = true,
+                GivenName = "Test",
+                FamilyName = "User",
+                Iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                Exp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()
+            };
+
+            var user = new User
+            {
+                Id = 1,
+                Username = "Test User",
+                Email = "test@example.com",
+                GoogleId = "1234567890",
+                NickName = "TestNick",
+                Picture = jwtUserInfo.Picture,
+                Role = "user",
+                CreatedAt = DateTime.Now.AddDays(-10),
+                UpdatedAt = DateTime.Now,
+                LastLogin = DateTime.Now
+            };
+
+            _configurationMock.Setup(c => c["GoogleAuthClientSecret"]).Returns("test-secret");
+
+            _httpUtilsMock
+                .Setup(utils => utils.PostFormAsync<OAuth2GoogleResp>(
+                    "https://oauth2.googleapis.com/token",
+                    It.IsAny<Dictionary<string, string>>(),
+                    null
+                ))
+                .ReturnsAsync(googleResponse);
+
+            _userRepositoryMock
+                .Setup(repo => repo.GetUserIfExistsByGoogleID(jwtUserInfo.Sub))
+                .ReturnsAsync(user);
+
+            _userRepositoryMock
+                .Setup(repo => repo.AddAsync(It.IsAny<User>()))
+                .Returns(Task.CompletedTask);
+
+            _userRepositoryMock
+                .Setup(repo => repo.SaveChangesAsync())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _userService.UserAuthLogin(authLogin);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual(user.Email, result.UserInfo.Email);
+            Assert.AreEqual(jwtUserInfo.Picture, result.UserInfo.Picture);
+            Assert.AreEqual(jwtUserInfo.Name, result.UserInfo.NickName);
+
+            _httpUtilsMock.Verify(utils => utils.PostFormAsync<OAuth2GoogleResp>(It.IsAny<string>(), It.IsAny<Dictionary<string, string>>(), null), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.GetUserIfExistsByGoogleID(jwtUserInfo.Sub), Times.Once);
+        }
+
+        [Test]
+        public async Task UserAuthLogin_UserDoesNotExist_CreatesAndReturnsUserInfo()
+        {
+            // Arrange
+            // Arrange
+            var authLogin = new AuthLogin { code = "valid-code", state = "user" };
+
+            var googleResponse = new OAuth2GoogleResp
+            {
+                id_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoxNzAwMDAzNjAwfQ.2wX5oJmOMF-UQW4YdYmJHXPZC7TSXHSN_yD1ivSYgWQ",
+                access_token = "valid-access-token",
+                expires_in = 3600,
+                token_type = "Bearer"
+            };
+
+            var jwtUserInfo = new GoogleUserInfo
+            {
+                Sub = "1234567890",
+                Email = "test@example.com",
+                Name = "TestNick",
+                Picture = "https://example.com/picture.jpg",
+                EmailVerified = true,
+                GivenName = "Test",
+                FamilyName = "User",
+                Iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                Exp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()
+            };
+
+            var user = new User
+            {
+                Id = 1,
+                Username = "Test User",
+                Email = "test@example.com",
+                GoogleId = "1234567890",
+                NickName = "TestNick",
+                Picture = jwtUserInfo.Picture,
+                Role = "user",
+                CreatedAt = DateTime.Now.AddDays(-10),
+                UpdatedAt = DateTime.Now,
+                LastLogin = DateTime.Now
+            };
+
+
+            _configurationMock.Setup(c => c["GoogleAuthClientSecret"]).Returns("test-secret");
+
+            _httpUtilsMock
+                .Setup(utils => utils.PostFormAsync<OAuth2GoogleResp>(
+                    "https://oauth2.googleapis.com/token",
+                    It.IsAny<Dictionary<string, string>>(),
+                    null
+                ))
+                .ReturnsAsync(googleResponse);
+
+            _userRepositoryMock
+                .SetupSequence(repo => repo.GetUserIfExistsByGoogleID(jwtUserInfo.Sub))
+                .ReturnsAsync((User)null) // First call: user does not exist
+                .ReturnsAsync(user);  // Second call: user created and retrieved
+
+            _userRepositoryMock
+                .Setup(repo => repo.AddAsync(It.Is<User>(u =>
+                    u.GoogleId == jwtUserInfo.Sub &&
+                    u.Email == jwtUserInfo.Email &&
+                    u.NickName == jwtUserInfo.Name
+                )))
+                .Returns(Task.CompletedTask);
+
+            _userRepositoryMock
+                .Setup(repo => repo.SaveChangesAsync())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _userService.UserAuthLogin(authLogin);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual(user.Email, result.UserInfo.Email);
+            Assert.AreEqual(user.Picture, result.UserInfo.Picture);
+            Assert.AreEqual(user.NickName, result.UserInfo.NickName);
+
+            _httpUtilsMock.Verify(utils => utils.PostFormAsync<OAuth2GoogleResp>(
+                "https://oauth2.googleapis.com/token",
+                It.IsAny<Dictionary<string, string>>(),
+                null
+            ), Times.Once);
+
+            _userRepositoryMock.Verify(repo => repo.GetUserIfExistsByGoogleID(jwtUserInfo.Sub), Times.Exactly(2)); // Before and after creation
+            _userRepositoryMock.Verify(repo => repo.AddAsync(It.IsAny<User>()), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.SaveChangesAsync(), Times.Once);
+        }
+
+        [Test]
+        public void DecodeIDToken_ValidToken_ReturnsGoogleUserInfo()
+        {
+            // Arrange
+            var idToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwibmFtZSI6IlRlc3QgVXNlciIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjoxNzAwMDAzNjAwfQ.2wX5oJmOMF-UQW4YdYmJHXPZC7TSXHSN_yD1ivSYgWQ";
+
+            // Act
+            var decodedResult = typeof(UserService)
+                .GetMethod("DecodeIDToken", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.Invoke(_userService, new object[] { idToken }) as GoogleUserInfo;
+
+            // Assert
+            Assert.NotNull(decodedResult);
+            Assert.AreEqual("1234567890", decodedResult.Sub);
+            Assert.AreEqual("test@example.com", decodedResult.Email);
+            Assert.AreEqual("Test User", decodedResult.Name);
+        }
+        [Test]
+        public async Task UserAuthLogin_InvalidCode_ReturnsError()
+        {
+            // Arrange
+            var authLogin = new AuthLogin { code = "invalid-code", state = "user" };
+            _configurationMock.Setup(c => c["GoogleAuthClientSecret"]).Returns("test-secret");
+
+            _httpUtilsMock
+                .Setup(utils => utils.PostFormAsync<OAuth2GoogleResp>("https://oauth2.googleapis.com/token", It.IsAny<Dictionary<string, string>>(), null))
+                .ReturnsAsync((OAuth2GoogleResp)null);
+
+            // Act
+            var result = await _userService.UserAuthLogin(authLogin);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("some error occured when request token", result.ErrorMessage);
+        }
+
+        
+
+        [Test]
+        public async Task UserAuthLogin_ConfigurationMissing_ThrowsError()
+        {
+            // Arrange
+            var authLogin = new AuthLogin { code = "valid-code", state = "user" };
+            _configurationMock.Setup(c => c["GoogleAuthClientSecret"]).Returns((string)null);
+
+            // Act
+            var result = await _userService.UserAuthLogin(authLogin);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("some error occured", result.ErrorMessage);
+        }
 
         /*
             UserShippingAddress 類
@@ -574,5 +1167,132 @@ namespace Application.Tests.Services
 
             _userRepositoryMock.Verify(repo => repo.SetDefaultShippingAddress(userId, addressId), Times.Once);
         }
+
+
+        /*
+            FavoriteList 類 
+         
+        */
+
+        [Test]
+        public async Task RemoveFromFavoriteList_WhenUserIdIsZero_ReturnsError()
+        {
+            // Arrange
+            int userId = 0;
+            int productId = 101;
+
+            // Act
+            var result = await _userService.RemoveFromfavoriteList(userId, productId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("不存在的用戶", result.Data);
+
+            _userRepositoryMock.Verify(repo => repo.RemoveFromFavoriteList(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        }
+
+        [Test]
+        public async Task RemoveFromFavoriteList_WhenValidUserAndProduct_RemovesProduct()
+        {
+            // Arrange
+            int userId = 1;
+            int productId = 101;
+
+            // 模擬 Repository 方法成功執行
+            _userRepositoryMock.Setup(repo => repo.RemoveFromFavoriteList(userId, productId)).Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _userService.RemoveFromfavoriteList(userId, productId);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("操作成功", result.ErrorMessage);
+
+            _userRepositoryMock.Verify(repo => repo.RemoveFromFavoriteList(userId, productId), Times.Once);
+        }
+
+        [Test]
+        public async Task RemoveFromFavoriteList_WhenExceptionThrown_ReturnsError()
+        {
+            // Arrange
+            int userId = 1;
+            int productId = 101;
+
+            // 模擬 Repository 方法拋出異常
+            _userRepositoryMock
+                .Setup(repo => repo.RemoveFromFavoriteList(It.IsAny<int>(), It.IsAny<int>()))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _userService.RemoveFromfavoriteList(userId, productId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統異常，請聯繫管理員", result.ErrorMessage);
+
+            _userRepositoryMock.Verify(repo => repo.RemoveFromFavoriteList(userId, productId), Times.Once);
+        }
+
+
+        [Test]
+        public async Task AddToFavoriteList_WhenUserIdIsZero_ReturnsError()
+        {
+            // Arrange
+            int userId = 0;
+            int productId = 101;
+
+            // Act
+            var result = await _userService.AddTofavoriteList(userId, productId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("不存在的用戶", result.Data);
+
+            _userRepositoryMock.Verify(repo => repo.AddToFavoriteList(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        }
+
+        [Test]
+        public async Task AddToFavoriteList_WhenValidUserAndProduct_AddsProductToFavorites()
+        {
+            // Arrange
+            int userId = 1;
+            int productId = 101;
+
+            // 模擬 Repository 方法成功執行
+            _userRepositoryMock.Setup(repo => repo.AddToFavoriteList(userId, productId)).Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _userService.AddTofavoriteList(userId, productId);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("操作成功", result.Data);
+
+            _userRepositoryMock.Verify(repo => repo.AddToFavoriteList(userId, productId), Times.Once);
+        }
+
+        [Test]
+        public async Task AddToFavoriteList_WhenExceptionThrown_ReturnsError()
+        {
+            // Arrange
+            int userId = 1;
+            int productId = 101;
+
+            // 模擬 Repository 方法拋出異常
+            _userRepositoryMock
+                .Setup(repo => repo.AddToFavoriteList(It.IsAny<int>(), It.IsAny<int>()))
+                .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = await _userService.AddTofavoriteList(userId, productId);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("系統異常，請聯繫管理員", result.ErrorMessage);
+
+            _userRepositoryMock.Verify(repo => repo.AddToFavoriteList(userId, productId), Times.Once);
+        }
+
+
     }
 }

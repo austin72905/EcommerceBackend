@@ -13,6 +13,8 @@ namespace Domain.Interfaces.Repositories
 
         public Task AddUser(User user);
 
+        public Task AddAsync(User user);
+
         public Task ModifyUserInfo(User user);
 
         public IEnumerable<UserShipAddress> GetUserShippingAddress(int userid);
