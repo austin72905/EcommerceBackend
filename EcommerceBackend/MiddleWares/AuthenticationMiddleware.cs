@@ -3,6 +3,7 @@ using Application.DTOs;
 using Domain.Enums;
 using EcommerceBackend.Models;
 using Infrastructure.Interfaces;
+using System.Linq;
 using System.Text.Json;
 
 namespace EcommerceBackend.MiddleWares
@@ -31,6 +32,7 @@ namespace EcommerceBackend.MiddleWares
 
             string? userInfo= null;
 
+            // 去 redis 獲取對應用戶資料
             if (sessionId !=null)
             {
                 userInfo = await _redisService.GetUserInfoAsync(sessionId);
@@ -38,25 +40,17 @@ namespace EcommerceBackend.MiddleWares
             }
 
 
+            // 比對需要登陸才能使用的路徑
             var path = context.Request.Path.ToString().ToLower();
 
-            if (path.StartsWith("/user/")  && !path.Contains("UserRegister", StringComparison.OrdinalIgnoreCase) && !path.Contains("userlogin", StringComparison.OrdinalIgnoreCase) && !path.Contains("AuthLogin",StringComparison.OrdinalIgnoreCase) || path.StartsWith("/order/"))
+            if (HaveAuthPath(path))
             {
-                if (sessionId == null)
-                {
-                    context.Response.StatusCode = StatusCodes.Status200OK;
-                    var resp = new ApiResponse { Code = (int)RespCode.UN_AUTHORIZED, Message = "未授權，請重新登入" };
-                    await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(resp));
-                    return;
-                }
-
-                //userInfo = await _redisService.GetUserInfoAsync(sessionId);
-
-                if (userInfo == null)
+                
+                if (sessionId==null || userInfo == null)
                 {
                     //context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     context.Response.StatusCode = StatusCodes.Status200OK;
-                    var resp = new ApiResponse { Code = (int)RespCode.UN_AUTHORIZED, Message = "Invalid session" };
+                    var resp = new ApiResponse { Code = (int)RespCode.UN_AUTHORIZED, Message = "未授權，請重新登入" };
                     await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(resp));
                     return;
                 }
@@ -87,7 +81,7 @@ namespace EcommerceBackend.MiddleWares
 
 
 
-            // 先無條件的是登錄狀態，後續在做redis 驗證
+
             context.Items["UserInfo"] = userInfo; // context.Items是 ASP.NET Core 中的一個字典，允許你在請求的生命週期內儲存和共享資料。這個字典中的資料只在目前請求中有效，隨著請求的結束，這些資料會被清除。
                                                   //Console.WriteLine($"Setting UserInfo in Middleware: {context.Items["UserInfo"]}");
 
@@ -97,5 +91,37 @@ namespace EcommerceBackend.MiddleWares
             await _next(context);
             return;
         }
+
+       
+        /// <summary>
+        /// 需要驗證的路由
+        /// </summary>
+
+        private static Dictionary<string, HashSet<string>> AuthPathRules = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "/user", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "/user/UserRegister", "/user/UserLogin", "/user/AuthLogin" } },
+            { "/order", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { } } // 無排除路径
+        };
+
+        internal bool HaveAuthPath(string path)
+        {
+            foreach (var rule in AuthPathRules)
+            {
+                
+                if (path.StartsWith(rule.Key, StringComparison.OrdinalIgnoreCase))
+                {
+                    
+                    if (rule.Value.Contains(path))
+                    {
+                        return false; 
+                    }
+                    return true; 
+                }
+            }
+
+            return false; 
+        }
+
+
     }
 }
