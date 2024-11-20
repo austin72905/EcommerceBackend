@@ -34,7 +34,7 @@ namespace Domain.Services
 
             if (user != null)
             {
-                if (user.Email == userName)
+                if (user.Email == email)
                 {
                     throw new Exception($"已有相同信箱 {user.Email}");
                 }
