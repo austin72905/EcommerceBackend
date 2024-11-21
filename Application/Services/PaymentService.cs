@@ -167,7 +167,7 @@ namespace Application.Services
                 // 商品名稱
                 { "ItemName","item" },
                 // 付款完成通知回傳網址
-                { "ReturnURL","https://bdec-1-168-26-39.ngrok-free.app/api/ecpay-return" },  //https://7476-114-46-6-241.ngrok-free.app/Payment/ECPayReturn
+                { "ReturnURL","https://60a7-1-168-31-84.ngrok-free.app/api/ecpay-return" },  //https://7476-114-46-6-241.ngrok-free.app/Payment/ECPayReturn
                 // 選擇預設付款方式
                 { "ChoosePayment","Credit" },
                 // CheckMacValue加密類型 (請固定填入1，使用SHA256加密。)
@@ -419,13 +419,20 @@ namespace Application.Services
             {
                 payment.PaymentStatus = (byte)OrderStepStatus.PaymentReceived;
                 payment.Order.Status = (int)OrderStepStatus.PaymentReceived;
-                payment.Order.OrderSteps.Add(new Domain.Entities.OrderStep
+
+                // 檢查是否已經有更新過數據，避免重複回調，重複新增
+                if (!payment.Order.OrderSteps.Any(os => os.StepStatus == (int)OrderStepStatus.PaymentReceived))
                 {
-                    OrderId = payment.OrderId,
-                    StepStatus = (int)OrderStepStatus.PaymentReceived,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
-                });
+                    payment.Order.OrderSteps.Add(new Domain.Entities.OrderStep
+                    {
+                        OrderId = payment.OrderId,
+                        StepStatus = (int)OrderStepStatus.PaymentReceived,
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                    });
+                }
+
+
 
                 await _paymentRepository.SaveChangesAsync();
 
