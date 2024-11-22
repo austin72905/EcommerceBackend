@@ -1,5 +1,7 @@
+using Application;
 using Application.Interfaces;
 using Application.Services;
+using Common.Interfaces.Application.Services;
 using DataSource.DBContext;
 using DataSource.Repositories;
 using Domain.Interfaces.Repositories;
@@ -10,6 +12,7 @@ using EcommerceBackend.MiddleWares;
 using Infrastructure.Cache;
 using Infrastructure.Http;
 using Infrastructure.Interfaces;
+using Infrastructure.MQ;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
@@ -43,6 +46,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IShipmentService, ShipmentService>();
 
 // domain servie
 builder.Services.AddScoped<IOrderDomainService, OrderDomainService>();
@@ -56,6 +60,20 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<IOrderRepostory, OrderRepostory>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IShipmentRepository, ShipmentRepository>();
+
+
+// singleton services
+
+builder.Services.AddSingleton<IShipmentProducer, ShipmentProducer>();
+builder.Services.AddSingleton<IShipmentConsumer, ShipmentConsumer>();
+
+// ¼ÒÀÀª«¬y­q³æ
+builder.Services.AddSingleton<IQueueProcessor, QueueProcessor>();
+
+// host service
+builder.Services.AddHostedService<ShipmentConsumerService>();
+
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp=> 
 {

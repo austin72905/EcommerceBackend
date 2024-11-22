@@ -32,6 +32,22 @@ namespace DataSource.Repositories
                 .ToListAsync();
         }
 
+        public async Task<Order?> GetOrderInfoById(int orderId)
+        {
+            return await _dbSet
+                .Include(o => o.OrderProducts)
+                    .ThenInclude(op => op.ProductVariant)
+                        .ThenInclude(pv => pv.Size)
+                .Include(o => o.OrderProducts)
+                    .ThenInclude(op => op.ProductVariant)
+                           .ThenInclude(pv => pv.Product)
+                .Include(o => o.OrderSteps)
+                .Include(o => o.Shipments)
+                .Include(o => o.Address)
+                .Where(o => o.Id==orderId)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<Order?> GetOrderInfoByUserId(int userid, string recordCode)
         {
             return await _dbSet
@@ -54,5 +70,7 @@ namespace DataSource.Repositories
             await _context.SaveChangesAsync();
 
         }
+
+        
     }
 }

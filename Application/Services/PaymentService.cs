@@ -3,6 +3,7 @@ using Application.DTOs;
 using Application.Interfaces;
 using Domain.Enums;
 using Domain.Interfaces.Repositories;
+using Infrastructure.Interfaces;
 using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.Http;
 using System.Collections;
@@ -14,10 +15,12 @@ namespace Application.Services
     {
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IPaymentRepository _paymentRepository;
-        public PaymentService(IPaymentRepository paymentRepository, IHttpContextAccessor contextAccessor)
+        private readonly IShipmentProducer _shipmentProducer; 
+        public PaymentService(IPaymentRepository paymentRepository, IHttpContextAccessor contextAccessor, IShipmentProducer shipmentProducer)
         {
             _paymentRepository = paymentRepository;
             _contextAccessor = contextAccessor;
+            _shipmentProducer = shipmentProducer;
         }
 
         /// <summary>
@@ -432,6 +435,14 @@ namespace Application.Services
                     });
                 }
 
+                var message = new
+                {
+                    Status= (int)ShipmentStatus.Pending,
+                    OrderId= payment.OrderId,
+                    RecordCode=payment.Order.RecordCode
+                };
+                // 模擬通知 shipment
+                await _shipmentProducer.SendMessage(message);
 
 
                 await _paymentRepository.SaveChangesAsync();

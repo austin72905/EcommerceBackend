@@ -34,7 +34,12 @@
         /// <summary>
         /// 退貨/款
         /// </summary>
-        Refund = 6
+        Refund = 6,
+
+        /// <summary>
+        /// 運送中
+        /// </summary>
+        InTransit = 7
 
     }
 }

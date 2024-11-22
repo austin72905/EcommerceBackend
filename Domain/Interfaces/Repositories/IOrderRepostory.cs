@@ -11,8 +11,12 @@ namespace Domain.Interfaces.Repositories
     {
         public Task<IEnumerable<Order>> GetOrdersByUserId(int userid);
 
+        public Task<Order?> GetOrderInfoById(int orderId);
+
         public Task<Order?> GetOrderInfoByUserId(int userid, string recordCode);
 
         public Task GenerateOrder(Order order);
+
+        public Task SaveChangesAsync();
     }
 }
