@@ -97,6 +97,26 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+
+
+// 資料庫初始化邏輯
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<EcommerceDBContext>();
+
+    try
+    {
+        // 應用遷移
+        dbContext.Database.Migrate();
+        Console.WriteLine("Database migration completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"An error occurred while migrating the database: {ex.Message}");
+        throw;
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
