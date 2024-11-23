@@ -19,6 +19,13 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+// 添加自定義文件加載
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
 string redisConnectionString = Environment.GetEnvironmentVariable("RedisConnString");
 
 if (string.IsNullOrEmpty(redisConnectionString))

@@ -1,4 +1,5 @@
 ﻿using Infrastructure.Interfaces;
+using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
@@ -13,11 +14,15 @@ namespace Infrastructure.MQ
     {
         private readonly ConnectionFactory _connectionFactory;
 
-        public ShipmentProducer()
+        private readonly IConfiguration _configuration;
+
+        public ShipmentProducer(IConfiguration configuration)
         {
+            _configuration= configuration;
+
             _connectionFactory =new ConnectionFactory 
             { 
-                HostName = "localhost",
+                HostName = _configuration["AppSettings:RabbitMqHostName"],
             };
         }
 

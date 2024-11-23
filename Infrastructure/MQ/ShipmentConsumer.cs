@@ -5,6 +5,7 @@ using Common.Interfaces.Application.Services;
 using System.Text;
 using System.Text.Json;
 using Infrastructure.Interfaces;
+using Microsoft.Extensions.Configuration;
 
 namespace Infrastructure.MQ
 {
@@ -14,12 +15,16 @@ namespace Infrastructure.MQ
 
         private readonly IServiceScopeFactory _scopeFactory;
 
-        public ShipmentConsumer(IServiceScopeFactory serviceScopeFactory)
+        private readonly IConfiguration _configuration;
+
+        public ShipmentConsumer(IServiceScopeFactory serviceScopeFactory, IConfiguration configuration)
         {
+            _configuration = configuration;
+
             // 初始化 RabbitMQ 連接工廠
             _connectionFactory = new ConnectionFactory
             {
-                HostName = "localhost",
+                HostName = _configuration["AppSettings:RabbitMqHostName"],
 
             };
 
