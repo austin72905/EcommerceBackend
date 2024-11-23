@@ -6,6 +6,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
+using Microsoft.Extensions.Configuration;
 
 namespace Application.Services
 {
@@ -17,12 +18,15 @@ namespace Application.Services
 
         private readonly IOrderDomainService _orderDomainService;
 
-        public OrderService(IOrderRepostory orderRepostory, IProductRepository productRepository, IPaymentRepository paymentRepository, IOrderDomainService orderDomainService)
+        private readonly IConfiguration _configuration;
+
+        public OrderService(IOrderRepostory orderRepostory, IProductRepository productRepository, IPaymentRepository paymentRepository, IOrderDomainService orderDomainService, IConfiguration configuration)
         {
             _orderRepostory = orderRepostory;
             _productRepository = productRepository;
             _paymentRepository = paymentRepository;
             _orderDomainService = orderDomainService;
+            _configuration = configuration;
         }
 
         public async Task<ServiceResult<OrderInfomationDTO>> GetOrderInfo(int userid, string recordCode)
@@ -198,7 +202,7 @@ namespace Application.Services
                     {
                         Amount = order.OrderPrice.ToString(), // 訂單金額
                         RecordNo = order.RecordCode, // 後端生成的訂單號
-                        PaymentUrl = "http://localhost:5025/Payment/ECPayPayment",
+                        PaymentUrl = _configuration["PaymentRedirectUrl:PaymentRedirectUrl"],                      
                         PayType = "ECPAY" // 支付類型 (銀行、綠界第三方支付)
                     }
                 };

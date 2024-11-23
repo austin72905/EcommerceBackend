@@ -241,7 +241,7 @@ namespace DataSource.DBContext
                     //Stock = 60,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
-                    CoverImg = "http://localhost:9000/coat1.jpg",
+                    CoverImg = "https://ponggoodbf.com/img/coat1.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -254,7 +254,7 @@ namespace DataSource.DBContext
                     //Stock = 5,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
-                    CoverImg = "http://localhost:9000/coat4.jpg",
+                    CoverImg = "https://ponggoodbf.com/img/coat4.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -267,7 +267,7 @@ namespace DataSource.DBContext
                     //Stock = 18,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
-                    CoverImg = "http://localhost:9000/coat3.jpg",
+                    CoverImg = "https://ponggoodbf.com/img/coat3.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -280,7 +280,7 @@ namespace DataSource.DBContext
                     //Stock = 60,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
-                    CoverImg = "http://localhost:9000/coat2.jpg",
+                    CoverImg = "https://ponggoodbf.com/img/coat2.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -293,7 +293,7 @@ namespace DataSource.DBContext
                     //Stock = 60,
                     HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                     Features = "其實我也不知道要說什麼...a",
-                    CoverImg = "http://localhost:9000/coat5.jpg",
+                    CoverImg = "https://ponggoodbf.com/img/coat5.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -693,39 +693,39 @@ namespace DataSource.DBContext
             // ProductImages 種子數據
             modelBuilder.Entity<ProductImage>().HasData(
                 // Images for Product Id 1
-                new ProductImage { Id = 1, ProductId = 1, ImageUrl = "http://localhost:9000/coat1.jpg" },
-                new ProductImage { Id = 2, ProductId = 1, ImageUrl = "http://localhost:9000/coat2.jpg" },
-                new ProductImage { Id = 3, ProductId = 1, ImageUrl = "http://localhost:9000/coat3.jpg" },
-                new ProductImage { Id = 4, ProductId = 1, ImageUrl = "http://localhost:9000/coat4.jpg" },
-                new ProductImage { Id = 5, ProductId = 1, ImageUrl = "http://localhost:9000/coat5.jpg" },
+                new ProductImage { Id = 1, ProductId = 1, ImageUrl = "https://ponggoodbf.com/img/coat1.jpg" },
+                new ProductImage { Id = 2, ProductId = 1, ImageUrl = "https://ponggoodbf.com/img/coat2.jpg" },
+                new ProductImage { Id = 3, ProductId = 1, ImageUrl = "https://ponggoodbf.com/img/coat3.jpg" },
+                new ProductImage { Id = 4, ProductId = 1, ImageUrl = "https://ponggoodbf.com/img/coat4.jpg" },
+                new ProductImage { Id = 5, ProductId = 1, ImageUrl = "https://ponggoodbf.com/img/coat5.jpg" },
 
                 // Images for Product Id 2
-                new ProductImage { Id = 6, ProductId = 2, ImageUrl = "http://localhost:9000/coat2.jpg" },
-                new ProductImage { Id = 7, ProductId = 2, ImageUrl = "http://localhost:9000/coat3.jpg" },
-                new ProductImage { Id = 8, ProductId = 2, ImageUrl = "http://localhost:9000/coat4.jpg" },
-                new ProductImage { Id = 9, ProductId = 2, ImageUrl = "http://localhost:9000/coat5.jpg" },
-                new ProductImage { Id = 10, ProductId = 2, ImageUrl = "http://localhost:9000/coat1.jpg" },
+                new ProductImage { Id = 6, ProductId = 2, ImageUrl = "https://ponggoodbf.com/img/coat2.jpg" },
+                new ProductImage { Id = 7, ProductId = 2, ImageUrl = "https://ponggoodbf.com/img/coat3.jpg" },
+                new ProductImage { Id = 8, ProductId = 2, ImageUrl = "https://ponggoodbf.com/img/coat4.jpg" },
+                new ProductImage { Id = 9, ProductId = 2, ImageUrl = "https://ponggoodbf.com/img/coat5.jpg" },
+                new ProductImage { Id = 10, ProductId = 2, ImageUrl = "https://ponggoodbf.com/img/coat1.jpg" },
 
                 // Images for Product Id 3
-                new ProductImage { Id = 11, ProductId = 3, ImageUrl = "http://localhost:9000/coat3.jpg" },
-                new ProductImage { Id = 12, ProductId = 3, ImageUrl = "http://localhost:9000/coat5.jpg" },
-                new ProductImage { Id = 13, ProductId = 3, ImageUrl = "http://localhost:9000/coat4.jpg" },
-                new ProductImage { Id = 14, ProductId = 3, ImageUrl = "http://localhost:9000/coat2.jpg" },
-                new ProductImage { Id = 15, ProductId = 3, ImageUrl = "http://localhost:9000/coat1.jpg" },
+                new ProductImage { Id = 11, ProductId = 3, ImageUrl = "https://ponggoodbf.com/img/coat3.jpg" },
+                new ProductImage { Id = 12, ProductId = 3, ImageUrl = "https://ponggoodbf.com/img/coat5.jpg" },
+                new ProductImage { Id = 13, ProductId = 3, ImageUrl = "https://ponggoodbf.com/img/coat4.jpg" },
+                new ProductImage { Id = 14, ProductId = 3, ImageUrl = "https://ponggoodbf.com/img/coat2.jpg" },
+                new ProductImage { Id = 15, ProductId = 3, ImageUrl = "https://ponggoodbf.com/img/coat1.jpg" },
 
                 // Images for Product Id 3
-                new ProductImage { Id = 16, ProductId = 4, ImageUrl = "http://localhost:9000/coat3.jpg" },
-                new ProductImage { Id = 17, ProductId = 4, ImageUrl = "http://localhost:9000/coat5.jpg" },
-                new ProductImage { Id = 18, ProductId = 4, ImageUrl = "http://localhost:9000/coat4.jpg" },
-                new ProductImage { Id = 19, ProductId = 4, ImageUrl = "http://localhost:9000/coat2.jpg" },
-                new ProductImage { Id = 20, ProductId = 4, ImageUrl = "http://localhost:9000/coat1.jpg" },
+                new ProductImage { Id = 16, ProductId = 4, ImageUrl = "https://ponggoodbf.com/img/coat3.jpg" },
+                new ProductImage { Id = 17, ProductId = 4, ImageUrl = "https://ponggoodbf.com/img/coat5.jpg" },
+                new ProductImage { Id = 18, ProductId = 4, ImageUrl = "https://ponggoodbf.com/img/coat4.jpg" },
+                new ProductImage { Id = 19, ProductId = 4, ImageUrl = "https://ponggoodbf.com/img/coat2.jpg" },
+                new ProductImage { Id = 20, ProductId = 4, ImageUrl = "https://ponggoodbf.com/img/coat1.jpg" },
 
                 // Images for Product Id 3
-                new ProductImage { Id = 21, ProductId = 5, ImageUrl = "http://localhost:9000/coat3.jpg" },
-                new ProductImage { Id = 22, ProductId = 5, ImageUrl = "http://localhost:9000/coat5.jpg" },
-                new ProductImage { Id = 23, ProductId = 5, ImageUrl = "http://localhost:9000/coat4.jpg" },
-                new ProductImage { Id = 24, ProductId = 5, ImageUrl = "http://localhost:9000/coat2.jpg" },
-                new ProductImage { Id = 25, ProductId = 5, ImageUrl = "http://localhost:9000/coat1.jpg" }
+                new ProductImage { Id = 21, ProductId = 5, ImageUrl = "https://ponggoodbf.com/img/coat3.jpg" },
+                new ProductImage { Id = 22, ProductId = 5, ImageUrl = "https://ponggoodbf.com/img/coat5.jpg" },
+                new ProductImage { Id = 23, ProductId = 5, ImageUrl = "https://ponggoodbf.com/img/coat4.jpg" },
+                new ProductImage { Id = 24, ProductId = 5, ImageUrl = "https://ponggoodbf.com/img/coat2.jpg" },
+                new ProductImage { Id = 25, ProductId = 5, ImageUrl = "https://ponggoodbf.com/img/coat1.jpg" }
             );
 
 
