@@ -35,7 +35,8 @@ if (string.IsNullOrEmpty(redisConnectionString))
 
 builder.Services.AddDbContext<EcommerceDBContext>(options =>
     options.UseSqlite("Data Source=Ecommerce_Shop.db")
-        .LogTo(Console.WriteLine, LogLevel.Information)
+        //.LogTo(Console.WriteLine, LogLevel.Information)
+        .LogTo(Console.WriteLine, LogLevel.Error)
         .EnableSensitiveDataLogging()  // 不要在production env使用
         .EnableDetailedErrors()   // 不要在production env使用
     );

@@ -279,6 +279,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"PayReturn Error message...................{ex.Message}");
                 return new ServiceResult<object>()
                 {
                     IsSuccess = false,

@@ -114,6 +114,19 @@ namespace DataSource.DBContext
 
             //  設置外鍵關係
 
+            // cart 與 user 關係
+            modelBuilder.Entity<Cart>()
+                .HasOne(c => c.User) // Cart 的 User 导航属性
+                .WithMany()          // User 没有 Carts 导航属性
+                .HasForeignKey(c => c.UserId);
+
+            // 配置 Cart 和 CartItem 的關係
+            modelBuilder.Entity<CartItem>()
+                .HasOne(ci => ci.Cart)
+                .WithMany(c => c.CartItems)
+                .HasForeignKey(ci => ci.CartId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // 配置 ProductKind 表
             modelBuilder.Entity<ProductKind>()
                 .HasKey(pk => pk.Id);
