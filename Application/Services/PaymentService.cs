@@ -180,7 +180,7 @@ namespace Application.Services
                 // CheckMacValue加密類型 (請固定填入1，使用SHA256加密。)
                 { "EncryptType","1" },
                 // 消費者點選此按鈕後，會將頁面導回到此設定的網址
-                { "ClientBackURL",_configuration["AppSettings:ClientBackURL"},
+                { "ClientBackURL",_configuration["AppSettings:ClientBackURL"]},
 
             };
 
