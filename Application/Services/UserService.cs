@@ -670,7 +670,7 @@ namespace Application.Services
                     {"client_secret",secret },
                     {"code",authLogin.code},
                     {"grant_type","authorization_code" },
-                    {"redirect_uri","http://localhost:3000/auth" },
+                    {"redirect_uri",_configuration["AppSettings:RedirectAuthUri"] },
                     //{"code_verifier","" },
                 };
 

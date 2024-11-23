@@ -6,6 +6,7 @@ using Domain.Interfaces.Repositories;
 using Infrastructure.Interfaces;
 using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using System.Collections;
 using System.Web;
 
@@ -15,12 +16,15 @@ namespace Application.Services
     {
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IPaymentRepository _paymentRepository;
-        private readonly IShipmentProducer _shipmentProducer; 
-        public PaymentService(IPaymentRepository paymentRepository, IHttpContextAccessor contextAccessor, IShipmentProducer shipmentProducer)
+        private readonly IShipmentProducer _shipmentProducer;
+
+        private readonly IConfiguration _configuration;
+        public PaymentService(IPaymentRepository paymentRepository, IHttpContextAccessor contextAccessor, IShipmentProducer shipmentProducer, IConfiguration configuration)
         {
             _paymentRepository = paymentRepository;
             _contextAccessor = contextAccessor;
             _shipmentProducer = shipmentProducer;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -170,13 +174,13 @@ namespace Application.Services
                 // 商品名稱
                 { "ItemName","item" },
                 // 付款完成通知回傳網址
-                { "ReturnURL","https://60a7-1-168-31-84.ngrok-free.app/api/ecpay-return" },  //https://7476-114-46-6-241.ngrok-free.app/Payment/ECPayReturn
+                { "ReturnURL",_configuration["AppSettings:ReturnURL"] },
                 // 選擇預設付款方式
                 { "ChoosePayment","Credit" },
                 // CheckMacValue加密類型 (請固定填入1，使用SHA256加密。)
                 { "EncryptType","1" },
                 // 消費者點選此按鈕後，會將頁面導回到此設定的網址
-                { "ClientBackURL","http://localhost:3000/products" },
+                { "ClientBackURL",_configuration["AppSettings:ClientBackURL"},
 
             };
 
