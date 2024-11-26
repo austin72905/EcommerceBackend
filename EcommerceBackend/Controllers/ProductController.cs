@@ -63,6 +63,56 @@ namespace EcommerceBackend.Controllers
         }
 
 
+        [HttpGet("GetProductBasicInfoList")]
+        public async Task<IActionResult> GetProductBasicInfoList([FromQuery] Filter filter)
+        {
+
+
+            if (string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind))
+            {
+                return Fail("請求類型不得為空");
+            }
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+
+            var result = await _productervice.GetProductsBasicInfo(filter.kind, filter.tag);
+            
+
+            if (!result.IsSuccess)
+            {
+                return Fail(msg: result.ErrorMessage);
+            }
+
+
+            return Success(result.Data);
+
+
+        }
+
+
+        [HttpPost("GetProductDynamicInfoList")]
+        public async Task<IActionResult> GetProductDynamicInfoList([FromBody] ProductDynamicInfo info)
+        {
+
+
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+
+            var result = await _productervice.GetProductsDynamicInfo(info.ProductIdList);
+
+
+            if (!result.IsSuccess)
+            {
+                return Fail(msg: result.ErrorMessage);
+            }
+
+
+            return Success(result.Data);
+
+
+        }
+
+
 
         [HttpGet("GetProductById")]
         public async Task<IActionResult> GetProductById([FromQuery] int productId)
@@ -92,6 +142,49 @@ namespace EcommerceBackend.Controllers
         }
 
 
+
+        [HttpGet("GetProductBasicInfoById")]
+        public async Task<IActionResult> GetProductBasicInfoById([FromQuery] int productId)
+        {
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+            
+            var result = await _productervice.GetProductBasicInfoById(productId);
+           
+
+            if (!result.IsSuccess)
+            {
+                return Fail(msg: result.ErrorMessage);
+
+            }
+
+            return Success(result.Data);
+
+        }
+
+        [HttpPost("GetProductDynamicInfo")]
+        public async Task<IActionResult> GetProductDynamicInfo([FromBody] ProductDynamic info)
+        {
+
+
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+
+            var result = await _productervice.GetProductDynamicInfoById(info.ProductId);
+
+
+            if (!result.IsSuccess)
+            {
+                return Fail(msg: result.ErrorMessage);
+            }
+
+
+            return Success(result.Data);
+
+
+        }
+
+
         [HttpPost("AddNewProduct")]
         public IActionResult AddNewProduct([FromBody] Product product)
         {
@@ -116,6 +209,22 @@ namespace EcommerceBackend.Controllers
 
             int userid = UserInfo != null ? UserInfo.UserId : 0;
             var result =await _productervice.GetRecommendationProduct(userid, productId);
+
+            if (!result.IsSuccess)
+            {
+                return Fail();
+            }
+
+            return Success(result.Data);
+
+        }
+
+        [HttpGet("GetRecommendationProductBasicInfo")]
+        public async Task<IActionResult> GetRecommendationProductBasicInfo([FromQuery] int productId)
+        {
+
+            int userid = UserInfo != null ? UserInfo.UserId : 0;
+            var result = await _productervice.GetRecommendationProductBasicInfo(userid, productId);
 
             if (!result.IsSuccess)
             {
@@ -156,5 +265,15 @@ namespace EcommerceBackend.Controllers
     public class Product
     {
 
+    }
+
+    public class ProductDynamicInfo
+    {
+        public List<int> ProductIdList { get; set; }
+    }
+
+    public class ProductDynamic
+    {
+        public int ProductId { get; set; }
     }
 }

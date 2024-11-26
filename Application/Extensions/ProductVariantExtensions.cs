@@ -25,6 +25,11 @@ namespace Application.Extensions
             };
         }
 
+        public static IEnumerable<ProductVariantDTO> ToProductInformationDTOs(this IEnumerable<ProductVariant> variants)
+        {
+            return variants.Select(p => p.ToProductVariantDTO());
+        }
+
         public static ProductVariant ToProductVariantEntity(this ProductVariantDTO variantDTO)
         {
             return new ProductVariant

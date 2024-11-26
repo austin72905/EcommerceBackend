@@ -34,7 +34,7 @@ WORKDIR /app
 COPY --from=build /app .
 
 # 暴露應用程式埠
-EXPOSE 8080
+EXPOSE 5025
 
 # 設定啟動命令
-ENTRYPOINT ["dotnet", "EcommerceBackend.dll", "--urls", "http://0.0.0.0:8080"]
+ENTRYPOINT ["dotnet", "EcommerceBackend.dll", "--urls", "http://0.0.0.0:5025"]

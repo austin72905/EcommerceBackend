@@ -42,6 +42,7 @@
         public bool? IsFavorite { get; set; }
     }
 
+   
 
     public class ProductVariantDTO
     {
@@ -57,5 +58,26 @@
         public int Price { get; set; }
 
         public int? DiscountPrice { get; set; }
+    }
+
+
+    public class ProductBasicDTO
+    {
+        public int ProductId { get; set; }
+        public string? Title { get; set; }
+        public List<string>? Material { get; set; }
+        public string? HowToWash { get; set; }
+        public string? Features { get; set; }
+        public List<string>? Images { get; set; }
+        public string? CoverImg { get; set; }
+    }
+
+    public class ProductDynamicDTO
+    {
+        public int ProductId { get; set; }
+        public List<ProductVariantDTO> Variants { get; set; }
+
+        public bool? IsFavorite { get; set; }
+
     }
 }

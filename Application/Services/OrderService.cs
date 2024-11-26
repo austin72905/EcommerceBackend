@@ -202,7 +202,7 @@ namespace Application.Services
                     {
                         Amount = order.OrderPrice.ToString(), // 訂單金額
                         RecordNo = order.RecordCode, // 後端生成的訂單號
-                        PaymentUrl = _configuration["PaymentRedirectUrl:PaymentRedirectUrl"],                      
+                        PaymentUrl = _configuration["AppSettings:PaymentRedirectUrl"],                      
                         PayType = "ECPAY" // 支付類型 (銀行、綠界第三方支付)
                     }
                 };

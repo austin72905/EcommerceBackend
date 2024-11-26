@@ -28,9 +28,31 @@ namespace Application.Extensions
             
         }
 
+        public static ProductBasicDTO ToProductBasicDTO(this Product product)
+        {
+            return new ProductBasicDTO
+            {
+                Title = product.Title,
+                ProductId = product.Id,
+                Material = product.Material.Split(',').Select(m => m.Trim()).ToList(),
+                HowToWash = product.HowToWash,
+                Features = product.Features,
+                Images = product.ProductImages?.Select(i => i.ImageUrl).ToList(),
+                CoverImg = product.CoverImg
+            };
+
+
+
+        }
+
         public static IEnumerable<ProductInfomationDTO> ToProductInformationDTOs(this IEnumerable<Product> products)
         {
             return products.Select(p => p.ToProductInformationDTO());
+        }
+
+        public static IEnumerable<ProductBasicDTO> ToProductInBasicDTOs(this IEnumerable<Product> products)
+        {
+            return products.Select(p => p.ToProductBasicDTO());
         }
 
         public static Product ToProductEntity(this ProductInfomationDTO productDTO)

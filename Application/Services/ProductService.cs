@@ -1,7 +1,9 @@
 ﻿using Application.DTOs;
+using Application.Extensions;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
+using System.Collections.Generic;
 using static Application.Extensions.ProductExtensions;
 
 namespace Application.Services
@@ -61,6 +63,79 @@ namespace Application.Services
 
 
 
+        }
+
+        public async Task<ServiceResult<ProductBasicDTO>> GetProductBasicInfoById(int productId)
+        {
+            try
+            {
+                var product = await _repository.GetProductBasicInfoById(productId);
+
+                if (product == null)
+                {
+                    return new ServiceResult<ProductBasicDTO>()
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "產品不存在"
+                    };
+
+                }
+
+                var productDto = product.ToProductBasicDTO();
+
+                //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
+
+                return new ServiceResult<ProductBasicDTO>()
+                {
+                    IsSuccess = true,
+                    Data = productDto
+
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<ProductBasicDTO>()
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
+            }
+        }
+
+        public async Task<ServiceResult<List<ProductDynamicDTO>>> GetProductDynamicInfoById(int productId)
+        {
+            try
+            {
+
+                var productVariants = await _repository.GetProductVariantsByProductId(productId);
+
+                // 要先分組
+                var variantGroup = productVariants.GroupBy(pv => pv.ProductId);
+
+                List<ProductDynamicDTO> productDynamicDtos = new List<ProductDynamicDTO>();
+                foreach (var variant in variantGroup)
+                {
+                    var list = variant.Select(v => v.ToProductVariantDTO());
+                    productDynamicDtos.Add(new ProductDynamicDTO { ProductId = variant.Key, Variants = list.ToList(), IsFavorite = false });
+                }
+
+
+
+                return new ServiceResult<List<ProductDynamicDTO>>
+                {
+                    IsSuccess = true,
+                    Data = productDynamicDtos.ToList()
+                };
+
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ProductDynamicDTO>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
+            }
         }
 
 
@@ -154,6 +229,86 @@ namespace Application.Services
 
         }
 
+
+
+        public async Task<ServiceResult<List<ProductBasicDTO>>> GetProductsBasicInfo(string kind, string tag)
+        {
+            try
+            {
+                IEnumerable<Domain.Entities.Product> products;
+                if (!string.IsNullOrEmpty(tag))
+                {
+                    products = await _repository.GetProductsBasicInfByTag(tag);
+
+                }
+                else if (!string.IsNullOrEmpty(kind))
+                {
+                    products = await _repository.GetProductsBasicInfoByKind(kind);
+
+                }
+                else
+                {
+                    products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+                }
+
+                var productsDtos = products.ToProductInBasicDTOs();
+
+
+                return new ServiceResult<List<ProductBasicDTO>>
+                {
+                    IsSuccess = true,
+                    Data = productsDtos.ToList()
+                };
+
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ProductBasicDTO>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
+            }
+        }
+
+
+        public async Task<ServiceResult<List<ProductDynamicDTO>>> GetProductsDynamicInfo(List<int> productIdList)
+        {
+            try
+            {
+                
+                var productVariants = await _repository.GetProductVariantsByProductIdList(productIdList);
+
+                // 要先分組
+                var variantGroup=productVariants.GroupBy(pv => pv.ProductId);
+
+                List<ProductDynamicDTO> productDynamicDtos = new List<ProductDynamicDTO>();
+                foreach (var variant in variantGroup)
+                {
+                    var list =variant.Select(v => v.ToProductVariantDTO());
+                    productDynamicDtos.Add(new ProductDynamicDTO { ProductId = variant.Key, Variants = list.ToList(), IsFavorite = false });
+                }
+
+                
+
+                return new ServiceResult<List<ProductDynamicDTO>>
+                {
+                    IsSuccess = true,
+                    Data = productDynamicDtos.ToList()
+                };
+
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ProductDynamicDTO>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
+            }
+        }
+
+
         public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProductsForUser(int userid, string kind, string tag)
         {
             try
@@ -236,6 +391,41 @@ namespace Application.Services
 
         }
 
+        public async Task<ServiceResult<List<ProductBasicDTO>>> GetRecommendationProductBasicInfo(int userid, int productId)
+        {
+            try
+            {
+                var products = await _repository.GetRecommendationProductBasicInfo(userid, productId);
+                //var productsDto = products.ToProductInformationDTOs();
+
+                var productsDtos = products.ToProductInBasicDTOs();
+
+                //var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userid);
+                //var productWithFavorite = productsDto.Select(p => new ProductWithFavoriteStatusDTO
+                //{
+                //    Product = p,
+                //    IsFavorite = favoriteProductIds.Contains(p.ProductId)
+                //});
+
+                return new ServiceResult<List<ProductBasicDTO>>
+                {
+                    IsSuccess = true,
+                    Data = productsDtos.ToList(),
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ProductBasicDTO>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
+            }
+
+
+
+        }
+
         public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetfavoriteList(int userid)
         {
             try
@@ -269,7 +459,7 @@ namespace Application.Services
 
         }
 
-
+        
 
         public static List<ProductInfomationDTO> fakeProductList = new List<ProductInfomationDTO>()
             {
