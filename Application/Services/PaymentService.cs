@@ -425,8 +425,14 @@ namespace Application.Services
 
             if (payment != null)
             {
-                payment.PaymentStatus = (byte)OrderStepStatus.PaymentReceived;
-                payment.Order.Status = (int)OrderStepStatus.PaymentReceived;
+                // 修改付款狀態
+                // 修改訂單狀態
+                if(payment.PaymentStatus != (byte)OrderStepStatus.PaymentReceived)
+                {
+                    payment.PaymentStatus = (byte)OrderStepStatus.PaymentReceived;
+                    payment.Order.Status = (int)OrderStepStatus.PaymentReceived;
+                }
+                
 
                 // 檢查是否已經有更新過數據，避免重複回調，重複新增
                 if (!payment.Order.OrderSteps.Any(os => os.StepStatus == (int)OrderStepStatus.PaymentReceived))
@@ -438,20 +444,22 @@ namespace Application.Services
                         CreatedAt = DateTime.Now,
                         UpdatedAt = DateTime.Now,
                     });
+
+
+                    var message = new
+                    {
+                        Status = (int)ShipmentStatus.Pending,
+                        OrderId = payment.OrderId,
+                        RecordCode = payment.Order.RecordCode
+                    };
+                    // 模擬通知 shipment
+                    await _shipmentProducer.SendMessage(message);
+
+
+                    
                 }
 
-                var message = new
-                {
-                    Status= (int)ShipmentStatus.Pending,
-                    OrderId= payment.OrderId,
-                    RecordCode=payment.Order.RecordCode
-                };
-                // 模擬通知 shipment
-                await _shipmentProducer.SendMessage(message);
-
-
                 await _paymentRepository.SaveChangesAsync();
-
 
             }
 
