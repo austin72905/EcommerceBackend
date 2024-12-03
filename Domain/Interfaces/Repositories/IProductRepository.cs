@@ -9,6 +9,10 @@ namespace Domain.Interfaces.Repositories
 {
     public interface IProductRepository
     {
+        public  Task<IEnumerable<Product>> GetProductsByQuery(string keyword);
+
+        public Task<IEnumerable<Product>> GetProductsBasicInfoByQuery(string keyword);
+
         public Task<IEnumerable<Product>> GetProductsByKind(string kind);
 
         public Task<IEnumerable<Product>> GetProductsBasicInfoByKind(string kind);

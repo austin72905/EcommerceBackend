@@ -186,11 +186,12 @@ namespace Application.Services
         }
 
 
-        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string kind, string tag)
+        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string? kind, string? tag,string? query)
         {
             try
             {
-                IEnumerable<Domain.Entities.Product> products;
+                IEnumerable<Domain.Entities.Product> products= Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+
                 if (!string.IsNullOrEmpty(tag))
                 {
                     products = await _repository.GetProductsByTag(tag);
@@ -201,9 +202,17 @@ namespace Application.Services
                     products = await _repository.GetProductsByKind(kind);
 
                 }
-                else
+                else if (!string.IsNullOrEmpty(query))
                 {
-                    products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+                    
+                    products = await _repository.GetProductsByQuery(tag);
+                                       
+                }
+
+                // 過濾出符合query 條件的結果
+                if (!string.IsNullOrEmpty(query))
+                {
+                    products = products.Where(p=> p.Title.Contains(query));
                 }
 
                 var productsDtos = products.ToProductInformationDTOs();
@@ -231,11 +240,11 @@ namespace Application.Services
 
 
 
-        public async Task<ServiceResult<List<ProductBasicDTO>>> GetProductsBasicInfo(string kind, string tag)
+        public async Task<ServiceResult<List<ProductBasicDTO>>> GetProductsBasicInfo(string? kind, string? tag, string? query)
         {
             try
             {
-                IEnumerable<Domain.Entities.Product> products;
+                IEnumerable<Domain.Entities.Product> products= Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集
                 if (!string.IsNullOrEmpty(tag))
                 {
                     products = await _repository.GetProductsBasicInfByTag(tag);
@@ -246,9 +255,15 @@ namespace Application.Services
                     products = await _repository.GetProductsBasicInfoByKind(kind);
 
                 }
-                else
+                else if(!string.IsNullOrEmpty(query))
                 {
-                    products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+                    products = await _repository.GetProductsBasicInfoByQuery(query);
+                }
+
+                // 過濾出符合query 條件的結果
+                if (!string.IsNullOrEmpty(query))
+                {
+                    products = products.Where(p => p.Title.Contains(query));
                 }
 
                 var productsDtos = products.ToProductInBasicDTOs();
@@ -309,7 +324,7 @@ namespace Application.Services
         }
 
 
-        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProductsForUser(int userid, string kind, string tag)
+        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProductsForUser(int userid, string? kind, string? tag)
         {
             try
             {

@@ -11,6 +11,26 @@ namespace DataSource.Repositories
         {
         }
 
+        public async Task<IEnumerable<Product>> GetProductsByQuery(string keyword)
+        {
+            return await _dbSet
+                 .Include(p => p.ProductVariants)
+                    .ThenInclude(pkt => pkt.Size)
+                .Include(p => p.ProductVariants)
+                    .ThenInclude(pv => pv.ProductVariantDiscounts)
+                        .ThenInclude(pkd => pkd.Discount)
+                .Where(p => p.Title.Contains(keyword))
+                .ToListAsync();
+
+        }
+
+        public async Task<IEnumerable<Product>> GetProductsBasicInfoByQuery(string keyword)
+        {
+            return await _dbSet                 
+                .Where(p => p.Title.Contains(keyword))
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Product>> GetProductsByKind(string kind)
         {
             return await _dbSet
@@ -157,5 +177,7 @@ namespace DataSource.Repositories
                 .Where(pv => productIdList.Contains(pv.ProductId))
                 .ToListAsync();
         }
+
+       
     }
 }

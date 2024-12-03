@@ -29,7 +29,7 @@ namespace EcommerceBackend.Controllers
         {
 
 
-            if (string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind))
+            if (string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind) && string.IsNullOrEmpty(filter.query))
             {
                 return Fail("請求類型不得為空");
             }
@@ -41,7 +41,7 @@ namespace EcommerceBackend.Controllers
             if(userid == 0)
             {
                 //未登錄
-                result =await _productervice.GetProducts(filter.kind, filter.tag);
+                result =await _productervice.GetProducts(filter.kind, filter.tag,filter.query);
             }
             else
             {
@@ -68,14 +68,14 @@ namespace EcommerceBackend.Controllers
         {
 
 
-            if (string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind))
+            if (string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind) && string.IsNullOrEmpty(filter.query))
             {
                 return Fail("請求類型不得為空");
             }
 
             int userid = UserInfo != null ? UserInfo.UserId : 0;
 
-            var result = await _productervice.GetProductsBasicInfo(filter.kind, filter.tag);
+            var result = await _productervice.GetProductsBasicInfo(filter.kind, filter.tag,filter.query);
             
 
             if (!result.IsSuccess)
@@ -260,6 +260,8 @@ namespace EcommerceBackend.Controllers
 
         // 特定的衣服類型
         public string? tag { get; set; }
+
+        public string? query { get; set; }
     }
 
     public class Product
