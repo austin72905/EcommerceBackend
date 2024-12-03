@@ -98,7 +98,19 @@ namespace EcommerceBackend.Controllers
 
             int userid = UserInfo != null ? UserInfo.UserId : 0;
 
-            var result = await _productervice.GetProductsDynamicInfo(info.ProductIdList);
+            ServiceResult<List<ProductDynamicDTO>> result;
+            if (userid == 0)
+            {
+                //未登錄
+                result = await _productervice.GetProductsDynamicInfo(info.ProductIdList);
+            }
+            else
+            {
+                result = await _productervice.GetProductsDynamicInfoForUser(info.ProductIdList, userid);
+            }
+
+
+            //var result = await _productervice.GetProductsDynamicInfo(info.ProductIdList);
 
 
             if (!result.IsSuccess)
@@ -169,6 +181,9 @@ namespace EcommerceBackend.Controllers
 
 
             int userid = UserInfo != null ? UserInfo.UserId : 0;
+
+
+
 
             var result = await _productervice.GetProductDynamicInfoById(info.ProductId);
 

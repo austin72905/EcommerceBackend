@@ -294,6 +294,7 @@ namespace Application.Services
                 
                 var productVariants = await _repository.GetProductVariantsByProductIdList(productIdList);
 
+
                 // 要先分組
                 var variantGroup=productVariants.GroupBy(pv => pv.ProductId);
 
@@ -305,6 +306,45 @@ namespace Application.Services
                 }
 
                 
+
+                return new ServiceResult<List<ProductDynamicDTO>>
+                {
+                    IsSuccess = true,
+                    Data = productDynamicDtos.ToList()
+                };
+
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResult<List<ProductDynamicDTO>>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "系統錯誤，請聯繫管理員"
+                };
+            }
+        }
+
+
+        public async Task<ServiceResult<List<ProductDynamicDTO>>> GetProductsDynamicInfoForUser(List<int> productIdList, int userid)
+        {
+            try
+            {
+
+                var productVariants = await _repository.GetProductVariantsByProductIdList(productIdList);
+
+                var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userid);
+
+                // 要先分組
+                var variantGroup = productVariants.GroupBy(pv => pv.ProductId);
+
+                List<ProductDynamicDTO> productDynamicDtos = new List<ProductDynamicDTO>();
+                foreach (var variant in variantGroup)
+                {
+                    var list = variant.Select(v => v.ToProductVariantDTO());
+                    productDynamicDtos.Add(new ProductDynamicDTO { ProductId = variant.Key, Variants = list.ToList(), IsFavorite = favoriteProductIds.Contains(variant.Key) });
+                }
+
+
 
                 return new ServiceResult<List<ProductDynamicDTO>>
                 {
@@ -474,7 +514,7 @@ namespace Application.Services
 
         }
 
-        
+
 
         public static List<ProductInfomationDTO> fakeProductList = new List<ProductInfomationDTO>()
             {

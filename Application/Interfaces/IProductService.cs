@@ -11,6 +11,8 @@ namespace Application.Interfaces
 
         public Task<ServiceResult<List<ProductDynamicDTO>>> GetProductsDynamicInfo(List<int> productIdList);
 
+        public Task<ServiceResult<List<ProductDynamicDTO>>> GetProductsDynamicInfoForUser(List<int> productIdList, int userid);
+
 
         public Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProductsForUser(int userid, string? kind, string? tag);
         
