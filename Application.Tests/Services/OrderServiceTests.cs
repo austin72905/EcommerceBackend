@@ -205,7 +205,7 @@ namespace Application.Tests.Services
                 .ReturnsAsync(orders);
 
             // Act
-            var result = await _orderService.GetOrders(userId);
+            var result = await _orderService.GetOrders(userId,"");
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
@@ -227,7 +227,7 @@ namespace Application.Tests.Services
                 .ReturnsAsync(new List<Order>());
 
             // Act
-            var result = await _orderService.GetOrders(userId);
+            var result = await _orderService.GetOrders(userId,"");
 
             // Assert
             Assert.IsTrue(result.IsSuccess);

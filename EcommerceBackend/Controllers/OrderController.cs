@@ -20,7 +20,7 @@ namespace EcommerceBackend.Controllers
         }
 
         [HttpGet("GetOrders")]
-        public async Task<IActionResult> GetOrders()
+        public async Task<IActionResult> GetOrders([FromQuery] GetOrdersReq req)
         {
             ApiResponse resp;
 
@@ -30,7 +30,7 @@ namespace EcommerceBackend.Controllers
                 return UnAuthorized();
             }
 
-            var result = await _orderService.GetOrders(UserInfo.UserId);
+            var result = await _orderService.GetOrders(UserInfo.UserId,req.query);
 
             if (result.IsSuccess)
             {
@@ -130,6 +130,13 @@ namespace EcommerceBackend.Controllers
             public string Email { get; set; }
         }
 
-       
+        public class GetOrdersReq
+        {
+            public string? query { get; set; }
+
+        }
+
+
+
     }
 }

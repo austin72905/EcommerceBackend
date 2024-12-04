@@ -63,12 +63,22 @@ namespace Application.Services
 
         }
 
-        public async Task<ServiceResult<List<OrderInfomationDTO>>> GetOrders(int userid)
+        public async Task<ServiceResult<List<OrderInfomationDTO>>> GetOrders(int userid, string query)
         {
 
             try
             {
+                
+
                 var orderList = await _orderRepostory.GetOrdersByUserId(userid);
+
+                if (!string.IsNullOrEmpty(query))
+                {
+                    orderList = orderList.Where(o => 
+                                            o.OrderProducts.Any(op => op.ProductVariant.Product.Title.Contains(query)) ||
+                                            o.RecordCode == query
+                    );
+                }
 
                 var ordersDto = orderList.ToOrderDTOList();
 

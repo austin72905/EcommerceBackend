@@ -6,7 +6,7 @@ namespace Application.Interfaces
 {
     public interface IOrderService
     {
-        public Task<ServiceResult<List<OrderInfomationDTO>>> GetOrders(int userid);
+        public Task<ServiceResult<List<OrderInfomationDTO>>> GetOrders(int userid,string query);
 
         public Task<ServiceResult<OrderInfomationDTO>> GetOrderInfo(int userid,string recordCode);
 
