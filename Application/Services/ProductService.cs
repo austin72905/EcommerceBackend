@@ -3,6 +3,7 @@ using Application.Extensions;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using static Application.Extensions.ProductExtensions;
 
@@ -12,10 +13,12 @@ namespace Application.Services
     {
         public readonly IProductRepository _repository;
         private readonly IUserRepository _userRepository;
-        public ProductService(IProductRepository repository, IUserRepository userRepository)
+        private readonly ILogger<ProductService> _logger;
+        public ProductService(IProductRepository repository, IUserRepository userRepository, ILogger<ProductService> logger)
         {
             _repository = repository;
             _userRepository = userRepository;
+            _logger = logger;
         }
 
 
@@ -41,9 +44,10 @@ namespace Application.Services
                 var productDto = product.ToProductInformationDTO();
 
                 //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
-
+;
                 return new ServiceResult<ProductWithFavoriteStatusDTO>()
                 {
+                    
                     IsSuccess = true,
                     Data = new ProductWithFavoriteStatusDTO
                     {
@@ -54,6 +58,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<ProductWithFavoriteStatusDTO>()
                 {
                     IsSuccess = false,
@@ -94,6 +99,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<ProductBasicDTO>()
                 {
                     IsSuccess = false,
@@ -130,6 +136,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<List<ProductDynamicDTO>>
                 {
                     IsSuccess = false,
@@ -176,6 +183,7 @@ namespace Application.Services
             }
             catch (Exception ex) 
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<ProductWithFavoriteStatusDTO>()
                 {
                     IsSuccess = false,
@@ -229,6 +237,7 @@ namespace Application.Services
             }
             catch (Exception ex) 
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
                 {
                     IsSuccess = false,
@@ -278,6 +287,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<List<ProductBasicDTO>>
                 {
                     IsSuccess = false,
@@ -316,6 +326,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<List<ProductDynamicDTO>>
                 {
                     IsSuccess = false,
@@ -355,6 +366,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<List<ProductDynamicDTO>>
                 {
                     IsSuccess = false,
@@ -400,6 +412,7 @@ namespace Application.Services
             }
             catch (Exception ex) 
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
                 {
                     IsSuccess = false,
@@ -435,6 +448,7 @@ namespace Application.Services
             }
             catch (Exception ex) 
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
                 {
                     IsSuccess = false,
@@ -470,6 +484,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<List<ProductBasicDTO>>
                 {
                     IsSuccess = false,
@@ -503,6 +518,7 @@ namespace Application.Services
             }
             catch (Exception ex) 
             {
+                _logger.LogError($"an error occured : {ex.Message}");
                 return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
                 {
                     IsSuccess = false,

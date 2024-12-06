@@ -7,6 +7,7 @@ using DataSource.Repositories;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
 using Domain.Services;
+using EcommerceBackend.Filter;
 using EcommerceBackend.MiddleWares;
 
 using Infrastructure.Cache;
@@ -15,6 +16,7 @@ using Infrastructure.Interfaces;
 using Infrastructure.MQ;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -98,10 +100,22 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp=>
 } );
 builder.Services.AddSingleton<IRedisService,RedisService>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+    options.Filters.Add<LogRequestResponseFilter>()
+);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// 使用 serilog
+builder.Host.UseSerilog((context, services, configuration) => 
+
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+);
 
 var app = builder.Build();
 
@@ -137,6 +151,8 @@ app.UseCors(builder=>builder.WithOrigins("http://localhost:3000").AllowAnyHeader
 
 // 驗證是否登陸
 app.UseMiddleware<AuthenticationMiddleware>();
+// 紀錄log
+app.UseMiddleware<LoggingMiddleware>();
 
 app.UseHttpsRedirection();
 
