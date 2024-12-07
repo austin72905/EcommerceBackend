@@ -7,10 +7,11 @@ using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services
 {
-    public class OrderService : IOrderService
+    public class OrderService : BaseService<OrderService>, IOrderService
     {
         private readonly IOrderRepostory _orderRepostory;
         private readonly IProductRepository _productRepository;
@@ -20,7 +21,13 @@ namespace Application.Services
 
         private readonly IConfiguration _configuration;
 
-        public OrderService(IOrderRepostory orderRepostory, IProductRepository productRepository, IPaymentRepository paymentRepository, IOrderDomainService orderDomainService, IConfiguration configuration)
+        public OrderService(
+            IOrderRepostory orderRepostory, 
+            IProductRepository productRepository, 
+            IPaymentRepository paymentRepository, 
+            IOrderDomainService orderDomainService, 
+            IConfiguration configuration, 
+            ILogger<OrderService> logger) : base(logger)
         {
             _orderRepostory = orderRepostory;
             _productRepository = productRepository;
@@ -36,29 +43,20 @@ namespace Application.Services
                 var order = await _orderRepostory.GetOrderInfoByUserId(userid, recordCode);
                 if (order == null)
                 {
-                    return new ServiceResult<OrderInfomationDTO>()
-                    {
-                        IsSuccess = true,
-                        Data = null
-                    };
+                    return Success<OrderInfomationDTO>();
+
                 }
 
                 var orderDto = order.ToOrderDTO();
 
+                return Success<OrderInfomationDTO>(orderDto);
 
-                return new ServiceResult<OrderInfomationDTO>()
-                {
-                    IsSuccess = true,
-                    Data = orderDto
-                };
             }
             catch (Exception ex)
             {
-                return new ServiceResult<OrderInfomationDTO>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統異常，請聯繫管理員"
-                };
+
+                return Error<OrderInfomationDTO>(ex.Message);
+
             }
 
         }
@@ -68,35 +66,27 @@ namespace Application.Services
 
             try
             {
-                
+
 
                 var orderList = await _orderRepostory.GetOrdersByUserId(userid);
 
                 if (!string.IsNullOrEmpty(query))
                 {
-                    orderList = orderList.Where(o => 
+                    orderList = orderList.Where(o =>
                                             o.OrderProducts.Any(op => op.ProductVariant.Product.Title.Contains(query)) ||
                                             o.RecordCode == query
                     );
                 }
 
                 var ordersDto = orderList.ToOrderDTOList();
-
-
-                return new ServiceResult<List<OrderInfomationDTO>>()
-                {
-                    IsSuccess = true,
-                    Data = ordersDto
-                };
+                
+                return Success<List<OrderInfomationDTO>>(ordersDto);                
             }
             catch (Exception ex)
             {
-                return new ServiceResult<List<OrderInfomationDTO>>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統異常，請聯繫管理員"
-                };
 
+                return Error<List<OrderInfomationDTO>>(ex.Message);
+            
             }
 
 
@@ -161,7 +151,7 @@ namespace Application.Services
                 order.OrderPrice = _orderDomainService.CalculateOrderTotal(order.OrderProducts.ToList(), order.ShippingPrice);
 
                 // 加入訂單步驟
-                var orderSteps = new List<OrderStep>() 
+                var orderSteps = new List<OrderStep>()
                 {
                     new OrderStep
                     {
@@ -205,28 +195,23 @@ namespace Application.Services
 
                 await _paymentRepository.GeneratePaymentRecord(payment);
 
-                return new ServiceResult<PaymentRequestDataWithUrl>
-                {
-                    IsSuccess = true,
-                    Data = new PaymentRequestDataWithUrl()
-                    {
-                        Amount = order.OrderPrice.ToString(), // 訂單金額
-                        RecordNo = order.RecordCode, // 後端生成的訂單號
-                        PaymentUrl = _configuration["AppSettings:PaymentRedirectUrl"],                      
-                        PayType = "ECPAY" // 支付類型 (銀行、綠界第三方支付)
-                    }
-                };
 
+                return Success<PaymentRequestDataWithUrl>
+                    (
+                        new PaymentRequestDataWithUrl()
+                        {
+                            Amount = order.OrderPrice.ToString(), // 訂單金額
+                            RecordNo = order.RecordCode, // 後端生成的訂單號
+                            PaymentUrl = _configuration["AppSettings:PaymentRedirectUrl"],
+                            PayType = "ECPAY" // 支付類型 (銀行、綠界第三方支付)
+                        }
+                    );
 
-
+               
             }
             catch (Exception ex)
             {
-                return new ServiceResult<PaymentRequestDataWithUrl>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統異常，請聯繫管理員"
-                };
+                return Error<PaymentRequestDataWithUrl>(ex.Message);              
             }
 
         }

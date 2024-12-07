@@ -7,19 +7,20 @@ using Infrastructure.Interfaces;
 using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Collections;
 using System.Web;
 
 namespace Application.Services
 {
-    public class PaymentService : IPaymentService
+    public class PaymentService : BaseService<PaymentService>,IPaymentService
     {
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IPaymentRepository _paymentRepository;
         private readonly IShipmentProducer _shipmentProducer;
 
         private readonly IConfiguration _configuration;
-        public PaymentService(IPaymentRepository paymentRepository, IHttpContextAccessor contextAccessor, IShipmentProducer shipmentProducer, IConfiguration configuration)
+        public PaymentService(IPaymentRepository paymentRepository, IHttpContextAccessor contextAccessor, IShipmentProducer shipmentProducer, IConfiguration configuration,ILogger<PaymentService> logger):base(logger)
         {
             _paymentRepository = paymentRepository;
             _contextAccessor = contextAccessor;
@@ -42,11 +43,8 @@ namespace Application.Services
                 //較驗訂單號
                 if (!ValidRecordNo(requestData.RecordNo))
                 {
-                    return new ServiceResult<PaymentInfomation>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "訂單不合法"
-                    };
+                    return Fail<PaymentInfomation>("訂單不合法");
+                    
                 }
 
 
@@ -55,11 +53,8 @@ namespace Application.Services
 
                 if (config == null)
                 {
-                    return new ServiceResult<PaymentInfomation>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "請情配置失敗"
-                    };
+                    return Fail<PaymentInfomation>("請求配置失敗");
+                   
                 }
 
                 var tenantConfig = new TenantConfigDTO()
@@ -82,21 +77,15 @@ namespace Application.Services
 
                 if (tenantConfig == null)
                 {
-                    return new ServiceResult<PaymentInfomation>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "請情配置失敗"
-                    };
+                    return Fail<PaymentInfomation>("請求配置失敗");
+                    
                 }
 
 
                 if (!ValidOrderAmount(tenantConfig.Amount, requestData.Amount))
                 {
-                    return new ServiceResult<PaymentInfomation>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "金額匹配錯誤"
-                    };
+                    return Fail<PaymentInfomation>("金額匹配錯誤");
+                    
                 }
 
                 //設置簽名參數
@@ -107,24 +96,20 @@ namespace Application.Services
                 //加上非簽名參數
                 AddNoneSignData(signDataKeyPairs, sign);
 
-
-                return new ServiceResult<PaymentInfomation>()
-                {
-                    IsSuccess = true,
-                    Data = new PaymentInfomation
-                    {
-                        PaymentData = signDataKeyPairs,
-                        PaymentUrl = ECPayCreditPaymentUrl
-                    }
-                };
+                return Success<PaymentInfomation>
+                    (
+                        new PaymentInfomation
+                        {
+                            PaymentData = signDataKeyPairs,
+                            PaymentUrl = ECPayCreditPaymentUrl
+                        }
+                    );
+                
             }
             catch (Exception ex)
             {
-                return new ServiceResult<PaymentInfomation>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤"
-                };
+                return Error<PaymentInfomation>(ex.Message);
+                
             }
 
         }
@@ -263,11 +248,8 @@ namespace Application.Services
 
                 if (tenantConfig == null)
                 {
-                    return new ServiceResult<object>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "請情配置失敗"
-                    };
+                    return Fail<object>("請求配置失敗");
+                    
                 }
 
                 //驗證回調簽名
@@ -283,12 +265,8 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"PayReturn Error message...................{ex.Message}");
-                return new ServiceResult<object>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤"
-                };
+                return Error<object>(ex.Message);
+                
             }
 
         }
@@ -397,24 +375,15 @@ namespace Application.Services
 
             }
 
-
-            return new ServiceResult<object>
-            {
-                IsSuccess = false,
-                ErrorMessage = "交易失敗",
-
-            };
+            return Fail<object>("交易失敗");
+            
         }
 
 
         private ServiceResult<object> SignVerificationFailed()
         {
-            return new ServiceResult<object>
-            {
-                IsSuccess = false,
-                ErrorMessage = "驗簽失敗",
-
-            };
+            return Fail<object>("驗簽失敗");
+            
         }
 
         private async Task<ServiceResult<object>> TransactionSuccess()
@@ -463,11 +432,8 @@ namespace Application.Services
 
             }
 
-            return new ServiceResult<object>
-            {
-                IsSuccess = true,
-                Data = "OK"
-            };
+            return Success<object>("OK");
+            
         }
 
         #endregion

@@ -4,11 +4,12 @@ using Application.Interfaces;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
-using Domain.Services;
+using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 
 namespace Application.Services
 {
-    public class CartService : ICartService
+    public class CartService : BaseService<CartService>, ICartService
     {
         private readonly ICartDomainService _cartDomainService;
         private readonly IProductRepository _productRepository;
@@ -17,10 +18,11 @@ namespace Application.Services
         public CartService
             (
                 ICartDomainService cartDomainService,
-                IProductRepository productRepository, 
-                IUserRepository userRepository, 
-                ICartRepository cartRepository
-            )
+                IProductRepository productRepository,
+                IUserRepository userRepository,
+                ICartRepository cartRepository,
+                ILogger<CartService> logger
+            ) : base(logger)
         {
             _cartDomainService = cartDomainService;
             _productRepository = productRepository;
@@ -112,26 +114,15 @@ namespace Application.Services
                 // 將 cartItems 轉換為 DTO 列表
                 var productsDTOs = cart.CartItems.ToProductWithCountDTOList();
 
+                return Success<List<ProductWithCountDTO>>(productsDTOs);
 
-                return new ServiceResult<List<ProductWithCountDTO>>
-                {
-                    IsSuccess = true,
-                    ErrorMessage = "獲取購物車內容成功",
-                    Data = productsDTOs
-                };
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-
-                return new ServiceResult<List<ProductWithCountDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員",
-
-                };
+                return Error<List<ProductWithCountDTO>>(ex.Message);
 
             }
-            
+
 
 
         }
@@ -201,24 +192,17 @@ namespace Application.Services
                 // 返回更新後的購物車數據
                 var productsDTOs = cart.CartItems.ToProductWithCountDTOList();
 
-                return new ServiceResult<List<ProductWithCountDTO>>
-                {
-                    IsSuccess = true,
-                    ErrorMessage = "獲取購物車內容成功",
-                    Data = productsDTOs
-                };
+                return Success<List<ProductWithCountDTO>>(productsDTOs);
+               
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                return new ServiceResult<List<ProductWithCountDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員",
 
-                };
+                return Error<List<ProductWithCountDTO>>(ex.Message);
+                
             }
 
-            
+
         }
 
 

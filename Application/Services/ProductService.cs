@@ -9,16 +9,16 @@ using static Application.Extensions.ProductExtensions;
 
 namespace Application.Services
 {
-    public class ProductService : IProductService
+    public class ProductService : BaseService<ProductService>, IProductService
     {
         public readonly IProductRepository _repository;
         private readonly IUserRepository _userRepository;
-        private readonly ILogger<ProductService> _logger;
-        public ProductService(IProductRepository repository, IUserRepository userRepository, ILogger<ProductService> logger)
+
+        public ProductService(IProductRepository repository, IUserRepository userRepository, ILogger<ProductService> logger) : base(logger)
         {
             _repository = repository;
             _userRepository = userRepository;
-            _logger = logger;
+
         }
 
 
@@ -33,37 +33,34 @@ namespace Application.Services
 
                 if (product == null)
                 {
-                    return new ServiceResult<ProductWithFavoriteStatusDTO>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "產品不存在"
-                    };
+                    return Fail<ProductWithFavoriteStatusDTO>("產品不存在");
 
                 }
 
                 var productDto = product.ToProductInformationDTO();
 
                 //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
-;
-                return new ServiceResult<ProductWithFavoriteStatusDTO>()
-                {
-                    
-                    IsSuccess = true,
-                    Data = new ProductWithFavoriteStatusDTO
-                    {
-                        Product = productDto
-                    }
+                ;
 
-                };
+                return Success<ProductWithFavoriteStatusDTO>(new ProductWithFavoriteStatusDTO
+                {
+                    Product = productDto
+                });
+                //return new ServiceResult<ProductWithFavoriteStatusDTO>()
+                //{
+
+                //    IsSuccess = true,
+                //    Data = new ProductWithFavoriteStatusDTO
+                //    {
+                //        Product = productDto
+                //    }
+
+                //};
             }
             catch (Exception ex)
             {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<ProductWithFavoriteStatusDTO>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
+                return Error<ProductWithFavoriteStatusDTO>(ex.Message);
+
             }
 
 
@@ -78,33 +75,18 @@ namespace Application.Services
 
                 if (product == null)
                 {
-                    return new ServiceResult<ProductBasicDTO>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "產品不存在"
-                    };
-
+                    return Fail<ProductBasicDTO>("產品不存在");
                 }
 
                 var productDto = product.ToProductBasicDTO();
 
                 //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
 
-                return new ServiceResult<ProductBasicDTO>()
-                {
-                    IsSuccess = true,
-                    Data = productDto
-
-                };
+                return Success<ProductBasicDTO>(productDto);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<ProductBasicDTO>()
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
+                return Error<ProductBasicDTO>(ex.Message);
             }
         }
 
@@ -125,23 +107,13 @@ namespace Application.Services
                     productDynamicDtos.Add(new ProductDynamicDTO { ProductId = variant.Key, Variants = list.ToList(), IsFavorite = false });
                 }
 
+                return Success<List<ProductDynamicDTO>>(productDynamicDtos.ToList());
 
-
-                return new ServiceResult<List<ProductDynamicDTO>>
-                {
-                    IsSuccess = true,
-                    Data = productDynamicDtos.ToList()
-                };
 
             }
             catch (Exception ex)
             {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<List<ProductDynamicDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
+                return Error<List<ProductDynamicDTO>>(ex.Message);
             }
         }
 
@@ -156,11 +128,7 @@ namespace Application.Services
 
                 if (product == null)
                 {
-                    return new ServiceResult<ProductWithFavoriteStatusDTO>()
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "產品不存在"
-                    };
+                    return Fail<ProductWithFavoriteStatusDTO>("產品不存在");
 
                 }
 
@@ -170,35 +138,28 @@ namespace Application.Services
 
                 var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userid);
 
-                return new ServiceResult<ProductWithFavoriteStatusDTO>()
-                {
-                    IsSuccess = true,
-                    Data = new ProductWithFavoriteStatusDTO
-                    {
-                        Product = productDto,
-                        IsFavorite = favoriteProductIds.Contains(productDto.ProductId)
-                    }
 
-                };
-            }
-            catch (Exception ex) 
-            {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<ProductWithFavoriteStatusDTO>()
+                return Success<ProductWithFavoriteStatusDTO>(new ProductWithFavoriteStatusDTO
                 {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
+                    Product = productDto,
+                    IsFavorite = favoriteProductIds.Contains(productDto.ProductId)
+                });
+
+                
             }
-            
+            catch (Exception ex)
+            {
+                return Error<ProductWithFavoriteStatusDTO>(ex.Message);
+            }
+
         }
 
 
-        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string? kind, string? tag,string? query)
+        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string? kind, string? tag, string? query)
         {
             try
             {
-                IEnumerable<Domain.Entities.Product> products= Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+                IEnumerable<Domain.Entities.Product> products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
 
                 if (!string.IsNullOrEmpty(tag))
                 {
@@ -212,37 +173,27 @@ namespace Application.Services
                 }
                 else if (!string.IsNullOrEmpty(query))
                 {
-                    
+
                     products = await _repository.GetProductsByQuery(tag);
-                                       
+
                 }
 
                 // 過濾出符合query 條件的結果
                 if (!string.IsNullOrEmpty(query))
                 {
-                    products = products.Where(p=> p.Title.Contains(query));
+                    products = products.Where(p => p.Title.Contains(query));
                 }
 
                 var productsDtos = products.ToProductInformationDTOs();
 
                 var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO { Product = p });
 
-
-                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-                {
-                    IsSuccess = true,
-                    Data = productWithFavorite.ToList()
-                };
+                return Success<List<ProductWithFavoriteStatusDTO>>(productWithFavorite.ToList());
 
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage= "系統錯誤，請聯繫管理員"
-                };
+                return Error<List<ProductWithFavoriteStatusDTO>>(ex.Message);              
             }
 
         }
@@ -253,7 +204,7 @@ namespace Application.Services
         {
             try
             {
-                IEnumerable<Domain.Entities.Product> products= Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集
+                IEnumerable<Domain.Entities.Product> products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集
                 if (!string.IsNullOrEmpty(tag))
                 {
                     products = await _repository.GetProductsBasicInfByTag(tag);
@@ -264,7 +215,7 @@ namespace Application.Services
                     products = await _repository.GetProductsBasicInfoByKind(kind);
 
                 }
-                else if(!string.IsNullOrEmpty(query))
+                else if (!string.IsNullOrEmpty(query))
                 {
                     products = await _repository.GetProductsBasicInfoByQuery(query);
                 }
@@ -277,22 +228,12 @@ namespace Application.Services
 
                 var productsDtos = products.ToProductInBasicDTOs();
 
-
-                return new ServiceResult<List<ProductBasicDTO>>
-                {
-                    IsSuccess = true,
-                    Data = productsDtos.ToList()
-                };
+                return Success<List<ProductBasicDTO>>(productsDtos.ToList());
 
             }
             catch (Exception ex)
             {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<List<ProductBasicDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
+                return Error<List<ProductBasicDTO>>(ex.Message);            
             }
         }
 
@@ -301,37 +242,27 @@ namespace Application.Services
         {
             try
             {
-                
+
                 var productVariants = await _repository.GetProductVariantsByProductIdList(productIdList);
 
 
                 // 要先分組
-                var variantGroup=productVariants.GroupBy(pv => pv.ProductId);
+                var variantGroup = productVariants.GroupBy(pv => pv.ProductId);
 
                 List<ProductDynamicDTO> productDynamicDtos = new List<ProductDynamicDTO>();
                 foreach (var variant in variantGroup)
                 {
-                    var list =variant.Select(v => v.ToProductVariantDTO());
+                    var list = variant.Select(v => v.ToProductVariantDTO());
                     productDynamicDtos.Add(new ProductDynamicDTO { ProductId = variant.Key, Variants = list.ToList(), IsFavorite = false });
                 }
 
-                
 
-                return new ServiceResult<List<ProductDynamicDTO>>
-                {
-                    IsSuccess = true,
-                    Data = productDynamicDtos.ToList()
-                };
+                return Success<List<ProductDynamicDTO>>(productDynamicDtos.ToList());              
 
             }
             catch (Exception ex)
             {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<List<ProductDynamicDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
+                return Error<List<ProductDynamicDTO>>(ex.Message);              
             }
         }
 
@@ -356,22 +287,12 @@ namespace Application.Services
                 }
 
 
-
-                return new ServiceResult<List<ProductDynamicDTO>>
-                {
-                    IsSuccess = true,
-                    Data = productDynamicDtos.ToList()
-                };
+                return Success<List<ProductDynamicDTO>>(productDynamicDtos.ToList());               
 
             }
             catch (Exception ex)
             {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<List<ProductDynamicDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
+                return Error<List<ProductDynamicDTO>>(ex.Message);                
             }
         }
 
@@ -404,26 +325,18 @@ namespace Application.Services
                     IsFavorite = favoriteProductIds.Contains(p.ProductId)
                 });
 
-                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-                {
-                    IsSuccess = true,
-                    Data = productWithFavorite.ToList()
-                };
-            }
-            catch (Exception ex) 
-            {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
 
+                return Success<List<ProductWithFavoriteStatusDTO>>(productWithFavorite.ToList());
+                
             }
-            
+            catch (Exception ex)
+            {
+                return Error<List<ProductWithFavoriteStatusDTO>>(ex.Message);               
+            }
+
         }
 
-        
+
 
 
         public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetRecommendationProduct(int userid, int productId)
@@ -440,22 +353,15 @@ namespace Application.Services
                     IsFavorite = favoriteProductIds.Contains(p.ProductId)
                 });
 
-                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-                {
-                    IsSuccess = true,
-                    Data = productWithFavorite.ToList(),
-                };
+
+                return Success<List<ProductWithFavoriteStatusDTO>>(productWithFavorite.ToList());
+              
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
+                return Error<List<ProductWithFavoriteStatusDTO>>(ex.Message);              
             }
-            
+
 
 
         }
@@ -476,20 +382,13 @@ namespace Application.Services
                 //    IsFavorite = favoriteProductIds.Contains(p.ProductId)
                 //});
 
-                return new ServiceResult<List<ProductBasicDTO>>
-                {
-                    IsSuccess = true,
-                    Data = productsDtos.ToList(),
-                };
+
+                return Success<List<ProductBasicDTO>>(productsDtos.ToList());
+              
             }
             catch (Exception ex)
             {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<List<ProductBasicDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
+                return Error<List<ProductBasicDTO>>(ex.Message);             
             }
 
 
@@ -510,23 +409,15 @@ namespace Application.Services
                     IsFavorite = true
                 }).ToList();
 
-                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-                {
-                    IsSuccess = true,
-                    Data = productWithFavorite
-                };
-            }
-            catch (Exception ex) 
-            {
-                _logger.LogError($"an error occured : {ex.Message}");
-                return new ServiceResult<List<ProductWithFavoriteStatusDTO>>
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "系統錯誤，請聯繫管理員"
-                };
 
+                return Success<List<ProductWithFavoriteStatusDTO>>(productWithFavorite);
+               
             }
-            
+            catch (Exception ex)
+            {
+                return Error<List<ProductWithFavoriteStatusDTO>>(ex.Message);               
+            }
+
 
         }
 
