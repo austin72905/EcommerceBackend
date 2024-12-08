@@ -14,6 +14,7 @@ namespace DataSource.Repositories
         public  async Task<Payment?> GetTenantConfig(string recordCode)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Include(p => p.Order)
                 .Include(p=>p.TenantConfig)
                 .Where(p => p.Order.RecordCode == recordCode)

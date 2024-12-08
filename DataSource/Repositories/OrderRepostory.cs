@@ -19,6 +19,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Order>> GetOrdersByUserId(int userid)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Include(o => o.OrderProducts)
                     .ThenInclude(op => op.ProductVariant)
                            .ThenInclude(pv => pv.Size)
@@ -32,13 +33,13 @@ namespace DataSource.Repositories
                 .Include(o => o.OrderSteps)
                 .Include(o => o.Shipments)
                 .Where(o => o.UserId == userid)
-                .AsNoTracking()
                 .ToListAsync();
         }
 
         public async Task<Order?> GetOrderInfoById(int orderId)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Include(o => o.OrderProducts)
                     .ThenInclude(op => op.ProductVariant)
                         .ThenInclude(pv => pv.Size)
@@ -59,6 +60,7 @@ namespace DataSource.Repositories
         public async Task<Order?> GetOrderInfoByUserId(int userid, string recordCode)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Include(o => o.OrderProducts)
                     .ThenInclude(op => op.ProductVariant)
                         .ThenInclude(pv => pv.Size)

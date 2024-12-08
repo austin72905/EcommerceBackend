@@ -14,6 +14,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetProductsByQuery(string keyword)
         {
             return await _dbSet
+                 .AsNoTracking()
                  .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
                 .Include(p => p.ProductVariants)
@@ -26,7 +27,8 @@ namespace DataSource.Repositories
 
         public async Task<IEnumerable<Product>> GetProductsBasicInfoByQuery(string keyword)
         {
-            return await _dbSet                 
+            return await _dbSet
+                .AsNoTracking()
                 .Where(p => p.Title.Contains(keyword))
                 .ToListAsync();
         }
@@ -34,6 +36,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetProductsByKind(string kind)
         {
             return await _dbSet
+                 .AsNoTracking()
                  .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
                 .Include(p => p.ProductVariants)
@@ -54,6 +57,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetProductsBasicInfoByKind(string kind)
         {
             return await _dbSet
+                 .AsNoTracking()
                  .Include(p => p.ProductKinds)
                      .ThenInclude(pkt => pkt.Kind)
                  .Where(p => p.ProductKinds.Any(pkt => pkt.Kind.Name == kind))
@@ -65,6 +69,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetProductsByTag(string tag)
         {
             return await _dbSet
+                .AsNoTracking()
                  .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
                 .Include(p => p.ProductVariants)
@@ -84,6 +89,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetProductsBasicInfByTag(string tag)
         {
             return await _dbSet
+                .AsNoTracking()
                .Include(p => p.ProductTags)
                    .ThenInclude(pkt => pkt.Tag)
                .Where(p => p.ProductTags.Any(pkt => pkt.Tag.Name == tag))
@@ -93,6 +99,7 @@ namespace DataSource.Repositories
         public async Task<Product?> GetProductById(int productId)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
                 .Include(p => p.ProductVariants)
@@ -111,6 +118,7 @@ namespace DataSource.Repositories
         public async Task<Product?> GetProductBasicInfoById(int productId)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Include(p => p.ProductImages)
                 .Where(p => p.Id == productId)
                 .FirstOrDefaultAsync();
@@ -120,6 +128,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<ProductVariant>> GetProductVariantsByProductId(int productId)
         {
             return await _context.ProductVariants
+                .AsNoTracking()
                 .Include(pv => pv.Size)
                 .Include(pv => pv.ProductVariantDiscounts)
                     .ThenInclude(pvd => pvd.Discount)
@@ -130,6 +139,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetRecommendationProduct(int userid, int productId)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
                 .Include(p => p.ProductVariants)
@@ -147,6 +157,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<Product>> GetfavoriteProducts(int userid)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
                 .Include(p => p.ProductVariants)
@@ -171,6 +182,7 @@ namespace DataSource.Repositories
         public async Task<IEnumerable<ProductVariant>> GetProductVariantsByProductIdList(IEnumerable<int> productIdList)
         {
             return await _context.ProductVariants
+                .AsNoTracking()
                 .Include(pv => pv.Size)
                 .Include(pv => pv.ProductVariantDiscounts)
                     .ThenInclude(pvd => pvd.Discount)
