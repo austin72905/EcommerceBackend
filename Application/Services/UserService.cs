@@ -189,7 +189,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
-                return Error<string>(ex.Message);
+                return Error<string>(ex.Message,message:ex.Message);
                 
             }
 
@@ -246,7 +246,7 @@ namespace Application.Services
             }
             catch(Exception ex)
             {
-                return Error<string>(ex.Message);
+                return Error<string>(ex.Message,message:ex.Message);
                 
             }
 
