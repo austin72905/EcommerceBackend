@@ -28,42 +28,104 @@ namespace Domain.Services
 
 
 
-        public async Task EnsureUserNotExists(string userName,string email)
+        public async Task<DomainServiceResult<object>> EnsureUserNotExists(string userName,string email)
         {
-            var user = await _userRepository.CheckUserExists(userName, email);
+            
 
-            if (user != null)
+            try
             {
-                if (user.Email == email)
+                var user = await _userRepository.CheckUserExists(userName, email);
+
+                if (user != null)
                 {
-                    throw new Exception($"已有相同信箱 {user.Email}");
+                    if (user.Email == email)
+                    {
+                        return new DomainServiceResult<object>
+                        {
+                            IsSuccess=false,
+                            ErrorMessage = $"已有相同信箱 {user.Email}",
+                        };
+                    }
+                    else
+                    {
+                        
+                        return new DomainServiceResult<object>
+                        {
+                            IsSuccess = false,
+                            ErrorMessage = $"已有相同帳號 {user.Username}",
+                        };
+                    }
                 }
-                else
+
+                return new DomainServiceResult<object>
                 {
-                    throw new Exception($"已有相同帳號 {user.Username}");
-                }
+                    IsSuccess = true,
+                    ErrorMessage = "OK",
+                };
             }
+            catch (Exception ex) 
+            {
+                return new DomainServiceResult<object>
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ex.Message,
+                };
+
+
+            }
+
+            
         }
 
 
 
-        public void EnsurePasswordCanBeChanged(User user, string oldPassword, string newPassword)
+        public DomainServiceResult<object> EnsurePasswordCanBeChanged(User user, string oldPassword, string newPassword)
         {
-            // Oauh 登陸不需要密碼
-            if (user.PasswordHash == null)
+            try
             {
-                throw new Exception("此類型用戶無法修改密碼");
+                // Oauh 登陸不需要密碼
+                if (user.PasswordHash == null)
+                {
+                    
+                    return new DomainServiceResult<object>
+                    {
+                        ErrorMessage = "此類型用戶無法修改密碼",
+                    };
+                }
+
+                if (!BCryptUtils.VerifyPassword(oldPassword, user.PasswordHash))
+                {
+                   
+                    return new DomainServiceResult<object>
+                    {
+                        ErrorMessage = "舊密碼輸入錯誤",
+                    };
+                }
+
+                if (oldPassword == newPassword)
+                {
+                    return new DomainServiceResult<object>
+                    {
+                        ErrorMessage = "新密碼不得與舊密碼相同",
+                    };
+                }
+
+                return new DomainServiceResult<object>
+                {
+                    IsSuccess=true,
+                    ErrorMessage = "OK",
+                };
+            }
+            catch (Exception ex) 
+            {
+                return new DomainServiceResult<object>
+                {
+                    ErrorMessage = ex.Message,
+                };
+
             }
 
-            if (!BCryptUtils.VerifyPassword(oldPassword, user.PasswordHash))
-            {
-                throw new Exception("舊密碼輸入錯誤");
-            }
 
-            if (oldPassword == newPassword)
-            {
-                throw new Exception("新密碼不得與舊密碼相同");
-            }
         }
 
         public void ChangePassword(User user, string newPassword)

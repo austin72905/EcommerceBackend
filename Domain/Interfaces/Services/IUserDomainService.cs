@@ -11,9 +11,9 @@ namespace Domain.Interfaces.Services
     {
         public void UpdateUser(User user, User updateInfo);
 
-        public Task EnsureUserNotExists(string userName, string email);
+        public Task<DomainServiceResult<object>> EnsureUserNotExists(string userName, string email);
 
-        public void EnsurePasswordCanBeChanged(User user, string oldPassword, string newPassword);
+        public DomainServiceResult<object> EnsurePasswordCanBeChanged(User user, string oldPassword, string newPassword);
 
         public void ChangePassword(User user, string newPassword);
 

@@ -144,7 +144,7 @@ namespace Application.Services
 
                 string redisKey = await SaveUserInfoToRedis(userDto);
 
-                return Success<string>(redisKey);
+                return Success<string>(redisKey,message: "登入成功");
                
             }
             catch (Exception ex) 
@@ -169,9 +169,12 @@ namespace Application.Services
             try
             {
                 // 檢查用戶是否存在 (已存在就throw exception)
-                await _userDomainService.EnsureUserNotExists(signUpDto.Username, signUpDto.Email);
+                var isUserExisted= await _userDomainService.EnsureUserNotExists(signUpDto.Username, signUpDto.Email);
 
-                
+                if (!isUserExisted.IsSuccess)
+                {
+                    return Fail<string>(isUserExisted.ErrorMessage);
+                }
 
                 // 新增用戶
                 var userEntity = signUpDto.ToUserEntity();
@@ -189,7 +192,7 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
-                return Error<string>(ex.Message,message:ex.Message);
+                return Error<string>(ex.Message);
                 
             }
 
@@ -227,7 +230,12 @@ namespace Application.Services
                 try
                 {
                     // 調用 Domain Service 執行業務邏輯
-                    _userDomainService.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password);
+                    var result=_userDomainService.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password);
+
+                    if (!result.IsSuccess)
+                    {
+                        return Fail<string>(result.ErrorMessage);
+                    }
 
                     // 修改密碼
                     _userDomainService.ChangePassword(user, modifyPasswordDto.Password);

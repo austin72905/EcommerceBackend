@@ -2,6 +2,7 @@
 using Application.Extensions;
 using Application.Oauth;
 using Application.Services;
+using Domain;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
@@ -215,7 +216,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("操作異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.SaveChangesAsync(), Times.Never);
             _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -286,10 +287,12 @@ namespace Application.Tests.Services
 
             var user = new User { Id = userId, PasswordHash = "hashedOldPassword" };
 
+            var domainServiceResult =new DomainServiceResult<object> { IsSuccess = false,ErrorMessage= "舊密碼不正確" };
+
             _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync(user);
             _userDomainServiceMock
                 .Setup(service => service.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password))
-                .Throws(new Exception("舊密碼不正確"));
+                .Returns(domainServiceResult);
 
             // Act
             var result = await _userService.ModifyPassword(userId, modifyPasswordDto);
@@ -318,8 +321,12 @@ namespace Application.Tests.Services
 
             _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync(user);
 
+
+            var domainServiceResult = new DomainServiceResult<object> { IsSuccess = true };
+
             _userDomainServiceMock
-                .Setup(service => service.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password));
+                .Setup(service => service.EnsurePasswordCanBeChanged(user, modifyPasswordDto.OldPassword, modifyPasswordDto.Password))
+                .Returns(domainServiceResult);
 
             _userDomainServiceMock
                 .Setup(service => service.ChangePassword(user, modifyPasswordDto.Password));
@@ -358,16 +365,18 @@ namespace Application.Tests.Services
                 NickName = "Test User"
             };
 
+            var domainServiceResult = new DomainServiceResult<object> { ErrorMessage = "已有相同信箱 existing@example.com" };
+
             _userDomainServiceMock
                 .Setup(service => service.EnsureUserNotExists(signUpDto.Username, signUpDto.Email))
-                .Throws(new Exception("User already exists"));
+                .ReturnsAsync(domainServiceResult);
 
             // Act
             var result = await _userService.UserRegister(signUpDto);
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("操作異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("已有相同信箱 existing@example.com", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.AddUser(It.IsAny<User>()), Times.Never);
             _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -399,9 +408,12 @@ namespace Application.Tests.Services
 
             var userInfoDto = createdUser.ToUserInfoDTO();
 
+            var domainServiceResult = new DomainServiceResult<object> { IsSuccess = true };
+
             //檢查email、用戶銘是否存在
             _userDomainServiceMock
-                .Setup(service => service.EnsureUserNotExists(signUpDto.Username, signUpDto.Email));
+                .Setup(service => service.EnsureUserNotExists(signUpDto.Username, signUpDto.Email))
+                .ReturnsAsync(domainServiceResult);
 
             _userRepositoryMock
                 .Setup(repo => repo.AddUser(It.IsAny<User>()))
@@ -442,16 +454,17 @@ namespace Application.Tests.Services
                 NickName = "New User"
             };
 
+            
             _userDomainServiceMock
                 .Setup(service => service.EnsureUserNotExists(signUpDto.Username, signUpDto.Email))
-                .Throws(new Exception("Unexpected exception"));
+                .ThrowsAsync(new Exception("Unexpected exception"));
 
             // Act
             var result = await _userService.UserRegister(signUpDto);
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("操作異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.AddUser(It.IsAny<User>()), Times.Never);
             _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -577,7 +590,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("操作異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
@@ -877,7 +890,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("操作異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.GetUserShippingAddress(userId), Times.Once);
         }
@@ -928,7 +941,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual("ok", result.Data);
+            Assert.AreEqual("操作成功", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.AddUserShippingAddress(userId, It.Is<UserShipAddress>(address =>
                 address.UserId == userId &&
@@ -966,7 +979,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.AddUserShippingAddress(userId, It.IsAny<UserShipAddress>()), Times.Once);
         }
@@ -1017,7 +1030,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual("修改成功", result.ErrorMessage);
+            Assert.AreEqual("操作成功", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.ModifyUserShippingAddress(userId, It.Is<UserShipAddress>(address =>
                 address.Id == addressDto.AddressId &&
@@ -1055,7 +1068,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.ModifyUserShippingAddress(userId, It.IsAny<UserShipAddress>()), Times.Once);
         }
@@ -1073,7 +1086,8 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("不存在的用戶", result.Data);
+            Assert.AreEqual(null, result.Data);
+            Assert.AreEqual("不存在的用戶", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.DeleteUserShippingAddress(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
@@ -1111,7 +1125,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.DeleteUserShippingAddress(userId, addressId), Times.Once);
         }
@@ -1129,7 +1143,8 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("不存在的用戶", result.Data);
+            Assert.AreEqual(null, result.Data);
+            Assert.AreEqual("不存在的用戶", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.SetDefaultShippingAddress(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
@@ -1167,7 +1182,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.SetDefaultShippingAddress(userId, addressId), Times.Once);
         }
@@ -1190,7 +1205,8 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("不存在的用戶", result.Data);
+            Assert.AreEqual(null, result.Data);
+            Assert.AreEqual("不存在的用戶", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.RemoveFromFavoriteList(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
@@ -1232,7 +1248,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.RemoveFromFavoriteList(userId, productId), Times.Once);
         }
@@ -1250,7 +1266,8 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("不存在的用戶", result.Data);
+            Assert.AreEqual(null, result.Data);
+            Assert.AreEqual("不存在的用戶", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.AddToFavoriteList(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
         }
@@ -1270,7 +1287,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual("操作成功", result.Data);
+            Assert.AreEqual("操作成功", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.AddToFavoriteList(userId, productId), Times.Once);
         }
@@ -1292,7 +1309,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統異常，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
             _userRepositoryMock.Verify(repo => repo.AddToFavoriteList(userId, productId), Times.Once);
         }
