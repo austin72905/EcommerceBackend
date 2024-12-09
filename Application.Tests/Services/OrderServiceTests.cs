@@ -4,6 +4,7 @@ using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -22,6 +23,7 @@ namespace Application.Tests.Services
         private Mock<IOrderDomainService> _orderDomainServiceMock;
         private OrderService _orderService;
         private Mock<IConfiguration> _configurationMock;
+        private Mock<ILogger<OrderService>> _loggerMock;
 
         [SetUp]
         public void SetUp()
@@ -31,13 +33,15 @@ namespace Application.Tests.Services
             _paymentRepositoryMock = new Mock<IPaymentRepository>();
             _orderDomainServiceMock = new Mock<IOrderDomainService>();
             _configurationMock = new Mock<IConfiguration>();
+            _loggerMock = new Mock<ILogger<OrderService>>();
 
             _orderService = new OrderService(
                 _orderRepositoryMock.Object,
                 _productRepositoryMock.Object,
                 _paymentRepositoryMock.Object,
                 _orderDomainServiceMock.Object,
-                _configurationMock.Object
+                _configurationMock.Object,
+                 _loggerMock.Object
             );
         }
 

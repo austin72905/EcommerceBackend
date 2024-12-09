@@ -1,6 +1,7 @@
 ﻿using Application.Services;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ namespace Application.Tests.Services
     {
         private Mock<IProductRepository> _productRepositoryMock;
         private Mock<IUserRepository> _userRepositoryMock;
+        private Mock<ILogger<ProductService>> _loggerMock;
         private ProductService _productService;
 
         [SetUp]
@@ -22,7 +24,8 @@ namespace Application.Tests.Services
         {
             _productRepositoryMock = new Mock<IProductRepository>();
             _userRepositoryMock = new Mock<IUserRepository>();
-            _productService = new ProductService(_productRepositoryMock.Object, _userRepositoryMock.Object);
+            _loggerMock = new Mock<ILogger<ProductService>>();
+            _productService = new ProductService(_productRepositoryMock.Object, _userRepositoryMock.Object, _loggerMock.Object);
         }
 
 
@@ -433,7 +436,7 @@ namespace Application.Tests.Services
                 .ReturnsAsync(products);
 
             // Act
-            var result = await _productService.GetProducts(kind, tag);
+            var result = await _productService.GetProducts(kind, tag,"");
 
             // Assert
             Assert.IsTrue(result.IsSuccess);

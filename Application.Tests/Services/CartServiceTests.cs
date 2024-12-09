@@ -3,6 +3,7 @@ using Application.Services;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -19,6 +20,7 @@ namespace Application.Tests.Services
         private Mock<IProductRepository> _productRepositoryMock;
         private Mock<ICartDomainService> _cartDomainServiceMock;
         private CartService _cartService;
+        private Mock<ILogger<CartService>> _loggerMock;
 
         [SetUp]
         public void Setup()
@@ -26,12 +28,14 @@ namespace Application.Tests.Services
             _cartRepositoryMock = new Mock<ICartRepository>();
             _productRepositoryMock = new Mock<IProductRepository>();
             _cartDomainServiceMock = new Mock<ICartDomainService>();
+            _loggerMock = new Mock<ILogger<CartService>>();
 
             _cartService = new CartService(
                 _cartDomainServiceMock.Object,
                 _productRepositoryMock.Object,
                 Mock.Of<IUserRepository>(), // 不需要用戶邏輯，可以用空模擬
-                _cartRepositoryMock.Object
+                _cartRepositoryMock.Object,
+                _loggerMock.Object
             );
         }
 

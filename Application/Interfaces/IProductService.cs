@@ -5,9 +5,9 @@ namespace Application.Interfaces
 {
     public interface IProductService
     {
-        public Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string? kind, string? tag, string? query);
+        public Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string? kind, string? tag, string? query=null);
 
-        public Task<ServiceResult<List<ProductBasicDTO>>> GetProductsBasicInfo(string? kind, string? tag, string? query);
+        public Task<ServiceResult<List<ProductBasicDTO>>> GetProductsBasicInfo(string? kind, string? tag, string? query = null);
 
         public Task<ServiceResult<List<ProductDynamicDTO>>> GetProductsDynamicInfo(List<int> productIdList);
 

@@ -9,6 +9,7 @@ using Infrastructure.Interfaces;
 using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Net;
 
@@ -23,6 +24,7 @@ namespace Application.Tests.Services
         private Mock<IRedisService> _redisServiceMock;
         private Mock<IUserDomainService> _userDomainServiceMock;
         private Mock<IHttpUtils> _httpUtilsMock;
+        private Mock<ILogger<UserService>> _loggerMock;
 
         [SetUp]
         public void Setup()
@@ -33,15 +35,17 @@ namespace Application.Tests.Services
             _redisServiceMock = new Mock<IRedisService>();
             _userDomainServiceMock = new Mock<IUserDomainService>();
             _httpUtilsMock = new Mock<IHttpUtils>();
-           
+            _loggerMock = new Mock<ILogger<UserService>>();
 
-        // 注入模擬對象到 UserService
-        _userService = new UserService(
+
+            // 注入模擬對象到 UserService
+            _userService = new UserService(
                 _userRepositoryMock.Object,
                 _configurationMock.Object,
                 _redisServiceMock.Object,
                 _userDomainServiceMock.Object,
-                _httpUtilsMock.Object
+                _httpUtilsMock.Object,
+                _loggerMock.Object
             );
         }
 

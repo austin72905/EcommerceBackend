@@ -155,7 +155,7 @@ namespace Application.Services
         }
 
 
-        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string? kind, string? tag, string? query)
+        public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetProducts(string? kind, string? tag, string? query=null)
         {
             try
             {
