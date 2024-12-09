@@ -13,6 +13,7 @@ namespace Application.Extensions
             {
                 Email = jwtUserInfo.Email,
                 GoogleId = jwtUserInfo.Sub,
+                Picture = jwtUserInfo.Picture,
                 NickName = jwtUserInfo.Name,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now,
