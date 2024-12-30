@@ -119,6 +119,13 @@ namespace Application.Services
         {
             try
             {
+                // 檢查用戶是否已被鎖定
+                var isUserLock = await _redisService.GetWrongPasswordTimeAsync(loginDto.Username);
+
+                if (isUserLock == 3)
+                {
+                    return Fail<string>("密碼錯誤次數已達上限，請稍後再試");
+                }
 
                 var user = await _userRepository.CheckUserExists(loginDto.Username, loginDto.Username);
 
@@ -130,10 +137,26 @@ namespace Application.Services
 
                 // 檢查密碼
 
+
                 var passwordHash = user.PasswordHash;
 
                 if (!BCryptUtils.VerifyPassword(loginDto.Password, passwordHash))
                 {
+                    // 這邊實作 10分鐘內輸入密碼錯誤3次，鎖定15分鐘
+                    // 代表10分鐘內第一次輸入錯誤
+                    if (isUserLock == 0)
+                    {
+                        await _redisService.SetWrongPasswordTimeAsync(loginDto.Username);
+                    }else if (isUserLock == 1)
+                    {
+                        await _redisService.SetWrongPasswordTimeAsync(loginDto.Username,keepTtl:true); // 不重製時間，代表10分鐘內累積的錯誤次數
+                    }
+                    else
+                    {
+                        await _redisService.LockUserAsync(loginDto.Username);
+                    }
+
+
                     return Fail<string>("密碼錯誤");                    
                 }
 

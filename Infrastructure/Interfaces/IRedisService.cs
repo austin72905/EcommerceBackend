@@ -14,6 +14,11 @@ namespace Infrastructure.Interfaces
 
         public Task<string?> GetUserInfoAsync(string sessonId);
 
+        public Task SetWrongPasswordTimeAsync(string username, bool keepTtl = false);
+
+        public  Task LockUserAsync(string username);
+        public  Task<int?> GetWrongPasswordTimeAsync(string username);
+
 
     }
 }
