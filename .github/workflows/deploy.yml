@@ -34,4 +34,4 @@ jobs:
 
       # 執行 EcommerceBackend.Tests 測試
       - name: Run EcommerceBackend.Tests
-        run: dotnet test ./EcommerceBackend.Test/EcommerceBackend.Test.csproj --verbosity normal
+        run: dotnet test ./EcommerceBackend.Tests/EcommerceBackend.Tests.csproj --verbosity normal
