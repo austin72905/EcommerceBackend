@@ -26,12 +26,12 @@ jobs:
 
       # 執行 App.Tests 測試
       - name: Run Application.Tests
-        run: dotnet test ./Tests/Application.Tests/Application.Tests.csproj --verbosity normal
+        run: dotnet test ./Application.Tests/Application.Tests.csproj --verbosity normal
 
       # 執行 Domain.Tests 測試
       - name: Run Domain.Tests
-        run: dotnet test ./Tests/Domain.Tests/Domain.Tests.csproj --verbosity normal
+        run: dotnet test ./Domain.Tests/Domain.Tests.csproj --verbosity normal
 
       # 執行 EcommerceBackend.Tests 測試
       - name: Run EcommerceBackend.Tests
-        run: dotnet test ./Tests/EcommerceBackend.Test/EcommerceBackend.Test.csproj --verbosity normal
+        run: dotnet test ./EcommerceBackend.Test/EcommerceBackend.Test.csproj --verbosity normal
