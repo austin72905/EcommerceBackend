@@ -35,3 +35,16 @@ jobs:
       # 執行 EcommerceBackend.Tests 測試
       - name: Run EcommerceBackend.Tests
         run: dotnet test ./EcommerceBackend.Tests/EcommerceBackend.Tests.csproj --verbosity normal
+      
+      # 部屬到GCP
+      - name: Deploy ro GCP CM
+        if: success()
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "~/deploy-scripts/deploy-compose.sh ecommerce-backend"
