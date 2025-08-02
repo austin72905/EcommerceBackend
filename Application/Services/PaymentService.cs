@@ -1,10 +1,9 @@
 ﻿
 using Application.DTOs;
 using Application.Interfaces;
+using Common.Interfaces.Infrastructure;
 using Domain.Enums;
 using Domain.Interfaces.Repositories;
-using Infrastructure.Interfaces;
-using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -18,13 +17,15 @@ namespace Application.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IPaymentRepository _paymentRepository;
         private readonly IShipmentProducer _shipmentProducer;
+        private readonly IEncryptionService _encryptionService;
 
         private readonly IConfiguration _configuration;
-        public PaymentService(IPaymentRepository paymentRepository, IHttpContextAccessor contextAccessor, IShipmentProducer shipmentProducer, IConfiguration configuration,ILogger<PaymentService> logger):base(logger)
+        public PaymentService(IPaymentRepository paymentRepository, IHttpContextAccessor contextAccessor, IShipmentProducer shipmentProducer, IEncryptionService encryptionService, IConfiguration configuration,ILogger<PaymentService> logger):base(logger)
         {
             _paymentRepository = paymentRepository;
             _contextAccessor = contextAccessor;
             _shipmentProducer = shipmentProducer;
+            _encryptionService = encryptionService;
             _configuration = configuration;
         }
 
@@ -183,7 +184,7 @@ namespace Application.Services
         {
             string rawString = $"HashKey={key}&" + string.Join("&", keyValues.OrderBy(o => o.Key, StringComparer.Ordinal).Select(o => $"{o.Key}={o.Value}")) + $"&HashIV={iv}";
 
-            string sign = SHA.Hash256(HttpUtility.UrlEncode(rawString).ToLower()).ToUpper();
+            string sign = _encryptionService.Sha256Hash(HttpUtility.UrlEncode(rawString).ToLower()).ToUpper();
 
             return sign;
         }
@@ -299,7 +300,7 @@ namespace Application.Services
             string returnSign = ReqData["CheckMacValue"].ToString();
 
 
-            string sign = SHA.Hash256(HttpUtility.UrlEncode(rawString).ToLower()).ToUpper();
+            string sign = _encryptionService.Sha256Hash(HttpUtility.UrlEncode(rawString).ToLower()).ToUpper();
             return string.Equals(sign, returnSign, StringComparison.OrdinalIgnoreCase); ;
         }
 

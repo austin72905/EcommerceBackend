@@ -2,11 +2,10 @@
 using Application.Extensions;
 using Application.Interfaces;
 using Application.Oauth;
+using Common.Interfaces.Infrastructure;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
-using Infrastructure.Interfaces;
-using Infrastructure.Utils.EncryptMethod;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -23,14 +22,16 @@ namespace Application.Services
         private readonly IRedisService _redisService;
         private readonly IUserDomainService _userDomainService;
         private readonly IHttpUtils _httpUtils;
+        private readonly IEncryptionService _encryptionService;
 
-        public UserService(IUserRepository userRepository, IConfiguration configuration, IRedisService redisService, IUserDomainService userDomainService, IHttpUtils httpUtils,ILogger<UserService> logger):base(logger)
+        public UserService(IUserRepository userRepository, IConfiguration configuration, IRedisService redisService, IUserDomainService userDomainService, IHttpUtils httpUtils, IEncryptionService encryptionService, ILogger<UserService> logger):base(logger)
         {
             _userRepository = userRepository;
             _configuration = configuration;
             _redisService = redisService;
             _userDomainService = userDomainService;
             _httpUtils = httpUtils;
+            _encryptionService = encryptionService;
         }
 
         
@@ -140,7 +141,7 @@ namespace Application.Services
 
                 var passwordHash = user.PasswordHash;
 
-                if (!BCryptUtils.VerifyPassword(loginDto.Password, passwordHash))
+                if (!_encryptionService.VerifyPassword(loginDto.Password, passwordHash))
                 {
                     // 這邊實作 10分鐘內輸入密碼錯誤3次，鎖定15分鐘
                     // 代表10分鐘內第一次輸入錯誤
@@ -200,7 +201,7 @@ namespace Application.Services
                 }
 
                 // 新增用戶
-                var userEntity = signUpDto.ToUserEntity();
+                var userEntity = signUpDto.ToUserEntity(_encryptionService);
                 await _userRepository.AddUser(userEntity);
 
                 // 新增完了

@@ -1,10 +1,5 @@
 ﻿using Application.DTOs;
 using Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Extensions
 {
@@ -17,7 +12,7 @@ namespace Application.Extensions
                 Title = product.Title,
                 ProductId = product.Id,
                 Material = product.Material.Split(',').Select(m => m.Trim()).ToList(),
-                Variants = product.ProductVariants?.Select(v => v.ToProductVariantDTO()).ToList(),              
+                Variants = product.ProductVariants?.Select(v => v.ToProductVariantDTO()).ToList(),
                 HowToWash = product.HowToWash,
                 Features = product.Features,
                 Images = product.ProductImages?.Select(i => i.ImageUrl).ToList(),
@@ -25,7 +20,7 @@ namespace Application.Extensions
             };
 
 
-            
+
         }
 
         public static ProductBasicDTO ToProductBasicDTO(this Product product)

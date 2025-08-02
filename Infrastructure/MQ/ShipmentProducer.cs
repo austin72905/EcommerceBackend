@@ -1,4 +1,4 @@
-﻿using Infrastructure.Interfaces;
+﻿using Common.Interfaces.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using System;

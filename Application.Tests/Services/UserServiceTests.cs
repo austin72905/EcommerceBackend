@@ -2,12 +2,12 @@
 using Application.Extensions;
 using Application.Oauth;
 using Application.Services;
+using Common.Interfaces.Infrastructure;
 using Domain;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
-using Infrastructure.Interfaces;
-using Infrastructure.Utils.EncryptMethod;
+
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -25,6 +25,7 @@ namespace Application.Tests.Services
         private Mock<IRedisService> _redisServiceMock;
         private Mock<IUserDomainService> _userDomainServiceMock;
         private Mock<IHttpUtils> _httpUtilsMock;
+        private Mock<IEncryptionService> _encryptionServiceMock;
         private Mock<ILogger<UserService>> _loggerMock;
 
         [SetUp]
@@ -36,8 +37,14 @@ namespace Application.Tests.Services
             _redisServiceMock = new Mock<IRedisService>();
             _userDomainServiceMock = new Mock<IUserDomainService>();
             _httpUtilsMock = new Mock<IHttpUtils>();
+            _encryptionServiceMock = new Mock<IEncryptionService>();
             _loggerMock = new Mock<ILogger<UserService>>();
 
+            // 設定加密服務的模擬行為
+            _encryptionServiceMock.Setup(x => x.HashPassword(It.IsAny<string>()))
+                .Returns((string password) => $"hashed_{password}");
+            _encryptionServiceMock.Setup(x => x.VerifyPassword(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns((string password, string hash) => hash == $"hashed_{password}");
 
             // 注入模擬對象到 UserService
             _userService = new UserService(
@@ -46,6 +53,7 @@ namespace Application.Tests.Services
                 _redisServiceMock.Object,
                 _userDomainServiceMock.Object,
                 _httpUtilsMock.Object,
+                _encryptionServiceMock.Object,
                 _loggerMock.Object
             );
         }
@@ -394,7 +402,7 @@ namespace Application.Tests.Services
                 NickName = "New User"
             };
 
-            var userEntity = signUpDto.ToUserEntity();
+                            var userEntity = signUpDto.ToUserEntity(_encryptionServiceMock.Object);
             var createdUser = new User
             {
                 Id = 1,
@@ -514,7 +522,7 @@ namespace Application.Tests.Services
             {
                 Id = 1,
                 Username = loginDto.Username,
-                PasswordHash = BCryptUtils.HashPassword("correctPassword")
+                                    PasswordHash = "hashed_correctPassword"
             };
 
             _userRepositoryMock
@@ -545,7 +553,7 @@ namespace Application.Tests.Services
             {
                 Id = 1,
                 Username = loginDto.Username,
-                PasswordHash = BCryptUtils.HashPassword(loginDto.Password),
+                                    PasswordHash = $"hashed_{loginDto.Password}",
                 Email = "test@example.com",
                 Role = "user"
             };

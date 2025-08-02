@@ -1,4 +1,5 @@
 ﻿using Application.Services;
+using Common.Interfaces.Infrastructure;
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Interfaces.Repositories;
@@ -6,21 +7,19 @@ using Domain.Interfaces.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Tests.Services
 {
     [TestFixture]
     public class OrderServiceTests
     {
+        
         private Mock<IOrderRepostory> _orderRepositoryMock;
         private Mock<IProductRepository> _productRepositoryMock;
         private Mock<IPaymentRepository> _paymentRepositoryMock;
         private Mock<IOrderDomainService> _orderDomainServiceMock;
+        private Mock<IRedisService> _redisServiceMock;
+        private Mock<IOrderTimeoutProducer> _orderTimeoutProducerMock;
         private OrderService _orderService;
         private Mock<IConfiguration> _configurationMock;
         private Mock<ILogger<OrderService>> _loggerMock;
@@ -32,16 +31,26 @@ namespace Application.Tests.Services
             _productRepositoryMock = new Mock<IProductRepository>();
             _paymentRepositoryMock = new Mock<IPaymentRepository>();
             _orderDomainServiceMock = new Mock<IOrderDomainService>();
+            _redisServiceMock = new Mock<IRedisService>();
+            _orderTimeoutProducerMock = new Mock<IOrderTimeoutProducer>();
             _configurationMock = new Mock<IConfiguration>();
             _loggerMock = new Mock<ILogger<OrderService>>();
 
+            // 設定 OrderTimeoutProducer Mock 行為
+            _orderTimeoutProducerMock
+                .Setup(x => x.SendOrderTimeoutMessageAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()))
+                .Returns(Task.CompletedTask);
+
             _orderService = new OrderService(
+                _redisServiceMock.Object,
                 _orderRepositoryMock.Object,
                 _productRepositoryMock.Object,
                 _paymentRepositoryMock.Object,
                 _orderDomainServiceMock.Object,
+
+                _orderTimeoutProducerMock.Object,
                 _configurationMock.Object,
-                 _loggerMock.Object
+                _loggerMock.Object
             );
         }
 
@@ -209,7 +218,7 @@ namespace Application.Tests.Services
                 .ReturnsAsync(orders);
 
             // Act
-            var result = await _orderService.GetOrders(userId,"");
+            var result = await _orderService.GetOrders(userId, "");
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
@@ -231,7 +240,7 @@ namespace Application.Tests.Services
                 .ReturnsAsync(new List<Order>());
 
             // Act
-            var result = await _orderService.GetOrders(userId,"");
+            var result = await _orderService.GetOrders(userId, "");
 
             // Assert
             Assert.IsTrue(result.IsSuccess);

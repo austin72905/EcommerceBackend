@@ -1,5 +1,6 @@
-﻿using Infrastructure.Interfaces;
+﻿using Common.Interfaces.Infrastructure;
 using StackExchange.Redis;
+using System.Linq;
 
 namespace Infrastructure.Cache
 {
@@ -164,6 +165,268 @@ namespace Infrastructure.Cache
             }
 
 
+        }
+
+        /// <summary>
+        /// 設置單個商品變體的庫存
+        /// </summary>
+        /// <param name="productId">商品ID</param>
+        /// <param name="variantId">變體ID</param>
+        /// <param name="stock">庫存數量</param>
+        /// <returns></returns>
+        public async Task SetProductStockAsync(int variantId, int stock)
+        {
+            string key = "product:stock";
+            string field = variantId.ToString();
+
+            try
+            {
+                await _db.HashSetAsync(key, field, stock);
+                Console.WriteLine($"Set stock for variant {variantId}: {stock}");
+            }
+            catch (RedisConnectionException ex)
+            {
+                Console.WriteLine($"Redis connection error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 獲取單個商品變體的庫存
+        /// </summary>
+        /// <param name="productId">商品ID</param>
+        /// <param name="variantId">變體ID</param>
+        /// <returns></returns>
+        public async Task<int?> GetProductStockAsync(int variantId)
+        {
+            string key = "product:stock";
+            string field = variantId.ToString();
+
+            try
+            {
+                var result = await _db.HashGetAsync(key, field);
+                if (result.HasValue)
+                {
+                    return (int)result;
+                }
+                return null;
+            }
+            catch (RedisConnectionException ex)
+            {
+                Console.WriteLine($"Redis connection error: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 批量設置商品庫存
+        /// </summary>
+        /// <param name="stockData">庫存資料字典，key格式為 "productId:variantId"</param>
+        /// <returns></returns>
+        public async Task SetProductStocksAsync(Dictionary<string, int> stockData)
+        {
+            try
+            {
+                string key = "product:stock";
+                var hashEntries = new HashEntry[stockData.Count];
+                int index = 0;
+
+                foreach (var item in stockData)
+                {
+                   
+                     hashEntries[index] = new HashEntry(item.Key, item.Value);
+                     index++;
+                    
+                }
+
+                // 批量設置所有庫存
+                await _db.HashSetAsync(key, hashEntries);
+                Console.WriteLine($"Successfully set {stockData.Count} product stock records to Redis");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred while setting product stocks: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 獲取所有商品庫存資料
+        /// </summary>
+        /// <returns></returns>
+        public async Task<Dictionary<string, int>> GetAllProductStocksAsync()
+        {
+            var result = new Dictionary<string, int>();
+
+            try
+            {
+                string key = "product:stock";
+                var hashEntries = await _db.HashGetAllAsync(key);
+                
+                foreach (var entry in hashEntries)
+                {
+                    var variantId = entry.Name.ToString();
+                    result[variantId] = (int)entry.Value;
+                }
+
+                Console.WriteLine($"Retrieved {result.Count} product stock records from Redis");
+                return result;
+            }
+            catch (RedisConnectionException ex)
+            {
+                Console.WriteLine($"Redis connection error: {ex.Message}");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return result;
+            }
+        }
+
+        public async Task<Dictionary<int, int>> GetProductStocksAsync(int[] variantIds)
+        {
+
+            var result = new Dictionary<int, int>();
+
+            try
+            {
+                string key = "product:stock";
+
+                // 將 variantIds 轉換為 RedisValue 陣列
+                var redisFields = variantIds.Select(id => (RedisValue)id.ToString()).ToArray();
+
+                // 一次性查詢所有 variant 的庫存
+                var stocks = await _db.HashGetAsync(key, redisFields);
+
+                // 將結果轉換為 Dictionary
+                for (int i = 0; i < variantIds.Length; i++)
+                {
+                    if (stocks[i].HasValue)
+                    {
+                        result[variantIds[i]] = (int)stocks[i];
+                    }
+                }
+
+                Console.WriteLine($"Retrieved {result.Count} product stocks from Redis for {variantIds.Length} variants");
+                return result;
+            }
+            catch (RedisConnectionException ex)
+            {
+                Console.WriteLine($"Redis connection error: {ex.Message}");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return result;
+            }
+        }
+
+        public async Task<object> CheckAndHoldStockAsync(string orderId, Dictionary<int, int> variantStock)
+        {
+            var stockKey = "product:stock";
+            // 預扣，如果未支付or 失敗，就補回去
+            var holdKey = $"stock:hold:{orderId}";
+
+            var expireSeconds = 150;
+
+            string luaScript = @"
+            local stockKey = KEYS[1]
+            local holdKey = KEYS[2]
+            local expireSeconds = tonumber(ARGV[#ARGV])
+
+            -- 最後一個參數，過期秒數，例如 600 秒
+            local totalArgs = #ARGV - 1
+
+            local insufficient = {}
+            
+            -- 檢查所有庫存是否足夠
+            for i = 1, totalArgs, 2 do
+                local variantId = ARGV[i]
+                local needQty = tonumber(ARGV[i+1])
+                local currentQty = tonumber(redis.call('HGET', stockKey, variantId) or '-1')
+                if currentQty < needQty then
+                    table.insert(insufficient, variantId)                -- 不足的加入列表
+                end
+            end
+            
+            -- 有任何 variant 不足，則直接返回錯誤（但用 JSON 包裝）
+            if #insufficient > 0 then
+                return cjson.encode({ status = 'error', failed = insufficient })
+            end
+            
+            -- 通過檢查 → 開始扣庫存 + 寫入 holdKey
+            for i = 1, totalArgs, 2 do
+                local variantId = ARGV[i]
+                local needQty = tonumber(ARGV[i+1])
+                redis.call('HINCRBY', stockKey, variantId, -needQty)   -- 扣庫存
+                redis.call('HSET', holdKey, variantId, needQty)        -- 建立 hold 資料
+            end
+            
+            -- 設定 holdKey 自動過期時間（保留 10 分鐘）
+            redis.call('EXPIRE', holdKey, expireSeconds)
+            
+            -- 回傳成功訊息
+            return cjson.encode({ status = 'success' })
+            ";
+
+            var args = new List<RedisValue>();
+
+            foreach (var kvp in variantStock) 
+            {
+                args.Add(kvp.Key);
+                args.Add(kvp.Value);
+            }
+
+            args.Add(expireSeconds);
+
+
+            var result = await _db.ScriptEvaluateAsync(
+                luaScript,
+                new RedisKey[] { stockKey ,holdKey},
+                args.ToArray()
+                );
+        
+            return  result;
+
+        }
+
+        public async Task<object?> RollbackStockAsync(string orderId)
+        {
+            var stockKey = "product:stock";
+            // 預扣，如果未支付or 失敗，就補回去
+            var holdKey = $"stock:hold:{orderId}";
+
+            string luaScript = @"
+            local stockKey = KEYS[1]
+            local holdKey = KEYS[2]
+            local heldItems = redis.call('HGETALL', holdKey)
+
+            for i = 1, #heldItems, 2 do
+                local variantId = heldItems[i]
+                local qty = tonumber(heldItems[i+1])
+                redis.call('HINCRBY', stockKey, variantId, qty)
+            end
+
+            redis.call('DEL', holdKey)
+            return cjson.encode({ status = 'success' })
+            ";
+
+            var result = await _db.ScriptEvaluateAsync(
+                luaScript,
+                new RedisKey[] { stockKey, holdKey },
+                Array.Empty<RedisValue>()
+                );
+
+            return result ?? null ;
         }
     }
 }

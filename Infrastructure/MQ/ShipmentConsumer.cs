@@ -4,8 +4,8 @@ using RabbitMQ.Client.Events;
 using Common.Interfaces.Application.Services;
 using System.Text;
 using System.Text.Json;
-using Infrastructure.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Common.Interfaces.Infrastructure;
 
 namespace Infrastructure.MQ
 {

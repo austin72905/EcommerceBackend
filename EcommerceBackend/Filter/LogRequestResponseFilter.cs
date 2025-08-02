@@ -32,7 +32,7 @@ namespace EcommerceBackend.Filter
                 Response = responseInfo
             };
 
-            _logger.LogInformation("Request-Response Log: {@LogData}", logData);
+            //_logger.LogInformation("Request-Response Log: {@LogData}", logData);
         }
 
         public void OnActionExecuting(ActionExecutingContext context)

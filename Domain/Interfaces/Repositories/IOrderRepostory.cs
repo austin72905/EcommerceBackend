@@ -17,6 +17,9 @@ namespace Domain.Interfaces.Repositories
 
         public Task GenerateOrder(Order order);
 
+        
+        public Task UpdateOrderStatusAsync(string recordCode, int status);
+
         public Task SaveChangesAsync();
     }
 }

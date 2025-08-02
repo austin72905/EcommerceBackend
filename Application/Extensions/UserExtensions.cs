@@ -1,7 +1,7 @@
 ﻿using Application.DTOs;
 using Application.Oauth;
 using Domain.Entities;
-using Infrastructure.Utils.EncryptMethod;
+using Common.Interfaces.Infrastructure;
 
 namespace Application.Extensions
 {
@@ -61,14 +61,14 @@ namespace Application.Extensions
             };
         }
 
-        public static User ToUserEntity(this SignUpDTO signUpDto)
+        public static User ToUserEntity(this SignUpDTO signUpDto, IEncryptionService encryptionService)
         {
             return new User
             {
                 Username = signUpDto.Username,
                 Email = signUpDto.Email,
                 NickName = signUpDto.NickName,
-                PasswordHash = BCryptUtils.HashPassword(signUpDto.Password), // 將密碼進行哈希處理
+                PasswordHash = encryptionService.HashPassword(signUpDto.Password), // 將密碼進行哈希處理
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now,
                 LastLogin = DateTime.Now,

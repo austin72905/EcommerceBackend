@@ -2,7 +2,7 @@
 using Application;
 using Application.DTOs;
 using Application.Interfaces;
-using Infrastructure.Interfaces;
+using Common.Interfaces.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EcommerceBackend.Controllers

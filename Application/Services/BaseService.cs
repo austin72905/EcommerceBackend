@@ -4,7 +4,7 @@ namespace Application.Services
 {
     public abstract class BaseService<T>
     {
-        private readonly ILogger<T> _logger;
+        protected readonly ILogger<T> _logger;
         protected BaseService(ILogger<T> logger)
         {
             _logger = logger;

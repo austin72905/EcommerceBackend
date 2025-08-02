@@ -1,15 +1,10 @@
-﻿using Domain.Enums;
+﻿using Common.Interfaces.Infrastructure;
+using Domain.Enums;
 using EcommerceBackend.MiddleWares;
 using EcommerceBackend.Models;
-using Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace EcommerceBackend.Tests.MiddleWares
 {

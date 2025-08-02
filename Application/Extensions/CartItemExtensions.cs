@@ -1,10 +1,5 @@
 ﻿using Application.DTOs;
 using Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Extensions
 {
@@ -40,7 +35,7 @@ namespace Application.Extensions
                     ProductId = cartItem.ProductVariant.Product.Id,
                     Title = cartItem.ProductVariant.Product.Title,
                     //Price = cartItem.ProductVariant.Product.Price,
-                    CoverImg=cartItem.ProductVariant.Product.CoverImg,
+                    CoverImg = cartItem.ProductVariant.Product.CoverImg,
                     // 填寫其他產品信息
                 },
                 Count = cartItem.Quantity,
@@ -50,9 +45,9 @@ namespace Application.Extensions
                     Color = cartItem.ProductVariant.Color,
                     Size = cartItem.ProductVariant.Size.SizeValue,
                     Price = cartItem.ProductVariant.VariantPrice,
-                    Stock= cartItem.ProductVariant.Stock,
-                    SKU= cartItem.ProductVariant.SKU,
-                    DiscountPrice= CalculateDiscountPrice(cartItem.ProductVariant)
+                    Stock = cartItem.ProductVariant.Stock,
+                    SKU = cartItem.ProductVariant.SKU,
+                    DiscountPrice = CalculateDiscountPrice(cartItem.ProductVariant)
 
                     // 填寫其他變體信息
                 }

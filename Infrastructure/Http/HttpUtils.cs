@@ -1,4 +1,5 @@
-﻿using Infrastructure.Interfaces;
+﻿
+using Common.Interfaces.Infrastructure;
 using System.Text.Json;
 
 namespace Infrastructure.Http

@@ -2,12 +2,16 @@
 using Application.DummyData;
 using Application.Extensions;
 using Application.Interfaces;
+using Common.Interfaces.Infrastructure;
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
+using Infrastructure.Cache;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
+using System.Text.Json;
 
 namespace Application.Services
 {
@@ -16,16 +20,20 @@ namespace Application.Services
         private readonly IOrderRepostory _orderRepostory;
         private readonly IProductRepository _productRepository;
         private readonly IPaymentRepository _paymentRepository;
+        private readonly IRedisService _redisService;
+        private readonly IOrderTimeoutProducer _orderTimeoutProducer;
 
         private readonly IOrderDomainService _orderDomainService;
 
         private readonly IConfiguration _configuration;
 
         public OrderService(
+            IRedisService redisService,
             IOrderRepostory orderRepostory, 
             IProductRepository productRepository, 
             IPaymentRepository paymentRepository, 
             IOrderDomainService orderDomainService, 
+            IOrderTimeoutProducer orderTimeoutProducer,
             IConfiguration configuration, 
             ILogger<OrderService> logger) : base(logger)
         {
@@ -34,6 +42,8 @@ namespace Application.Services
             _paymentRepository = paymentRepository;
             _orderDomainService = orderDomainService;
             _configuration = configuration;
+            _redisService = redisService;
+            _orderTimeoutProducer = orderTimeoutProducer;
         }
 
         public async Task<ServiceResult<OrderInfomationDTO>> GetOrderInfo(int userid, string recordCode)
@@ -122,6 +132,14 @@ namespace Application.Services
                     OrderProducts = new List<OrderProduct>()
                 };
 
+                // 用來給redis 檢查庫存的
+                var variantStockPair = new Dictionary<int, int>();
+
+
+
+
+                
+
                 foreach (var item in info.Items)
                 {
                     var productVariant = productVariants.FirstOrDefault(pv => pv.Id == item.VariantId);
@@ -135,6 +153,8 @@ namespace Application.Services
                         };
                     }
 
+                    variantStockPair.Add(productVariant.Id, item.Quantity);
+
                     var orderProduct = new OrderProduct
                     {
                         ProductVariantId = productVariant.Id,
@@ -146,6 +166,60 @@ namespace Application.Services
                     // order entity 加入 OrderProduct entity
                     order.OrderProducts.Add(orderProduct);
                 }
+
+
+
+                // 這邊可以檢查庫存 
+                /*
+                    call redis service 
+                    variantStockPair
+                 
+                 
+                 */
+                // status , failed =[1,2,3]
+                var checkStockStatus=await _redisService.CheckAndHoldStockAsync(order.RecordCode, variantStockPair);
+
+                if (checkStockStatus == null)
+                {
+                    return Error<PaymentRequestDataWithUrl>("redis 沒有找到key");
+                }
+
+                StockCheckDTO result;
+                try
+                {
+                    result = JsonSerializer.Deserialize<StockCheckDTO>(
+                        checkStockStatus.ToString(),
+                        new JsonSerializerOptions 
+                        { 
+                            PropertyNameCaseInsensitive = true  // 忽略大小寫
+                        });
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"JSON 解析失敗: {ex.Message}");
+                    Console.WriteLine($"原始 JSON: {checkStockStatus}");
+                    return Error<PaymentRequestDataWithUrl>("庫存檢查結果解析失敗");
+                }
+
+                if (result == null)
+                {
+                    return Error<PaymentRequestDataWithUrl>("庫存檢查結果為空");
+                }
+
+                if (result.Status == "error")
+                {
+                    var failedItems = result.Failed != null && result.Failed.Any() 
+                        ? string.Join(",", result.Failed) 
+                        : "未知商品";
+                    return Fail<PaymentRequestDataWithUrl>($"庫存不足: {failedItems}");
+                }
+
+                // 發送延遲超時訊息 (2分鐘後執行)
+                await _orderTimeoutProducer.SendOrderTimeoutMessageAsync(info.UserId, order.RecordCode, 2);
+
+                // 
+
+
 
                 // 計算總金額
                 order.OrderPrice = _orderDomainService.CalculateOrderTotal(order.OrderProducts.ToList(), order.ShippingPrice);
@@ -216,6 +290,39 @@ namespace Application.Services
 
         }
 
+        public async Task HandleOrderTimeoutAsync(int userId,string recordcode)
+        {
+            try
+            {
+                _logger.LogInformation("Handling order timeout for user {UserId}, order {RecordCode}", userId, recordcode);
+                
+                var order = await _orderRepostory.GetOrderInfoByUserId(userId, recordcode);
+
+                // 如果訂單不存在或狀態不是 Created（未付款），則不需要處理
+                if (order == null || order.Status != (int)OrderStatus.Created)
+                {
+                    _logger.LogInformation("Order {RecordCode} not found or not in Created status. Current status: {Status}", 
+                        recordcode, order?.Status);
+                    return;
+                }
+
+                _logger.LogInformation("Processing timeout for order {RecordCode}, rolling back stock", recordcode);
+                
+                // 回滾庫存
+                await _redisService.RollbackStockAsync(recordcode);
+                
+                // 更新訂單狀態為已取消
+                await _orderRepostory.UpdateOrderStatusAsync(recordcode, (int)OrderStatus.Canceled);
+                
+                _logger.LogInformation("Order {RecordCode} timeout processed successfully", recordcode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling order timeout for order {RecordCode}", recordcode);
+                throw;
+            }
+
+        }
 
         private static OrderInfomationDTO fakeOderInfo = new OrderInfomationDTO
         {

@@ -3,7 +3,7 @@ using Application;
 using Application.DTOs;
 using Application.Interfaces;
 using Application.Oauth;
-using Infrastructure.Interfaces;
+using Common.Interfaces.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 

@@ -1,11 +1,6 @@
 ﻿using Application.DTOs;
 using Domain.Entities;
 using Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Extensions
 {
@@ -33,7 +28,7 @@ namespace Application.Extensions
                         SKU = op.ProductVariant.SKU,
                         Stock = op.ProductVariant.Stock,
                         Price = op.ProductVariant.VariantPrice,
-                        DiscountPrice=CalculateDiscountPrice(op.ProductVariant)
+                        DiscountPrice = CalculateDiscountPrice(op.ProductVariant)
                     }
                 }).ToList(),
 

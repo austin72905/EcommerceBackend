@@ -1,17 +1,19 @@
 ﻿using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Domain.Interfaces.Services;
-using Infrastructure.Utils.EncryptMethod;
+using Common.Interfaces.Infrastructure;
 
 namespace Domain.Services
 {
     public class UserDomainService : IUserDomainService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IEncryptionService _encryptionService;
 
-        public UserDomainService(IUserRepository userRepository)
+        public UserDomainService(IUserRepository userRepository, IEncryptionService encryptionService)
         {
             _userRepository = userRepository;
+            _encryptionService = encryptionService;
         }
 
         public void UpdateUser(User user, User updateInfo)
@@ -93,7 +95,7 @@ namespace Domain.Services
                     };
                 }
 
-                if (!BCryptUtils.VerifyPassword(oldPassword, user.PasswordHash))
+                if (!_encryptionService.VerifyPassword(oldPassword, user.PasswordHash))
                 {
                    
                     return new DomainServiceResult<object>
@@ -130,7 +132,7 @@ namespace Domain.Services
 
         public void ChangePassword(User user, string newPassword)
         {
-            user.PasswordHash = BCryptUtils.HashPassword(newPassword);
+            user.PasswordHash = _encryptionService.HashPassword(newPassword);
         }
 
 

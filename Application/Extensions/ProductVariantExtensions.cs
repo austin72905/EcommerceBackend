@@ -1,10 +1,5 @@
 ﻿using Application.DTOs;
 using Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Extensions
 {
@@ -21,7 +16,7 @@ namespace Application.Extensions
                 SKU = variant.SKU,
                 Price = variant.VariantPrice,
                 //DiscountPrice = variant.ProductVariantDiscounts?.FirstOrDefault()?.Discount.DiscountAmount ?? variant.VariantPrice
-                DiscountPrice= CalculateDiscountPrice(variant)
+                DiscountPrice = CalculateDiscountPrice(variant)
             };
         }
 
@@ -47,7 +42,7 @@ namespace Application.Extensions
         private static int? CalculateDiscountPrice(ProductVariant productVariant)
         {
 
-            if(productVariant.ProductVariantDiscounts == null)
+            if (productVariant.ProductVariantDiscounts == null)
             {
                 return null;
             }

@@ -85,6 +85,16 @@ namespace DataSource.Repositories
 
         }
 
+
+        public async Task UpdateOrderStatusAsync(string recordcode,int status)
+        {
+            await _dbSet
+                    .Where(o => o.RecordCode == recordcode)
+                    .ExecuteUpdateAsync(set => set
+                    .SetProperty(prop => prop.Status, status)
+                    .SetProperty(prop => prop.UpdatedAt, DateTime.Now));
+        }
+
         
     }
 }

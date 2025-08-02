@@ -7,7 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Application.Extensions;
 using Application.DTOs;
-using Infrastructure.Utils.EncryptMethod;
+using Common.Interfaces.Infrastructure;
+using Moq;
 
 namespace Application.Tests.Extensions
 {
@@ -132,14 +133,18 @@ namespace Application.Tests.Extensions
                 Password = "securepassword"
             };
 
+            var mockEncryptionService = new Mock<IEncryptionService>();
+            mockEncryptionService.Setup(x => x.HashPassword(It.IsAny<string>()))
+                .Returns((string password) => $"hashed_{password}");
+
             // Act
-            var user = signUpDto.ToUserEntity();
+            var user = signUpDto.ToUserEntity(mockEncryptionService.Object);
 
             // Assert
             Assert.AreEqual(signUpDto.Username, user.Username);
             Assert.AreEqual(signUpDto.Email, user.Email);
             Assert.AreEqual(signUpDto.NickName, user.NickName);
-            Assert.IsTrue(BCryptUtils.VerifyPassword(signUpDto.Password, user.PasswordHash)); // 密碼哈希驗證
+            Assert.AreEqual($"hashed_{signUpDto.Password}", user.PasswordHash); // 密碼哈希驗證
             Assert.AreEqual("user", user.Role); // 預設值
             Assert.IsNotNull(user.CreatedAt);
             Assert.IsNotNull(user.UpdatedAt);

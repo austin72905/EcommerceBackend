@@ -2,7 +2,7 @@
 using Application.DTOs;
 using Domain.Enums;
 using EcommerceBackend.Models;
-using Infrastructure.Interfaces;
+using Common.Interfaces.Infrastructure;
 using System.Linq;
 using System.Text.Json;
 
@@ -100,7 +100,7 @@ namespace EcommerceBackend.MiddleWares
         private static Dictionary<string, HashSet<string>> AuthPathRules = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
         {
             { "/user", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "/user/UserRegister", "/user/UserLogin", "/user/AuthLogin" } },
-            { "/order", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { } } // 無排除路径
+            { "/order", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "/order/testdelayedmessage", "/order/quicktestdelayedmessage", "/order/diagnoserabbitmq" } } // 排除測試和診斷 API
         };
 
         internal bool HaveAuthPath(string path)

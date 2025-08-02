@@ -1,7 +1,7 @@
 ﻿using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Domain.Services;
-using Infrastructure.Utils.EncryptMethod;
+using Common.Interfaces.Infrastructure;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -16,12 +16,21 @@ namespace Domain.Tests.Services
     {
         private UserDomainService _userDomainService;
         private Mock<IUserRepository> _userRepositoryMock;
+        private Mock<IEncryptionService> _encryptionServiceMock;
 
         [SetUp]
         public void Setup()
         {
             _userRepositoryMock = new Mock<IUserRepository>();
-            _userDomainService = new UserDomainService(_userRepositoryMock.Object);
+            _encryptionServiceMock = new Mock<IEncryptionService>();
+            
+            // 設定 Mock 行為
+            _encryptionServiceMock.Setup(x => x.HashPassword(It.IsAny<string>()))
+                .Returns((string password) => $"hashed_{password}");
+            _encryptionServiceMock.Setup(x => x.VerifyPassword(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns((string password, string hash) => hash == $"hashed_{password}");
+            
+            _userDomainService = new UserDomainService(_userRepositoryMock.Object, _encryptionServiceMock.Object);
         }
 
         [Test]
@@ -126,7 +135,7 @@ namespace Domain.Tests.Services
         public void EnsurePasswordCanBeChanged_InvalidOldPassword_ReturnIsSuccessFail()
         {
             // Arrange
-            var user = new User { PasswordHash = BCryptUtils.HashPassword("correct-password") };
+            var user = new User { PasswordHash = "hashed_correct-password" };
 
             var result =_userDomainService.EnsurePasswordCanBeChanged(user, "wrong-password", "new-password");
             // Act & Assert
@@ -139,7 +148,7 @@ namespace Domain.Tests.Services
         public void EnsurePasswordCanBeChanged_SameOldAndNewPassword_ReturnIsSuccessFail()
         {
             // Arrange
-            var user = new User { PasswordHash = BCryptUtils.HashPassword("password") };
+            var user = new User { PasswordHash = "hashed_password" };
 
             var result = _userDomainService.EnsurePasswordCanBeChanged(user, "password", "password");
 
@@ -154,7 +163,7 @@ namespace Domain.Tests.Services
         public void EnsurePasswordCanBeChanged_ValidOldPasswordAndNewPassword_ReturnIsSuccessTrue()
         {
             // Arrange
-            var user = new User { PasswordHash = BCryptUtils.HashPassword("password") };
+            var user = new User { PasswordHash = "hashed_password" };
 
             var result = _userDomainService.EnsurePasswordCanBeChanged(user, "password", "new-password");
 
@@ -178,7 +187,7 @@ namespace Domain.Tests.Services
             _userDomainService.ChangePassword(user, newPassword);
 
             // Assert
-            Assert.IsTrue(BCryptUtils.VerifyPassword(newPassword, user.PasswordHash));
+            Assert.AreEqual($"hashed_{newPassword}", user.PasswordHash);
         }
     }
 }

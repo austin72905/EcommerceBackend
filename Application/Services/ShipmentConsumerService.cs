@@ -1,4 +1,4 @@
-﻿using Infrastructure.Interfaces;
+﻿using Common.Interfaces.Infrastructure;
 using Infrastructure.MQ;
 using Microsoft.Extensions.Hosting;
 using System;
