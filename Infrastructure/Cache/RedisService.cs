@@ -428,5 +428,100 @@ namespace Infrastructure.Cache
 
             return result ?? null ;
         }
+
+
+
+        public async Task<bool> IsRateLimitExceededAsync(string userId, string apiKey)
+        {
+            string key = $"ratelimit:{apiKey}:{userId}";
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            var (maxTokens, refillRate) = GetTokenBucketRule(apiKey);
+
+            string luaScript = @"
+            -- KEYS[1] = Redis key（每個使用者 + API 一組 key）
+            -- ARGV[1] = maxTokens（桶子的最大容量）
+            -- ARGV[2] = refillRate（每秒補充多少 token，可以是小數）
+            -- ARGV[3] = now（目前時間戳（秒））
+
+            -- 把參數取出
+            local key = KEYS[1]
+            local maxTokens = tonumber(ARGV[1])
+            local refillRate = tonumber(ARGV[2])
+            local now = tonumber(ARGV[3])
+
+            -- 從 Redis Hash 裡一次讀出目前可用 token 數量 和 上次補充時間戳
+            local bucket = redis.call('HMGET', key, 'tokens', 'lastRefillTs')
+
+            -- 沒有的話就給預設值（第一次初始化）
+            local tokens = tonumber(bucket[1]) or maxTokens
+            local lastRefillTs = tonumber(bucket[2]) or now
+
+            -- 計算從上次補充到現在經過幾秒
+            local delta = math.max(0, now - lastRefillTs)
+
+            -- 根據 refillRate 計算出應該補幾個 token  ， 假設 refillRate = 2 tokens/sec，且距離上次補充已過 3 秒，就會補 6 個 token
+            local refill = delta * refillRate
+
+            -- 目前 token 數量 = 原本剩下的 + 新補的，但不能超過桶子最大容量
+            tokens = math.min(maxTokens, tokens + refill)
+            
+            -- 如果剩下不到 1 個 token，代表不能通過限流，直接 return 0（阻擋請求）
+            if tokens < 1 then
+                return 0
+            end
+            
+            -- 可以通過，扣掉 1 個令牌
+            tokens = tokens - 1
+
+            -- 更新 Redis 中目前 token 數量與上次補充時間
+            redis.call('HMSET', key, 'tokens', tokens, 'lastRefillTs', now)
+
+            -- 設定過期時間（如果 60 秒內沒再使用這個 key，它會被 Redis 自動清除。）
+            redis.call('EXPIRE', key, 60)
+
+            -- 成功通過限流，return 1
+            return 1
+            ";
+
+            var result = (int)await _db.ScriptEvaluateAsync(
+                luaScript,
+                new RedisKey[] { key },
+                new RedisValue[] { maxTokens, refillRate, now }
+            );
+
+            return result == 1;
+        }
+
+
+        private (int maxTokens, double refillRate) GetTokenBucketRule(string apiKey)
+        {
+
+            /*
+                元祖 () 代表意義
+                最大突發請求數  補充速率
+                ex: (3,0.2) 代表 最大突發請求數  3 次 , 補充速率 每秒 0.2 次
+             
+             
+             */
+
+            return apiKey switch
+            {
+                "user/login" => (3, 0.2),   // 每 5 秒一次 (因為每秒0.2次)
+                "order/submitorder" => (5, 1.0),   // 每秒最多 1 次， 最大突發請求數  5 次
+                "product/list" => (5, 2.0),// 非常寬鬆 每秒 10 次
+                _ => (5, 1), //  如果是 0.1 就會變成 1/ 0.1 =10秒補一個token，前面手賤1秒打完5個，後面就是慢慢等，
+            };
+        }
+
+
+
+
     }
+
+
+
+
+
+
 }

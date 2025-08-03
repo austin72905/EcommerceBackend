@@ -51,5 +51,14 @@ namespace Common.Interfaces.Infrastructure
         /// <param name="orderId"></param>
         /// <returns></returns>
         public Task<object?> RollbackStockAsync(string recordcode);
+
+
+        /// <summary>
+        /// api 限流 token bucket ， 每個用戶都有自己的token bucket，是針對單個用戶的限流
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public Task<bool> IsRateLimitExceededAsync(string userId, string apiKey);
     }
 }

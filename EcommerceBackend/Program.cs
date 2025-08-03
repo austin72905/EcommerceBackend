@@ -198,9 +198,11 @@ app.UseCors(builder=>builder.WithOrigins("http://localhost:3000").AllowAnyHeader
 app.UseMiddleware<AuthenticationMiddleware>();
 // 啟用日誌中介軟體
 app.UseMiddleware<LoggingMiddleware>();
+// 註冊 Middleware
+app.UseMiddleware<RateLimitMiddleware>();
 
 // 移除 HTTPS 重導向
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
