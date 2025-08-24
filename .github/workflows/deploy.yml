@@ -36,15 +36,17 @@ jobs:
       - name: Run EcommerceBackend.Tests
         run: dotnet test ./EcommerceBackend.Tests/EcommerceBackend.Tests.csproj --verbosity normal
       
-      # 部屬到GCP
-      - name: Deploy ro GCP CM
-        if: success()
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          REMOTE_USER: ${{ secrets.REMOTE_USER }}
-          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST "~/deploy-scripts/deploy-compose.sh ecommerce-backend"
+      # 登入 Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 建立 & 推送 Docker image
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-backend:latest
