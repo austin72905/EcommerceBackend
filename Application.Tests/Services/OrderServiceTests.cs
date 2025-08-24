@@ -280,6 +280,10 @@ namespace Application.Tests.Services
                 }
             };
 
+            _redisServiceMock
+                .Setup(r => r.CheckAndHoldStockAsync(It.IsAny<string>(), It.IsAny<Dictionary<int, int>>()))
+                .ReturnsAsync("{\"Status\":\"ok\"}");
+
             _productRepositoryMock
                 .Setup(repo => repo.GetProductVariants(It.IsAny<List<int>>()))
                 .ReturnsAsync(productVariants);
