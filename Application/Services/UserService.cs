@@ -83,11 +83,22 @@ namespace Application.Services
 
                 if (user != null)
                 {
-                    // 將user 資料改變
-                    var updateInfo = userDto.ToUserEntity();
+                    // 使用富領域模型方法更新用戶資料
+                    DateTime? birthday = null;
+                    if (!string.IsNullOrWhiteSpace(userDto.Birthday))
+                    {
+                        if (DateTime.TryParse(userDto.Birthday, out DateTime parsedBirthday))
+                        {
+                            birthday = parsedBirthday;
+                        }
+                    }
 
-                    // 將user 資料改變
-                    _userDomainService.UpdateUser(user, updateInfo);
+                    user.UpdateProfile(
+                        nickName: userDto.NickName,
+                        phoneNumber: userDto.PhoneNumber,
+                        gender: userDto.Gender,
+                        birthday: birthday
+                    );
 
                     await _userRepository.SaveChangesAsync();
 
@@ -163,6 +174,10 @@ namespace Application.Services
 
 
 
+
+                // 使用富領域模型方法記錄登入時間
+                user.RecordLogin();
+                await _userRepository.SaveChangesAsync();
 
                 var userDto = user.ToUserInfoDTO();
 
@@ -585,25 +600,24 @@ namespace Application.Services
                 }
 
 
-                //檢查DB 是否有該google id (sub)的用戶，沒有就註冊
+                //檢查DB 是否有該google id (sub)的用戶，沒有就註冊（使用富領域模型）
                 var user = await _userRepository.GetUserIfExistsByGoogleID(jwtUserInfo.Sub);
 
                 if (user == null)
                 {
+                    // 使用富領域模型的工廠方法創建新用戶
                     var userRegistInfo = jwtUserInfo.ToUserEntity();
-                    //var userRegistInfo = new User()
-                    //{
-                    //    Email = jwtUserInfo.Email,
-                    //    GoogleId = jwtUserInfo.Sub,
-                    //    Username = jwtUserInfo.Name,
-                    //    CreatedAt = DateTime.Now
-                    //};
-                    //await _userRepository.AddUser(userRegistInfo);
                     await _userRepository.AddAsync(userRegistInfo);
                     await _userRepository.SaveChangesAsync();
 
-                    // 從新獲取
+                    // 重新獲取
                     user = await _userRepository.GetUserIfExistsByGoogleID(jwtUserInfo.Sub);
+                }
+                else
+                {
+                    // 已存在的用戶，記錄登入時間
+                    user.RecordLogin();
+                    await _userRepository.SaveChangesAsync();
                 }
 
                 //將用戶訊息存到redis

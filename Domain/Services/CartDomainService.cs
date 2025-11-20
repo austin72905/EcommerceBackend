@@ -11,70 +11,25 @@ namespace Domain.Services
     public class CartDomainService: ICartDomainService
     {
         /// <summary>
-        /// 合併購物車內容
+        /// 合併購物車內容 - 已棄用，請直接使用 Cart.MergeItems()
         /// </summary>
-        /// <param name="cart"></param>
-        /// <param name="frontEndCartItems"></param>
-        /// <param name="productVariants"></param>
+        [Obsolete("此方法已棄用，請直接使用 Cart.MergeItems() 方法")]
         public void MergeCartItems(Cart cart, List<CartItem> frontEndCartItems, IEnumerable<ProductVariant> productVariants)
         {
-            foreach (var frontEndItem in frontEndCartItems)
-            {
-                var existingItem = cart.CartItems
-                    .FirstOrDefault(ci => ci.ProductVariantId == frontEndItem.ProductVariantId);
-
-                if (existingItem != null)
-                {
-                    // 如果已存在，則更新數量
-                    existingItem.Quantity = Math.Max(existingItem.Quantity, frontEndItem.Quantity);
-                }
-                else
-                {
-                    // 如果不存在，則新增一個新的購物車項目
-                    cart.CartItems.Add(new CartItem
-                    {
-                        ProductVariant = productVariants.FirstOrDefault(ci => ci.Id == frontEndItem.ProductVariantId),
-                        ProductVariantId = frontEndItem.ProductVariantId,
-                        Quantity = frontEndItem.Quantity
-                    });
-                }
-            }
-
-            // 更新購物車的最後更新時間
-            cart.UpdatedAt = DateTime.Now;
+            // 直接使用富領域模型方法
+            cart.MergeItems(frontEndCartItems, productVariants);
         }
 
 
 
         /// <summary>
-        /// 清空並重建購物車
+        /// 清空並重建購物車 - 已棄用，請直接使用 Cart.Rebuild()
         /// </summary>
-        /// <param name="cart"></param>
-        /// <param name="frontEndCartItems"></param>
-        /// <param name="productVariants"></param>
+        [Obsolete("此方法已棄用，請直接使用 Cart.Rebuild() 方法")]
         public void ClearAndRebuildCart(Cart cart, List<CartItem> frontEndCartItems, IEnumerable<ProductVariant> productVariants)
         {
-            // 清空當前購物車
-            cart.CartItems.Clear();
-
-            // 根據前端數據重新添加項目
-            foreach (var frontEndItem in frontEndCartItems)
-            {
-                var productVariant = productVariants.FirstOrDefault(ci => ci.Id == frontEndItem.ProductVariantId);
-
-                if (productVariant != null)
-                {
-                    cart.CartItems.Add(new CartItem
-                    {
-                        ProductVariant = productVariant,
-                        ProductVariantId = frontEndItem.ProductVariantId,
-                        Quantity = frontEndItem.Quantity
-                    });
-                }
-            }
-
-            // 更新購物車的最後更新時間
-            cart.UpdatedAt = DateTime.Now;
+            // 直接使用富領域模型方法
+            cart.Rebuild(frontEndCartItems, productVariants);
         }
     }
 }

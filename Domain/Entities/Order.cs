@@ -1,34 +1,276 @@
-﻿namespace Domain.Entities
+﻿using Domain.Enums;
+using Domain.Interfaces;
+using Domain.ValueObjects;
+
+namespace Domain.Entities
 {
-    public class Order
+    /// <summary>
+    /// 訂單聚合根 - 富領域模型
+    /// 
+    /// 聚合邊界：
+    /// - Order（聚合根）
+    /// - OrderProduct（聚合內實體）
+    /// - OrderStep（聚合內實體）
+    /// - Shipment（聚合內實體）
+    /// 
+    /// 不變性（Invariants）：
+    /// 1. 訂單總價 = 所有訂單商品總價 + 運費
+    /// 2. 訂單狀態轉換必須符合業務規則（透過 CanTransitionTo 驗證）
+    /// 3. 只能在 Created 狀態時添加商品
+    /// 4. 只能取消 Created 或 WaitingForPayment 狀態的訂單
+    /// 5. 訂單必須有至少一個 OrderStep 記錄狀態變更
+    /// 6. 訂單必須有至少一個 Shipment 記錄物流狀態
+    /// 7. RecordCode 必須唯一且不可變
+    /// </summary>
+    public class Order : IAggregateRoot
     {
-        public int Id { get; set; }
-        public int UserId { get; set; }
-        public string RecordCode { get; set; }
-        public int? AddressId { get; set; }
-        public string Receiver { get; set; }
-        public string PhoneNumber { get; set; }
-        public string ShippingAddress { get; set; }
-        public string RecieveWay { get; set; }
-        public string RecieveStore { get; set; }
-        public string Email { get; set; }
-        public int OrderPrice { get; set; }
-        // 訂單狀態
-        public int Status { get; set; }
-        // 支付方式
-        public int PayWay { get; set; }
-        public int ShippingPrice { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        // 私有構造函數，防止外部直接創建
+        private Order() 
+        { 
+            OrderProducts = new List<OrderProduct>();
+            OrderSteps = new List<OrderStep>();
+            Shipments = new List<Shipment>();
+        }
 
+        // 工廠方法：創建新訂單（使用值對象進行驗證）
+        public static Order Create(
+            int userId, 
+            string receiver, 
+            string phoneNumber, 
+            string shippingAddress, 
+            string recieveWay, 
+            string email,
+            int shippingPrice,
+            string recieveStore = "")
+        {
+            // 使用值對象進行驗證
+            var emailValue = ValueObjects.Email.Create(email);
+            var phoneValue = ValueObjects.PhoneNumber.Create(phoneNumber);
+            var addressValue = ValueObjects.ShippingAddress.Create(receiver, phoneNumber, shippingAddress, recieveWay, recieveStore);
+            var shippingMoney = ValueObjects.Money.Create(shippingPrice);
 
-        public User User { get; set; }
-        public UserShipAddress Address { get; set; }
-        public Payment Payment { get; set; }
+            var order = new Order
+            {
+                RecordCode = GenerateRecordCode(),
+                UserId = userId,
+                Status = (int)OrderStatus.Created,
+                Receiver = receiver,
+                PhoneNumber = phoneValue.Value, // 存儲為字串（EF Core 映射）
+                ShippingAddress = shippingAddress,
+                RecieveWay = recieveWay,
+                RecieveStore = recieveStore,
+                Email = emailValue.Value, // 存儲為字串（EF Core 映射）
+                ShippingPrice = shippingPrice,
+                OrderPrice = 0, // 初始為 0，待添加商品後計算
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
 
-        public ICollection<OrderProduct> OrderProducts { get; set; }
-        public ICollection<OrderStep> OrderSteps { get; set; }
+            // 添加初始訂單步驟
+            order.AddOrderStep(OrderStatus.Created);
+            
+            // 添加初始物流狀態
+            order.AddShipment(ShipmentStatus.Pending);
 
-        public ICollection<Shipment> Shipments { get; set; }
+            return order;
+        }
+
+        // 只讀屬性或私有 setter
+        public int Id { get; private set; }
+        public int UserId { get; private set; }
+        public string RecordCode { get; private set; }
+        public int? AddressId { get; private set; }
+        public string Receiver { get; private set; }
+        public string PhoneNumber { get; private set; }
+        public string ShippingAddress { get; private set; }
+        public string RecieveWay { get; private set; }
+        public string RecieveStore { get; private set; }
+        public string Email { get; private set; }
+        public int OrderPrice { get; private set; }
+        public int Status { get; private set; }
+        public int PayWay { get; private set; }
+        public int ShippingPrice { get; private set; }
+
+        // ============ 值對象屬性（用於業務邏輯） ============
+
+        /// <summary>
+        /// Email 值對象
+        /// </summary>
+        public ValueObjects.Email EmailValue => ValueObjects.Email.Create(Email);
+
+        /// <summary>
+        /// 電話號碼值對象
+        /// </summary>
+        public ValueObjects.PhoneNumber PhoneNumberValue => ValueObjects.PhoneNumber.Create(PhoneNumber);
+
+        /// <summary>
+        /// 收貨地址值對象
+        /// </summary>
+        public ValueObjects.ShippingAddress ShippingAddressValue => ValueObjects.ShippingAddress.Create(
+            Receiver, PhoneNumber, ShippingAddress, RecieveWay, RecieveStore);
+
+        /// <summary>
+        /// 訂單總價值對象
+        /// </summary>
+        public ValueObjects.Money OrderPriceValue => ValueObjects.Money.Create(OrderPrice);
+
+        /// <summary>
+        /// 運費值對象
+        /// </summary>
+        public ValueObjects.Money ShippingPriceValue => ValueObjects.Money.Create(ShippingPrice);
+        public DateTime CreatedAt { get; private set; }
+        public DateTime UpdatedAt { get; private set; }
+
+        // 導航屬性
+        public User User { get; private set; }
+        public UserShipAddress Address { get; private set; }
+        public Payment Payment { get; private set; }
+        public ICollection<OrderProduct> OrderProducts { get; private set; }
+        public ICollection<OrderStep> OrderSteps { get; private set; }
+        public ICollection<Shipment> Shipments { get; private set; }
+
+        // ============ 業務邏輯方法 ============
+
+        /// <summary>
+        /// 添加訂單商品
+        /// </summary>
+        public void AddOrderProduct(ProductVariant productVariant, int quantity)
+        {
+            if (Status != (int)OrderStatus.Created)
+                throw new InvalidOperationException("只能在訂單創建狀態時添加商品");
+
+            if (productVariant == null)
+                throw new ArgumentNullException(nameof(productVariant));
+
+            if (quantity <= 0)
+                throw new ArgumentException("商品數量必須大於 0", nameof(quantity));
+
+            var orderProduct = OrderProduct.Create(
+                productVariant.Id,
+                productVariant.VariantPrice,
+                quantity,
+                productVariant
+            );
+
+            OrderProducts.Add(orderProduct);
+            UpdatedAt = DateTime.Now;
+        }
+
+        /// <summary>
+        /// 計算訂單總價（使用 Money 值對象）
+        /// 業務邏輯：計算所有訂單商品的總價（含折扣）+ 運費
+        /// </summary>
+        public void CalculateTotalPrice(Domain.Interfaces.Services.IOrderDomainService orderDomainService)
+        {
+            if (orderDomainService == null)
+                throw new ArgumentNullException(nameof(orderDomainService));
+
+            // 使用 Domain Service 計算訂單總價（包含折扣計算）
+            var total = orderDomainService.CalculateOrderTotal(OrderProducts.ToList(), ShippingPrice);
+
+            OrderPrice = total;
+            UpdatedAt = DateTime.Now;
+        }
+
+        /// <summary>
+        /// 取消訂單
+        /// </summary>
+        public void Cancel()
+        {
+            if (Status != (int)OrderStatus.Created && Status != (int)OrderStatus.WaitingForPayment)
+                throw new InvalidOperationException($"訂單狀態 {(OrderStatus)Status} 無法取消");
+
+            Status = (int)OrderStatus.Canceled;
+            UpdatedAt = DateTime.Now;
+            
+            AddOrderStep(OrderStatus.Canceled);
+        }
+
+        /// <summary>
+        /// 標記為已付款
+        /// </summary>
+        public void MarkAsPaid(int paymentMethod)
+        {
+            if (Status != (int)OrderStatus.Created)
+                throw new InvalidOperationException("只能標記創建狀態的訂單為已付款");
+
+            Status = (int)OrderStatus.WaitingForPayment;
+            PayWay = paymentMethod;
+            UpdatedAt = DateTime.Now;
+            
+            AddOrderStep(OrderStatus.WaitingForPayment);
+        }
+
+        /// <summary>
+        /// 更新訂單狀態
+        /// </summary>
+        public void UpdateStatus(OrderStatus newStatus)
+        {
+            // 狀態轉換驗證
+            if (!CanTransitionTo(newStatus))
+                throw new InvalidOperationException($"無法從 {(OrderStatus)Status} 轉換到 {newStatus}");
+
+            Status = (int)newStatus;
+            UpdatedAt = DateTime.Now;
+            
+            AddOrderStep(newStatus);
+        }
+
+        /// <summary>
+        /// 設置收貨地址
+        /// </summary>
+        public void SetAddress(int addressId)
+        {
+            AddressId = addressId;
+            UpdatedAt = DateTime.Now;
+        }
+
+        /// <summary>
+        /// 完成訂單
+        /// </summary>
+        public void Complete()
+        {
+            if (Status != (int)OrderStatus.WaitingForPayment)
+                throw new InvalidOperationException("只能完成已付款的訂單");
+
+            Status = (int)OrderStatus.Completed;
+            UpdatedAt = DateTime.Now;
+            
+            AddOrderStep(OrderStatus.Completed);
+        }
+
+        // ============ 私有輔助方法 ============
+
+        private void AddOrderStep(OrderStatus status)
+        {
+            var orderStep = OrderStep.Create((int)status);
+            OrderSteps.Add(orderStep);
+        }
+
+        private void AddShipment(ShipmentStatus status)
+        {
+            var shipment = Shipment.Create((int)status);
+            Shipments.Add(shipment);
+        }
+
+        private bool CanTransitionTo(OrderStatus newStatus)
+        {
+            var currentStatus = (OrderStatus)Status;
+            
+            // 定義允許的狀態轉換
+            return (currentStatus, newStatus) switch
+            {
+                (OrderStatus.Created, OrderStatus.WaitingForPayment) => true,
+                (OrderStatus.Created, OrderStatus.Canceled) => true,
+                (OrderStatus.WaitingForPayment, OrderStatus.Completed) => true,
+                (OrderStatus.WaitingForPayment, OrderStatus.Canceled) => true,
+                _ => false
+            };
+        }
+
+        private static string GenerateRecordCode()
+        {
+            return $"EC{Guid.NewGuid().ToString("N").Substring(0, 10).ToUpper()}";
+        }
     }
 }

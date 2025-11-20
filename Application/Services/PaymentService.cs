@@ -361,19 +361,12 @@ namespace Application.Services
 
             if (payment != null)
             {
-                payment.PaymentStatus = (byte)OrderStepStatus.OrderCanceled;
-                payment.Order.Status = (int)OrderStepStatus.OrderCanceled;
-                payment.Order.OrderSteps.Add(new Domain.Entities.OrderStep
-                {
-                    OrderId = payment.OrderId,
-                    StepStatus = (int)OrderStepStatus.OrderCanceled,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
-                });
+                // 使用 Payment 的業務方法標記為已取消
+                payment.MarkAsCanceled();
+                // 使用 Order 的業務方法取消訂單
+                payment.Order.Cancel();
 
                 await _paymentRepository.SaveChangesAsync();
-
-
             }
 
             return Fail<object>("交易失敗");
@@ -395,38 +388,24 @@ namespace Application.Services
 
             if (payment != null)
             {
-                // 修改付款狀態
-                // 修改訂單狀態
+                // 檢查是否已經有更新過數據，避免重複回調
                 if(payment.PaymentStatus != (byte)OrderStepStatus.PaymentReceived)
                 {
-                    payment.PaymentStatus = (byte)OrderStepStatus.PaymentReceived;
-                    payment.Order.Status = (int)OrderStepStatus.PaymentReceived;
-                }
-                
+                    // 使用 Payment 的業務方法標記為已付款
+                    payment.MarkAsPaid();
+                    
+                    // 使用 Order 的業務方法標記訂單已付款
+                    // 使用 Order 中已存在的 PayWay 作為付款方式
+                    payment.Order.MarkAsPaid(payment.Order.PayWay);
 
-                // 檢查是否已經有更新過數據，避免重複回調，重複新增
-                if (!payment.Order.OrderSteps.Any(os => os.StepStatus == (int)OrderStepStatus.PaymentReceived))
-                {
-                    payment.Order.OrderSteps.Add(new Domain.Entities.OrderStep
-                    {
-                        OrderId = payment.OrderId,
-                        StepStatus = (int)OrderStepStatus.PaymentReceived,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now,
-                    });
-
-
+                    // 通知物流系統開始處理
                     var message = new
                     {
                         Status = (int)ShipmentStatus.Pending,
                         OrderId = payment.OrderId,
                         RecordCode = payment.Order.RecordCode
                     };
-                    // 模擬通知 shipment
                     await _shipmentProducer.SendMessage(message);
-
-
-                    
                 }
 
                 await _paymentRepository.SaveChangesAsync();

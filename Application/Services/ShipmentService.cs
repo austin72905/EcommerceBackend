@@ -22,19 +22,18 @@ namespace Application.Services
 
             if (shipmentList.ToList().Count == 1)
             {
-                // 模擬處理物流訂單的過程
+                // 模擬處理物流訂單的過程 - 使用富領域模型工廠方法
                 // 以一個定時器10秒新增一次
                 var shipments = new Queue<Shipment>
                     (
                         new[]
                         {
-                            //new Shipment{ ShipmentStatus= (int)ShipmentStatus.Pending,OrderId=orderId },
-                            new Shipment{ ShipmentStatus= (int)ShipmentStatus.Shipped,OrderId=orderId },
-                            new Shipment{ ShipmentStatus= (int)ShipmentStatus.InTransit,OrderId=orderId },
-                            new Shipment{ ShipmentStatus= (int)ShipmentStatus.OutForDelivery,OrderId=orderId },
-                            new Shipment{ ShipmentStatus= (int)ShipmentStatus.Delivered,OrderId=orderId },
-                            new Shipment{ ShipmentStatus= (int)ShipmentStatus.PickedUpByCustomer,OrderId=orderId },
-
+                            //Shipment.CreateForOrder(orderId, (int)ShipmentStatus.Pending),
+                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.Shipped),
+                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.InTransit),
+                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.OutForDelivery),
+                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.Delivered),
+                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.PickedUpByCustomer),
                         }
                     );
                 _queueProcessor.AddQueue(shipments);

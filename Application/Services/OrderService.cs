@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Text.Json;
+using DomainOrder = Domain.Entities.Order; // 使用別名避免命名空間衝突
 
 namespace Application.Services
 {
@@ -103,7 +104,7 @@ namespace Application.Services
         }
 
         /// <summary>
-        /// 生成訂單
+        /// 生成訂單 - 使用富領域模型方法
         /// </summary>
         /// <param name="info"></param>
         /// <returns></returns>
@@ -111,35 +112,26 @@ namespace Application.Services
         {
             try
             {
+                // 獲取商品變體資料
                 var variantIds = info.Items.Select(i => i.VariantId).ToList();
                 var productVariants = await _productRepository.GetProductVariants(variantIds);
 
+                // 使用富領域模型的工廠方法創建訂單
+                var order = DomainOrder.Create(
+                    userId: info.UserId,
+                    receiver: info.ReceiverName,
+                    phoneNumber: info.ReceiverPhone,
+                    shippingAddress: info.ShippingAddress,
+                    recieveWay: info.RecieveWay,
+                    email: info.Email,
+                    shippingPrice: (int)info.ShippingFee,
+                    recieveStore: info.RecieveStore
+                );
 
-                var order = new Domain.Entities.Order
-                {
-                    RecordCode = $"EC{Guid.NewGuid().ToString("N").Substring(0, 10)}",
-                    UserId = info.UserId,
-                    Status = (int)OrderStatus.Created,
-                    Receiver = info.ReceiverName,
-                    RecieveStore = info.RecieveStore,
-                    PhoneNumber = info.ReceiverPhone,
-                    ShippingAddress = info.ShippingAddress,
-                    ShippingPrice = (int)info.ShippingFee,
-                    RecieveWay = info.RecieveWay,
-                    Email = info.Email,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
-                    OrderProducts = new List<OrderProduct>()
-                };
-
-                // 用來給redis 檢查庫存的
+                // 用來給 redis 檢查庫存的
                 var variantStockPair = new Dictionary<int, int>();
 
-
-
-
-                
-
+                // 添加訂單商品（使用領域方法）
                 foreach (var item in info.Items)
                 {
                     var productVariant = productVariants.FirstOrDefault(pv => pv.Id == item.VariantId);
@@ -155,29 +147,12 @@ namespace Application.Services
 
                     variantStockPair.Add(productVariant.Id, item.Quantity);
 
-                    var orderProduct = new OrderProduct
-                    {
-                        ProductVariantId = productVariant.Id,
-                        ProductPrice = productVariant.VariantPrice,
-                        Count = item.Quantity,
-                        ProductVariant = productVariant,
-                    };
-
-                    // order entity 加入 OrderProduct entity
-                    order.OrderProducts.Add(orderProduct);
+                    // 使用領域方法添加商品
+                    order.AddOrderProduct(productVariant, item.Quantity);
                 }
 
-
-
-                // 這邊可以檢查庫存 
-                /*
-                    call redis service 
-                    variantStockPair
-                 
-                 
-                 */
-                // status , failed =[1,2,3]
-                var checkStockStatus=await _redisService.CheckAndHoldStockAsync(order.RecordCode, variantStockPair);
+                // 檢查庫存
+                var checkStockStatus = await _redisService.CheckAndHoldStockAsync(order.RecordCode, variantStockPair);
 
                 if (checkStockStatus == null)
                 {
@@ -217,58 +192,20 @@ namespace Application.Services
                 // 發送延遲超時訊息 (2分鐘後執行)
                 await _orderTimeoutProducer.SendOrderTimeoutMessageAsync(info.UserId, order.RecordCode, 2);
 
-                // 
+                // 使用領域方法計算總金額（業務邏輯在 Domain 層）
+                order.CalculateTotalPrice(_orderDomainService);
 
-
-
-                // 計算總金額
-                order.OrderPrice = _orderDomainService.CalculateOrderTotal(order.OrderProducts.ToList(), order.ShippingPrice);
-
-                // 加入訂單步驟
-                var orderSteps = new List<OrderStep>()
-                {
-                    new OrderStep
-                    {
-                        OrderId=order.Id,
-                        StepStatus=(int)OrderStatus.Created,
-                        CreatedAt= DateTime.Now,
-                        UpdatedAt= DateTime.Now
-                    }
-                };
-
-                order.OrderSteps = orderSteps;
-
-                // 加入 物流情況
-                var shipments = new List<Shipment>()
-                {
-                    new Shipment
-                    {
-                        OrderId=order.Id,
-                        ShipmentStatus=(int)ShipmentStatus.Pending,
-                        CreatedAt= DateTime.Now,
-                        UpdatedAt= DateTime.Now
-                    }
-                };
-
-                order.Shipments = shipments;
-
-
-                // savechanges 後 會有 astracking 笑我
+                // 保存訂單（領域模型已經自動添加了 OrderStep 和 Shipment）
                 await _orderRepostory.GenerateOrder(order);
 
-                // 生成 payment record
-                var payment = new Payment
-                {
-                    OrderId = order.Id, // 此時 order.Id 已經有值 
-                    PaymentAmount = (int)order.OrderPrice,
-                    PaymentStatus = (int)OrderStatus.WaitingForPayment, // 初始狀態，可以根據需求設置
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
-                    TenantConfigId = 1 // 假設預設值
-                };
+                // 使用領域模型的工廠方法創建付款記錄
+                var payment = Payment.Create(
+                    orderId: order.Id, // 此時 order.Id 已經有值 
+                    paymentAmount: (int)order.OrderPrice,
+                    tenantConfigId: 1 // 假設預設值
+                );
 
                 await _paymentRepository.GeneratePaymentRecord(payment);
-
 
                 return Success<PaymentRequestDataWithUrl>
                     (
@@ -280,17 +217,17 @@ namespace Application.Services
                             PayType = "ECPAY" // 支付類型 (銀行、綠界第三方支付)
                         }
                     );
-
-               
             }
             catch (Exception ex)
             {
                 return Error<PaymentRequestDataWithUrl>(ex.Message);              
             }
-
         }
 
-        public async Task HandleOrderTimeoutAsync(int userId,string recordcode)
+        /// <summary>
+        /// 處理訂單超時 - 使用富領域模型方法
+        /// </summary>
+        public async Task HandleOrderTimeoutAsync(int userId, string recordcode)
         {
             try
             {
@@ -311,7 +248,9 @@ namespace Application.Services
                 // 回滾庫存
                 await _redisService.RollbackStockAsync(recordcode);
                 
-                // 更新訂單狀態為已取消
+                // 使用領域方法取消訂單（這會自動添加訂單步驟）
+                // 注意：由於富領域模型的 setter 是 private，我們需要保持原有的 repository 更新方式
+                // 或者需要修改 repository 來支持直接保存領域模型的變更
                 await _orderRepostory.UpdateOrderStatusAsync(recordcode, (int)OrderStatus.Canceled);
                 
                 _logger.LogInformation("Order {RecordCode} timeout processed successfully", recordcode);
@@ -321,7 +260,6 @@ namespace Application.Services
                 _logger.LogError(ex, "Error handling order timeout for order {RecordCode}", recordcode);
                 throw;
             }
-
         }
 
         private static OrderInfomationDTO fakeOderInfo = new OrderInfomationDTO

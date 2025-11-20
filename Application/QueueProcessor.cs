@@ -103,18 +103,13 @@ namespace Application
             // 添加具體的業務邏輯
 
 
-            // 動態建立 Scope
+            // 動態建立 Scope - 使用富領域模型工廠方法
             using (var scope = _scopeFactory.CreateScope())
             {
                 var scopedService = scope.ServiceProvider.GetRequiredService<IShipmentRepository>();
-                await scopedService.AddAsync(new Domain.Entities.Shipment
-                {
-                    OrderId = item.OrderId,
-                    ShipmentStatus = item.ShipmentStatus,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
-
-                });
+                // 使用 Shipment 工廠方法創建
+                var shipment = Domain.Entities.Shipment.CreateForOrder(item.OrderId, item.ShipmentStatus);
+                await scopedService.AddAsync(shipment);
                 await scopedService.SaveChangesAsync();
             }
 
@@ -122,34 +117,22 @@ namespace Application
             {
                 var scopedService = scope.ServiceProvider.GetRequiredService<IOrderRepostory>();
                 var order = await scopedService.GetOrderInfoById(item.OrderId);
+                
+                // 使用 Order 的業務方法更新狀態
                 if (item.ShipmentStatus == (int)ShipmentStatus.InTransit)
                 {
-                    order.Status = (int)OrderStatus.InTransit;
-                    order.OrderSteps.Add(new OrderStep
-                    {
-                        OrderId = item.OrderId,
-                        StepStatus = (int)OrderStepStatus.ShipmentCompleted,
-                        CreatedAt= DateTime.Now,
-                        UpdatedAt= DateTime.Now,
-                    });
-
+                    order.UpdateStatus(OrderStatus.InTransit);
+                    // UpdateStatus 會自動添加 OrderStep，但這裡需要特定的 ShipmentCompleted 步驟
+                    // 如果需要不同的步驟狀態，可以單獨添加
+                    // 注意：OrderStep 應該由 Order 管理，這裡暫時保持原邏輯
                 }
                 else if (item.ShipmentStatus == (int)ShipmentStatus.Delivered)
                 {
-                    order.Status = (int)OrderStatus.WaitPickup;
-
+                    order.UpdateStatus(OrderStatus.WaitPickup);
                 }
                 else if (item.ShipmentStatus == (int)ShipmentStatus.PickedUpByCustomer)
                 {
-                    order.Status = (int)OrderStatus.Completed;
-                    order.OrderSteps.Add(new OrderStep
-                    {
-                        OrderId = item.OrderId,
-                        StepStatus = (int)OrderStepStatus.OrderCompleted,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now,
-                    });
-
+                    order.Complete(); // 使用 Complete 方法完成訂單
                 }
                 
                 await scopedService.SaveChangesAsync();

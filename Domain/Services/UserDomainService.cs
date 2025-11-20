@@ -16,16 +16,24 @@ namespace Domain.Services
             _encryptionService = encryptionService;
         }
 
+        /// <summary>
+        /// 更新用戶資料 - 已棄用，請直接使用 User.UpdateProfile()
+        /// </summary>
+        [Obsolete("此方法已棄用，請直接使用 User.UpdateProfile() 方法")]
         public void UpdateUser(User user, User updateInfo)
         {
-            user.Username = updateInfo.Username;
-            user.Email = updateInfo.Email ?? string.Empty;// 確保不為 null
-            user.NickName = updateInfo.NickName;
-            user.PhoneNumber = updateInfo.PhoneNumber;
-            user.Gender = updateInfo.Gender;
-            user.Picture = updateInfo.Picture;
-            user.Birthday = updateInfo.Birthday;
-            user.UpdatedAt = DateTime.Now;   // 新增或自訂
+            // 使用富領域模型方法
+            user.UpdateProfile(
+                nickName: updateInfo.NickName,
+                phoneNumber: updateInfo.PhoneNumber,
+                gender: updateInfo.Gender,
+                birthday: updateInfo.Birthday
+            );
+
+            if (!string.IsNullOrWhiteSpace(updateInfo.Picture))
+            {
+                user.UpdatePicture(updateInfo.Picture);
+            }
         }
 
 
@@ -130,9 +138,13 @@ namespace Domain.Services
 
         }
 
+        /// <summary>
+        /// 修改密碼 - 使用富領域模型方法
+        /// </summary>
         public void ChangePassword(User user, string newPassword)
         {
-            user.PasswordHash = _encryptionService.HashPassword(newPassword);
+            var hashedPassword = _encryptionService.HashPassword(newPassword);
+            user.UpdatePassword(hashedPassword);
         }
 
 

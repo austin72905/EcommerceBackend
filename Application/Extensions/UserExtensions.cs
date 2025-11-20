@@ -7,18 +7,17 @@ namespace Application.Extensions
 {
     public static class UserExtensions
     {
+        /// <summary>
+        /// Google 用戶資料轉換為用戶實體 - 使用富領域模型工廠方法
+        /// </summary>
         public static User ToUserEntity(this GoogleUserInfo jwtUserInfo)
         {
-            return new User
-            {
-                Email = jwtUserInfo.Email,
-                GoogleId = jwtUserInfo.Sub,
-                Picture = jwtUserInfo.Picture,
-                NickName = jwtUserInfo.Name,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-                LastLogin = DateTime.Now,
-            };
+            return User.CreateWithGoogle(
+                email: jwtUserInfo.Email,
+                googleId: jwtUserInfo.Sub,
+                nickName: jwtUserInfo.Name,
+                picture: jwtUserInfo.Picture
+            );
         }
 
         public static UserInfoDTO ToUserInfoDTO(this User user)
@@ -39,41 +38,39 @@ namespace Application.Extensions
             };
         }
 
+        /// <summary>
+        /// DTO 轉換為用戶實體 - 已棄用，此方法不應用於創建新用戶
+        /// 請使用 User.CreateWithPassword() 或 User.CreateWithGoogle()
+        /// </summary>
+        [Obsolete("此方法已棄用，請使用 User 的工廠方法創建用戶，或使用 User.UpdateProfile() 更新現有用戶")]
         public static User ToUserEntity(this UserInfoDTO dto)
         {
-            DateTime? birthday = null;
-            DateTime.TryParse(dto.Birthday, out DateTime parsedBirthday);
-            birthday = parsedBirthday;
-            return new User
-            {
-                Id = dto.UserId,
-                Username = dto.Username,
-                Email = dto.Email ?? string.Empty, // 確保不為 null
-                NickName = dto.NickName,
-                PhoneNumber = dto.PhoneNumber,
-                Gender = dto.Gender,
-                Picture = dto.Picture,
-                Birthday = birthday,
-                Role = dto.Type ?? "user", // 預設為 "user" 角色
-                CreatedAt = DateTime.Now,   // 新增或自訂
-                UpdatedAt = DateTime.Now,   // 新增或自訂
-                LastLogin = DateTime.Now    // 新增或自訂
-            };
+            // 注意：這個方法實際上不應該被使用，因為無法透過 DTO 創建完整的 User
+            // 保留此方法僅為向後兼容，但標記為過時
+            throw new NotSupportedException(
+                "無法從 UserInfoDTO 創建 User 實體。" +
+                "請使用 User.CreateWithPassword() 或 User.CreateWithGoogle() 創建新用戶，" +
+                "或使用 User.UpdateProfile() 更新現有用戶。");
         }
 
+        /// <summary>
+        /// 註冊 DTO 轉換為用戶實體 - 使用富領域模型工廠方法
+        /// </summary>
         public static User ToUserEntity(this SignUpDTO signUpDto, IEncryptionService encryptionService)
         {
-            return new User
+            var user = User.CreateWithPassword(
+                email: signUpDto.Email,
+                username: signUpDto.Username,
+                passwordHash: encryptionService.HashPassword(signUpDto.Password)
+            );
+
+            // 設置額外資訊
+            if (!string.IsNullOrWhiteSpace(signUpDto.NickName))
             {
-                Username = signUpDto.Username,
-                Email = signUpDto.Email,
-                NickName = signUpDto.NickName,
-                PasswordHash = encryptionService.HashPassword(signUpDto.Password), // 將密碼進行哈希處理
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-                LastLogin = DateTime.Now,
-                Role = "user" // 可以根據需求自訂
-            };
+                user.UpdateProfile(nickName: signUpDto.NickName);
+            }
+
+            return user;
         }
     }
 }
