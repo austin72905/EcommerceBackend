@@ -10,8 +10,6 @@ using Domain.Interfaces.Services;
 using Infrastructure.Cache;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using StackExchange.Redis;
-using System.Text.Json;
 using DomainOrder = Domain.Entities.Order; // 使用別名避免命名空間衝突
 
 namespace Application.Services
@@ -21,7 +19,7 @@ namespace Application.Services
         private readonly IOrderRepostory _orderRepostory;
         private readonly IProductRepository _productRepository;
         private readonly IPaymentRepository _paymentRepository;
-        private readonly IRedisService _redisService;
+        private readonly IInventoryService _inventoryService;
         private readonly IOrderTimeoutProducer _orderTimeoutProducer;
 
         private readonly IOrderDomainService _orderDomainService;
@@ -29,7 +27,7 @@ namespace Application.Services
         private readonly IConfiguration _configuration;
 
         public OrderService(
-            IRedisService redisService,
+            IInventoryService inventoryService,
             IOrderRepostory orderRepostory, 
             IProductRepository productRepository, 
             IPaymentRepository paymentRepository, 
@@ -43,7 +41,7 @@ namespace Application.Services
             _paymentRepository = paymentRepository;
             _orderDomainService = orderDomainService;
             _configuration = configuration;
-            _redisService = redisService;
+            _inventoryService = inventoryService;
             _orderTimeoutProducer = orderTimeoutProducer;
         }
 
@@ -128,8 +126,8 @@ namespace Application.Services
                     recieveStore: info.RecieveStore
                 );
 
-                // 用來給 redis 檢查庫存的
-                var variantStockPair = new Dictionary<int, int>();
+                // 用來給庫存服務檢查庫存的
+                var variantInventoryPair = new Dictionary<int, int>();
 
                 // 添加訂單商品（使用領域方法）
                 foreach (var item in info.Items)
@@ -145,48 +143,20 @@ namespace Application.Services
                         };
                     }
 
-                    variantStockPair.Add(productVariant.Id, item.Quantity);
+                    variantInventoryPair.Add(productVariant.Id, item.Quantity);
 
                     // 使用領域方法添加商品
                     order.AddOrderProduct(productVariant, item.Quantity);
                 }
 
-                // 檢查庫存
-                var checkStockStatus = await _redisService.CheckAndHoldStockAsync(order.RecordCode, variantStockPair);
+                // 檢查並預扣庫存（使用庫存服務）
+                var inventoryResult = await _inventoryService.CheckAndHoldInventoryAsync(
+                    order.RecordCode, 
+                    variantInventoryPair);
 
-                if (checkStockStatus == null)
+                if (!inventoryResult.IsSuccess)
                 {
-                    return Error<PaymentRequestDataWithUrl>("redis 沒有找到key");
-                }
-
-                StockCheckDTO result;
-                try
-                {
-                    result = JsonSerializer.Deserialize<StockCheckDTO>(
-                        checkStockStatus.ToString(),
-                        new JsonSerializerOptions 
-                        { 
-                            PropertyNameCaseInsensitive = true  // 忽略大小寫
-                        });
-                }
-                catch (JsonException ex)
-                {
-                    Console.WriteLine($"JSON 解析失敗: {ex.Message}");
-                    Console.WriteLine($"原始 JSON: {checkStockStatus}");
-                    return Error<PaymentRequestDataWithUrl>("庫存檢查結果解析失敗");
-                }
-
-                if (result == null)
-                {
-                    return Error<PaymentRequestDataWithUrl>("庫存檢查結果為空");
-                }
-
-                if (result.Status == "error")
-                {
-                    var failedItems = result.Failed != null && result.Failed.Any() 
-                        ? string.Join(",", result.Failed) 
-                        : "未知商品";
-                    return Fail<PaymentRequestDataWithUrl>($"庫存不足: {failedItems}");
+                    return Error<PaymentRequestDataWithUrl>(inventoryResult.ErrorMessage ?? "庫存檢查失敗");
                 }
 
                 // 發送延遲超時訊息 (2分鐘後執行)
@@ -243,10 +213,17 @@ namespace Application.Services
                     return;
                 }
 
-                _logger.LogInformation("Processing timeout for order {RecordCode}, rolling back stock", recordcode);
+                _logger.LogInformation("Processing timeout for order {RecordCode}, rolling back inventory", recordcode);
                 
-                // 回滾庫存
-                await _redisService.RollbackStockAsync(recordcode);
+                // 回滾庫存（使用庫存服務）
+                var rollbackResult = await _inventoryService.RollbackInventoryAsync(recordcode);
+                
+                if (!rollbackResult.IsSuccess)
+                {
+                    _logger.LogWarning("回滾庫存失敗，訂單編號: {RecordCode}, 錯誤: {Error}", 
+                        recordcode, rollbackResult.ErrorMessage);
+                    // 即使回滾失敗，也繼續處理訂單取消
+                }
                 
                 // 使用領域方法取消訂單（這會自動添加訂單步驟）
                 // 注意：由於富領域模型的 setter 是 private，我們需要保持原有的 repository 更新方式

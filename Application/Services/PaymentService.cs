@@ -18,14 +18,23 @@ namespace Application.Services
         private readonly IPaymentRepository _paymentRepository;
         private readonly IShipmentProducer _shipmentProducer;
         private readonly IEncryptionService _encryptionService;
+        private readonly IInventoryService _inventoryService;
 
         private readonly IConfiguration _configuration;
-        public PaymentService(IPaymentRepository paymentRepository, IHttpContextAccessor contextAccessor, IShipmentProducer shipmentProducer, IEncryptionService encryptionService, IConfiguration configuration,ILogger<PaymentService> logger):base(logger)
+        public PaymentService(
+            IPaymentRepository paymentRepository, 
+            IHttpContextAccessor contextAccessor, 
+            IShipmentProducer shipmentProducer, 
+            IEncryptionService encryptionService, 
+            IInventoryService inventoryService,
+            IConfiguration configuration,
+            ILogger<PaymentService> logger):base(logger)
         {
             _paymentRepository = paymentRepository;
             _contextAccessor = contextAccessor;
             _shipmentProducer = shipmentProducer;
             _encryptionService = encryptionService;
+            _inventoryService = inventoryService;
             _configuration = configuration;
         }
 
@@ -367,6 +376,15 @@ namespace Application.Services
                 payment.Order.Cancel();
 
                 await _paymentRepository.SaveChangesAsync();
+
+                // 付款失敗後，回滾庫存
+                var rollbackResult = await _inventoryService.RollbackInventoryAsync(RecordCode);
+                if (!rollbackResult.IsSuccess)
+                {
+                    _logger.LogWarning("付款失敗後回滾庫存失敗，訂單編號: {RecordCode}, 錯誤: {Error}", 
+                        RecordCode, rollbackResult.ErrorMessage);
+                    // 即使回滾失敗，也繼續處理
+                }
             }
 
             return Fail<object>("交易失敗");
@@ -397,6 +415,15 @@ namespace Application.Services
                     // 使用 Order 的業務方法標記訂單已付款
                     // 使用 Order 中已存在的 PayWay 作為付款方式
                     payment.Order.MarkAsPaid(payment.Order.PayWay);
+
+                    // 付款成功後，確認庫存（正式扣除）
+                    var confirmResult = await _inventoryService.ConfirmInventoryAsync(RecordCode);
+                    if (!confirmResult.IsSuccess)
+                    {
+                        _logger.LogWarning("付款成功後確認庫存失敗，訂單編號: {RecordCode}, 錯誤: {Error}", 
+                            RecordCode, confirmResult.ErrorMessage);
+                        // 即使確認失敗，也繼續處理（庫存已經在創建訂單時預扣）
+                    }
 
                     // 通知物流系統開始處理
                     var message = new
