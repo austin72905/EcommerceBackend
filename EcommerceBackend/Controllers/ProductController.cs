@@ -199,6 +199,34 @@ namespace EcommerceBackend.Controllers
 
         }
 
+        /// <summary>
+        /// 獲取完整的商品資訊（包含基本資訊和動態資訊）- 整合 API
+        /// </summary>
+        [HttpGet("GetProductCompleteInfoById")]
+        public async Task<IActionResult> GetProductCompleteInfoById([FromQuery] int productId)
+        {
+            int userId = UserInfo != null ? UserInfo.UserId : 0;
+
+            ServiceResult<ProductCompleteDTO> result;
+            if (userId == 0)
+            {
+                // 未登入用戶
+                result = await _productervice.GetProductCompleteInfoById(productId);
+            }
+            else
+            {
+                // 已登入用戶
+                result = await _productervice.GetProductCompleteInfoByIdForUser(userId, productId);
+            }
+
+            if (!result.IsSuccess)
+            {
+                return Fail(msg: result.ErrorMessage);
+            }
+
+            return Success(result.Data);
+        }
+
 
         [HttpPost("AddNewProduct")]
         public IActionResult AddNewProduct([FromBody] Product product)

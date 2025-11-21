@@ -117,6 +117,102 @@ namespace Application.Services
             }
         }
 
+        /// <summary>
+        /// 獲取完整的商品資訊（包含基本資訊和動態資訊）- 未登入版本
+        /// </summary>
+        public async Task<ServiceResult<ProductCompleteDTO>> GetProductCompleteInfoById(int productId)
+        {
+            try
+            {
+                // 獲取基本資訊
+                var basicInfoResult = await GetProductBasicInfoById(productId);
+                if (!basicInfoResult.IsSuccess || basicInfoResult.Data == null)
+                {
+                    return Fail<ProductCompleteDTO>(basicInfoResult.ErrorMessage ?? "產品不存在");
+                }
+
+                // 獲取動態資訊
+                var dynamicInfoResult = await GetProductDynamicInfoById(productId);
+                if (!dynamicInfoResult.IsSuccess || dynamicInfoResult.Data == null || !dynamicInfoResult.Data.Any())
+                {
+                    return Fail<ProductCompleteDTO>(dynamicInfoResult.ErrorMessage ?? "無法獲取商品變體資訊");
+                }
+
+                var basicInfo = basicInfoResult.Data;
+                var dynamicInfo = dynamicInfoResult.Data.First(); // 應該只有一個，因為是同一個 productId
+
+                // 整合資料
+                var completeInfo = new ProductCompleteDTO
+                {
+                    ProductId = basicInfo.ProductId,
+                    Title = basicInfo.Title,
+                    Material = basicInfo.Material,
+                    HowToWash = basicInfo.HowToWash,
+                    Features = basicInfo.Features,
+                    Images = basicInfo.Images,
+                    CoverImg = basicInfo.CoverImg,
+                    Variants = dynamicInfo.Variants,
+                    IsFavorite = false // 未登入用戶預設為 false
+                };
+
+                return Success<ProductCompleteDTO>(completeInfo);
+            }
+            catch (Exception ex)
+            {
+                return Error<ProductCompleteDTO>(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 獲取完整的商品資訊（包含基本資訊和動態資訊）- 已登入用戶版本
+        /// </summary>
+        public async Task<ServiceResult<ProductCompleteDTO>> GetProductCompleteInfoByIdForUser(int userId, int productId)
+        {
+            try
+            {
+                // 獲取基本資訊
+                var basicInfoResult = await GetProductBasicInfoById(productId);
+                if (!basicInfoResult.IsSuccess || basicInfoResult.Data == null)
+                {
+                    return Fail<ProductCompleteDTO>(basicInfoResult.ErrorMessage ?? "產品不存在");
+                }
+
+                // 獲取動態資訊
+                var dynamicInfoResult = await GetProductDynamicInfoById(productId);
+                if (!dynamicInfoResult.IsSuccess || dynamicInfoResult.Data == null || !dynamicInfoResult.Data.Any())
+                {
+                    return Fail<ProductCompleteDTO>(dynamicInfoResult.ErrorMessage ?? "無法獲取商品變體資訊");
+                }
+
+                // 獲取用戶收藏狀態
+                var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userId);
+                bool isFavorite = favoriteProductIds.Contains(productId);
+
+                var basicInfo = basicInfoResult.Data;
+                var dynamicInfo = dynamicInfoResult.Data.First(); // 應該只有一個，因為是同一個 productId
+
+                // 整合資料
+                var completeInfo = new ProductCompleteDTO
+                {
+                    ProductId = basicInfo.ProductId,
+                    Title = basicInfo.Title,
+                    Material = basicInfo.Material,
+                    HowToWash = basicInfo.HowToWash,
+                    Features = basicInfo.Features,
+                    Images = basicInfo.Images,
+                    CoverImg = basicInfo.CoverImg,
+                    Variants = dynamicInfo.Variants,
+                    IsFavorite = isFavorite
+                };
+
+                return Success<ProductCompleteDTO>(completeInfo);
+            }
+            catch (Exception ex)
+            {
+                return Error<ProductCompleteDTO>(ex.Message);
+            }
+        }
+
 
 
 

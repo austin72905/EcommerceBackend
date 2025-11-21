@@ -23,6 +23,16 @@ namespace Application.Interfaces
 
         public  Task<ServiceResult<List<ProductDynamicDTO>>> GetProductDynamicInfoById(int productId);
 
+        /// <summary>
+        /// 獲取完整的商品資訊（包含基本資訊和動態資訊）
+        /// </summary>
+        public Task<ServiceResult<ProductCompleteDTO>> GetProductCompleteInfoById(int productId);
+
+        /// <summary>
+        /// 獲取完整的商品資訊（包含基本資訊和動態資訊）- 已登入用戶版本
+        /// </summary>
+        public Task<ServiceResult<ProductCompleteDTO>> GetProductCompleteInfoByIdForUser(int userId, int productId);
+
 
         public  Task<ServiceResult<ProductWithFavoriteStatusDTO>> GetProductByIdForUser(int userid, int productId);
         

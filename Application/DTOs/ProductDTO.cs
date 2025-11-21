@@ -80,4 +80,23 @@
         public bool? IsFavorite { get; set; }
 
     }
+
+    /// <summary>
+    /// 整合的商品資訊 DTO，包含基本資訊和動態資訊（變體、庫存、價格等）
+    /// </summary>
+    public class ProductCompleteDTO
+    {
+        // 基本資訊
+        public int ProductId { get; set; }
+        public string? Title { get; set; }
+        public List<string>? Material { get; set; }
+        public string? HowToWash { get; set; }
+        public string? Features { get; set; }
+        public List<string>? Images { get; set; }
+        public string? CoverImg { get; set; }
+
+        // 動態資訊
+        public List<ProductVariantDTO> Variants { get; set; } = new List<ProductVariantDTO>();
+        public bool? IsFavorite { get; set; }
+    }
 }
