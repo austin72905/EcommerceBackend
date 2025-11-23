@@ -4,6 +4,7 @@ using DataSource.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -15,22 +16,28 @@ namespace DataSource.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.10")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Domain.Entities.Cart", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -44,16 +51,18 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("CartId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductVariantId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -68,22 +77,24 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("DiscountAmount")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("EndDate")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("StartDate")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -93,20 +104,20 @@ namespace DataSource.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(930),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7774),
                             DiscountAmount = 100,
-                            EndDate = new DateTime(2025, 12, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(931)
+                            EndDate = new DateTime(2025, 12, 31, 0, 0, 0, 0, DateTimeKind.Utc),
+                            StartDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7775)
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(932),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7777),
                             DiscountAmount = 199,
-                            EndDate = new DateTime(2025, 12, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2024, 2, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(933)
+                            EndDate = new DateTime(2025, 12, 31, 0, 0, 0, 0, DateTimeKind.Utc),
+                            StartDate = new DateTime(2024, 2, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7777)
                         });
                 });
 
@@ -114,19 +125,21 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -142,11 +155,13 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -167,11 +182,13 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("MaterialName")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -182,59 +199,61 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("AddressId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int>("OrderPrice")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("PayWay")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Receiver")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("RecieveStore")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("RecieveWay")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("RecordCode")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("ShippingAddress")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int>("ShippingPrice")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -249,19 +268,21 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Count")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("OrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductPrice")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductVariantId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -276,19 +297,21 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("OrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("StepStatus")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -301,29 +324,31 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("OrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("PaymentAmount")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("numeric");
 
                     b.Property<byte>("PaymentStatus")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("smallint");
 
                     b.Property<int>("TenantConfigId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("TransactionId")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -339,33 +364,35 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("CoverImg")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Features")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("HowToWash")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Material")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -378,56 +405,56 @@ namespace DataSource.Migrations
                         {
                             Id = 1,
                             CoverImg = "https://ponggoodbf.com/img/coat1.jpg",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(715),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7512),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "超時尚流蘇几皮外套",
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(726)
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7516)
                         },
                         new
                         {
                             Id = 2,
                             CoverImg = "https://ponggoodbf.com/img/coat4.jpg",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(729),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7517),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "紫色格紋大衣",
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(729)
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7518)
                         },
                         new
                         {
                             Id = 3,
                             CoverImg = "https://ponggoodbf.com/img/coat3.jpg",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(731),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7519),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "超質感綠色皮衣",
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(732)
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7519)
                         },
                         new
                         {
                             Id = 4,
                             CoverImg = "https://ponggoodbf.com/img/coat2.jpg",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(733),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7520),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "海島風情黑色短袖襯衫",
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(733)
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7520)
                         },
                         new
                         {
                             Id = 5,
                             CoverImg = "https://ponggoodbf.com/img/coat5.jpg",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(736),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7521),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "帥氣單寧",
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(736)
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7522)
                         });
                 });
 
@@ -435,19 +462,21 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("DiscountId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -462,14 +491,16 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -634,13 +665,15 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("KindId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -655,13 +688,15 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("MaterialId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -676,13 +711,15 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("TagId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -759,33 +796,35 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Color")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("ProductId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<string>("SKU")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int>("SizeId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Stock")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("VariantPrice")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -800,288 +839,288 @@ namespace DataSource.Migrations
                         {
                             Id = 1,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(855),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7694),
                             ProductId = 1,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(856),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7694),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 2,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(857),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7696),
                             ProductId = 1,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(858),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7696),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 3,
                             Color = "米",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(859),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7697),
                             ProductId = 1,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(860),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7698),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 4,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(862),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7699),
                             ProductId = 1,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(862),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7699),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 5,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(864),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7700),
                             ProductId = 1,
                             SKU = "BROWN-L",
                             SizeId = 3,
                             Stock = 20,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(864),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7701),
                             VariantPrice = 211
                         },
                         new
                         {
                             Id = 6,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(865),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7702),
                             ProductId = 2,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(866),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7702),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 7,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(867),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7703),
                             ProductId = 2,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(867),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7703),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 8,
                             Color = "米",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(868),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7704),
                             ProductId = 2,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(869),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7705),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 9,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(870),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7706),
                             ProductId = 2,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(870),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7706),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 10,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(871),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7707),
                             ProductId = 3,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(872),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7707),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 11,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(873),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7708),
                             ProductId = 3,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(873),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7709),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 12,
                             Color = "米",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(875),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7710),
                             ProductId = 3,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(875),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7710),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 13,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(876),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7711),
                             ProductId = 3,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(877),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7712),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 14,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(878),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7713),
                             ProductId = 3,
                             SKU = "BROWN-L",
                             SizeId = 3,
                             Stock = 20,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(878),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7713),
                             VariantPrice = 211
                         },
                         new
                         {
                             Id = 15,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(879),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7714),
                             ProductId = 4,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(880),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7714),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 16,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(881),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7715),
                             ProductId = 4,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(881),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7716),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 17,
                             Color = "米",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(885),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7717),
                             ProductId = 4,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(886),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7717),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 18,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(888),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7718),
                             ProductId = 4,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(889),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7718),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 19,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(891),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7720),
                             ProductId = 4,
                             SKU = "BROWN-L",
                             SizeId = 3,
                             Stock = 20,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(891),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7720),
                             VariantPrice = 211
                         },
                         new
                         {
                             Id = 20,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(893),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7721),
                             ProductId = 5,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(893),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7721),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 21,
                             Color = "黑",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(897),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7722),
                             ProductId = 5,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(897),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7723),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 22,
                             Color = "米",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(898),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7724),
                             ProductId = 5,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(899),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7724),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 23,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(901),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7725),
                             ProductId = 5,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(901),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7725),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 24,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(902),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7726),
                             ProductId = 5,
                             SKU = "BROWN-L",
                             SizeId = 3,
                             Stock = 20,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(903),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7727),
                             VariantPrice = 211
                         });
                 });
@@ -1090,19 +1129,21 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("DiscountId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("VariantId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1116,65 +1157,65 @@ namespace DataSource.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(948),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7803),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(948),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7804),
                             VariantId = 2
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(950),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7804),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(950),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7805),
                             VariantId = 4
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(951),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7806),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(951),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7806),
                             VariantId = 8
                         },
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(965),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7807),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(965),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7807),
                             VariantId = 11
                         },
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(966),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7808),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(966),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7808),
                             VariantId = 12
                         },
                         new
                         {
                             Id = 6,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(967),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7809),
                             DiscountId = 2,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(968),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7809),
                             VariantId = 19
                         },
                         new
                         {
                             Id = 7,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(969),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7810),
                             DiscountId = 2,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(969),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7810),
                             VariantId = 22
                         },
                         new
                         {
                             Id = 8,
-                            CreatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(970),
+                            CreatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7811),
                             DiscountId = 2,
-                            UpdatedAt = new DateTime(2024, 11, 24, 3, 5, 32, 765, DateTimeKind.Local).AddTicks(970),
+                            UpdatedAt = new DateTime(2025, 11, 23, 15, 51, 15, 516, DateTimeKind.Utc).AddTicks(7811),
                             VariantId = 24
                         });
                 });
@@ -1183,19 +1224,21 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("OrderId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ShipmentStatus")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -1208,11 +1251,13 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("SizeValue")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1240,11 +1285,13 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1305,19 +1352,21 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("HashIV")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("MerchantId")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("SecretKey")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1337,48 +1386,50 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("Birthday")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Gender")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("GoogleId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("LastLogin")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("NickName")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Picture")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Username")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1395,38 +1446,40 @@ namespace DataSource.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AddressLine")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsDefault")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("RecieveStore")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("RecieveWay")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("RecipientName")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

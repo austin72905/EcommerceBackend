@@ -243,8 +243,8 @@ namespace DataSource.DBContext
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "https://ponggoodbf.com/img/coat1.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new Product
                 {
@@ -256,8 +256,8 @@ namespace DataSource.DBContext
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "https://ponggoodbf.com/img/coat4.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new Product
                 {
@@ -269,8 +269,8 @@ namespace DataSource.DBContext
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "https://ponggoodbf.com/img/coat3.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new Product
                 {
@@ -282,8 +282,8 @@ namespace DataSource.DBContext
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "https://ponggoodbf.com/img/coat2.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new Product
                 {
@@ -295,8 +295,8 @@ namespace DataSource.DBContext
                     Features = "其實我也不知道要說什麼...a",
                     CoverImg = "https://ponggoodbf.com/img/coat5.jpg",
                     Material = "聚酯纖維, 聚氨酯纖維",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 }
             );
 
@@ -318,8 +318,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-S",
                     Stock = 2,
                     VariantPrice = 99,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -330,8 +330,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-L",
                     Stock = 16,
                     VariantPrice = 283,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -342,8 +342,8 @@ namespace DataSource.DBContext
                     SKU = "WHEAT-L",
                     Stock = 3,
                     VariantPrice = 150,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -354,8 +354,8 @@ namespace DataSource.DBContext
                     SKU = "BROWN-M",
                     Stock = 17,
                     VariantPrice = 199,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -366,8 +366,8 @@ namespace DataSource.DBContext
                     SKU = "BROWN-L",
                     Stock = 20,
                     VariantPrice = 211,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -378,8 +378,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-S",
                     Stock = 2,
                     VariantPrice = 99,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -390,8 +390,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-L",
                     Stock = 16,
                     VariantPrice = 283,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -402,8 +402,8 @@ namespace DataSource.DBContext
                     SKU = "WHEAT-L",
                     Stock = 3,
                     VariantPrice = 150,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -414,8 +414,8 @@ namespace DataSource.DBContext
                     SKU = "BROWN-M",
                     Stock = 17,
                     VariantPrice = 199,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -426,8 +426,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-S",
                     Stock = 2,
                     VariantPrice = 99,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -438,8 +438,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-L",
                     Stock = 16,
                     VariantPrice = 283,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -450,8 +450,8 @@ namespace DataSource.DBContext
                     SKU = "WHEAT-L",
                     Stock = 3,
                     VariantPrice = 150,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -462,8 +462,8 @@ namespace DataSource.DBContext
                     SKU = "BROWN-M",
                     Stock = 17,
                     VariantPrice = 199,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -474,8 +474,8 @@ namespace DataSource.DBContext
                     SKU = "BROWN-L",
                     Stock = 20,
                     VariantPrice = 211,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -486,8 +486,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-S",
                     Stock = 2,
                     VariantPrice = 99,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -498,8 +498,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-L",
                     Stock = 16,
                     VariantPrice = 283,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -510,8 +510,8 @@ namespace DataSource.DBContext
                     SKU = "WHEAT-L",
                     Stock = 3,
                     VariantPrice = 150,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -522,8 +522,8 @@ namespace DataSource.DBContext
                     SKU = "BROWN-M",
                     Stock = 17,
                     VariantPrice = 199,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -534,8 +534,8 @@ namespace DataSource.DBContext
                     SKU = "BROWN-L",
                     Stock = 20,
                     VariantPrice = 211,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -546,8 +546,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-S",
                     Stock = 2,
                     VariantPrice = 99,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -558,8 +558,8 @@ namespace DataSource.DBContext
                     SKU = "BLACK-L",
                     Stock = 16,
                     VariantPrice = 283,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -570,8 +570,8 @@ namespace DataSource.DBContext
                     SKU = "WHEAT-L",
                     Stock = 3,
                     VariantPrice = 150,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -582,8 +582,8 @@ namespace DataSource.DBContext
                     SKU = "BROWN-M",
                     Stock = 17,
                     VariantPrice = 199,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariant
                 {
@@ -594,8 +594,8 @@ namespace DataSource.DBContext
                     SKU = "BROWN-L",
                     Stock = 20,
                     VariantPrice = 211,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 }
             );
 
@@ -605,19 +605,19 @@ namespace DataSource.DBContext
                 {
                     Id = 1,
                     DiscountAmount = 100,
-                    StartDate = new DateTime(2024, 1, 1),
-                    EndDate = new DateTime(2025, 12, 31),
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    StartDate = DateTime.SpecifyKind(new DateTime(2024, 1, 1), DateTimeKind.Utc),
+                    EndDate = DateTime.SpecifyKind(new DateTime(2025, 12, 31), DateTimeKind.Utc),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new Discount
                 {
                     Id = 2,
                     DiscountAmount = 199,
-                    StartDate = new DateTime(2024, 2, 1),
-                    EndDate = new DateTime(2025, 12, 31),
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    StartDate = DateTime.SpecifyKind(new DateTime(2024, 2, 1), DateTimeKind.Utc),
+                    EndDate = DateTime.SpecifyKind(new DateTime(2025, 12, 31), DateTimeKind.Utc),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 }
             );
 
@@ -628,64 +628,64 @@ namespace DataSource.DBContext
                     Id = 1,
                     VariantId = 2, 
                     DiscountId = 1,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariantDiscount
                 {
                     Id = 2,
                     VariantId = 4, 
                     DiscountId = 1,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariantDiscount
                 {
                     Id = 3,
                     VariantId = 8,
                     DiscountId = 1,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariantDiscount
                 {
                     Id = 4,
                     VariantId = 11,
                     DiscountId = 1,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariantDiscount
                 {
                     Id = 5,
                     VariantId = 12,
                     DiscountId = 1,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                  new ProductVariantDiscount
                  {
                      Id = 6,
                      VariantId = 19,
                      DiscountId = 2,
-                     CreatedAt = DateTime.Now,
-                     UpdatedAt = DateTime.Now
+                     CreatedAt = DateTime.UtcNow,
+                     UpdatedAt = DateTime.UtcNow
                  },
                 new ProductVariantDiscount
                 {
                     Id = 7,
                     VariantId = 22,
                     DiscountId = 2,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 },
                 new ProductVariantDiscount
                 {
                     Id = 8,
                     VariantId = 24,
                     DiscountId = 2,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 }
             );
 

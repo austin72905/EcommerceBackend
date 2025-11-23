@@ -38,7 +38,7 @@ if (string.IsNullOrEmpty(redisConnectionString))
 }
 
 builder.Services.AddDbContext<EcommerceDBContext>(options =>
-    options.UseSqlite("Data Source=Ecommerce_Shop.db")
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
         //.LogTo(Console.WriteLine, LogLevel.Information) // 開啟詳細日誌
         .LogTo(Console.WriteLine, LogLevel.Error)  // 只顯示錯誤日誌
         //.EnableSensitiveDataLogging()  // 僅建議於 production 環境使用
