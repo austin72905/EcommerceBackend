@@ -19,6 +19,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using StackExchange.Redis;
 using System.Collections.Generic;
@@ -66,6 +69,51 @@ builder.Services.AddHttpContextAccessor();
 
 // 註冊 IHttpUtils 為 HttpClient，並設定為 Scoped
 builder.Services.AddHttpClient<IHttpUtils, HttpUtils>();
+
+// 配置 OpenTelemetry 分散式追蹤
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(
+            serviceName: "EcommerceBackend",
+            serviceVersion: "1.0.0")
+        .AddAttributes(new Dictionary<string, object>
+        {
+            ["deployment.environment"] = builder.Environment.EnvironmentName
+        }))
+    .WithTracing(tracing => tracing
+        // 自動追蹤 ASP.NET Core HTTP 請求
+        .AddAspNetCoreInstrumentation(options =>
+        {
+            options.RecordException = true;
+            options.EnrichWithHttpRequest = (activity, request) =>
+            {
+                activity.SetTag("http.request.method", request.Method);
+                activity.SetTag("http.request.path", request.Path);
+            };
+        })
+        // 自動追蹤 HttpClient 請求（包括對 payment service 的調用）
+        .AddHttpClientInstrumentation(options =>
+        {
+            options.RecordException = true;
+        })
+        // 自動追蹤 Entity Framework Core 數據庫查詢
+        .AddEntityFrameworkCoreInstrumentation(options =>
+        {
+            options.SetDbStatementForText = true;
+            options.EnrichWithIDbCommand = (activity, command) =>
+            {
+                activity.SetTag("db.statement", command.CommandText);
+            };
+        })
+        // 導出到 Jaeger（使用 OTLP gRPC）
+        .AddOtlpExporter(options =>
+        {
+            // 從環境變數或配置讀取 Jaeger 端點，預設為 localhost:4317
+            var jaegerEndpoint = builder.Configuration["AppSettings:JaegerEndpoint"] 
+                ?? Environment.GetEnvironmentVariable("JAEGER_ENDPOINT") 
+                ?? "http://localhost:4317";
+            options.Endpoint = new Uri(jaegerEndpoint);
+        }));
 
 // 應用服務註冊
 // app service
@@ -220,7 +268,8 @@ app.UseMiddleware<AuthenticationMiddleware>();
 // 啟用日誌中介軟體
 app.UseMiddleware<LoggingMiddleware>();
 // 註冊 Middleware
-app.UseMiddleware<RateLimitMiddleware>();
+// 暫時關閉限流中間件，用於壓力測試
+// app.UseMiddleware<RateLimitMiddleware>();
 
 // 移除 HTTPS 重導向
 app.UseHttpsRedirection();
