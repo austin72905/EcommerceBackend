@@ -49,6 +49,42 @@ namespace Infrastructure.Http
             return result;
         }
 
+        public async Task<T> PostJsonAsync<T>(string url, object jsonData, Dictionary<string, string>? headers = null) where T : class
+        {
+            if (headers != null)
+            {
+                foreach (var header in headers)
+                {
+                    if (!_httpClient.DefaultRequestHeaders.Contains(header.Key))
+                    {
+                        _httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+                    }
+                }
+            }
+
+            // 序列化 JSON 資料
+            var jsonContent = JsonSerializer.Serialize(jsonData);
+            using var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync(url, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Error from PostJsonAsync: {response.StatusCode}, Content: {errorContent}");
+            }
+
+            var jsonResp = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<T>(jsonResp, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (result == null)
+            {
+                throw new InvalidOperationException("Failed to deserialize response.");
+            }
+
+            return result;
+        }
+
 
     }
 }

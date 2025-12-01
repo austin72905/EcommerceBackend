@@ -17,25 +17,31 @@ namespace Application.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IPaymentRepository _paymentRepository;
         private readonly IShipmentProducer _shipmentProducer;
+        private readonly IOrderStateProducer _orderStateProducer;
         private readonly IEncryptionService _encryptionService;
         private readonly IInventoryService _inventoryService;
+        private readonly IHttpUtils _httpUtils;
 
         private readonly IConfiguration _configuration;
         public PaymentService(
             IPaymentRepository paymentRepository, 
             IHttpContextAccessor contextAccessor, 
-            IShipmentProducer shipmentProducer, 
+            IShipmentProducer shipmentProducer,
+            IOrderStateProducer orderStateProducer,
             IEncryptionService encryptionService, 
             IInventoryService inventoryService,
             IConfiguration configuration,
+            IHttpUtils httpUtils,
             ILogger<PaymentService> logger):base(logger)
         {
             _paymentRepository = paymentRepository;
             _contextAccessor = contextAccessor;
             _shipmentProducer = shipmentProducer;
+            _orderStateProducer = orderStateProducer;
             _encryptionService = encryptionService;
             _inventoryService = inventoryService;
             _configuration = configuration;
+            _httpUtils = httpUtils;
         }
 
         /// <summary>
@@ -50,78 +56,101 @@ namespace Application.Services
         {
             try
             {
-                //較驗訂單號
+                // 驗證訂單號
                 if (!ValidRecordNo(requestData.RecordNo))
                 {
                     return Fail<PaymentInfomation>("訂單不合法");
-                    
                 }
 
-
-
+                // 獲取配置
                 var config = await _paymentRepository.GetTenantConfig(requestData.RecordNo);
 
                 if (config == null)
                 {
                     return Fail<PaymentInfomation>("請求配置失敗");
-                   
                 }
 
-                var tenantConfig = new TenantConfigDTO()
-                {
-                    RecordNo = requestData.RecordNo,
-                    Amount = Convert.ToInt32(config.PaymentAmount).ToString(),
-                    MerchantId = config.TenantConfig.MerchantId,
-                    SecretKey = config.TenantConfig.SecretKey,
-                    HashIV = config.TenantConfig.HashIV
-                };
-
-                //var tenantConfig = new TenantConfigDTO()
-                //{
-                //    RecordNo = requestData.RecordNo,
-                //    Amount = "100",
-                //    MerchantId = "3002607",
-                //    SecretKey = "pwFHCqoQZGmho4w6",
-                //    HashIV = "EkRm7iFT261dpevs"
-                //};
-
-                if (tenantConfig == null)
-                {
-                    return Fail<PaymentInfomation>("請求配置失敗");
-                    
-                }
-
-
-                if (!ValidOrderAmount(tenantConfig.Amount, requestData.Amount))
+                // 驗證金額
+                var orderAmount = Convert.ToInt32(config.PaymentAmount).ToString();
+                if (!ValidOrderAmount(orderAmount, requestData.Amount))
                 {
                     return Fail<PaymentInfomation>("金額匹配錯誤");
-                    
                 }
 
-                //設置簽名參數
-                Dictionary<string, string> signDataKeyPairs = PrepareSignData(tenantConfig, requestData);
+                // 構建回調 URL（優先使用配置的 ReturnURL，否則從當前請求構建）
+                var callbackUrl = _configuration["AppSettings:ReturnURL"];
+                if (string.IsNullOrEmpty(callbackUrl))
+                {
+                    var baseUrl = $"{_contextAccessor.HttpContext?.Request.Scheme}://{_contextAccessor.HttpContext?.Request.Host}";
+                    callbackUrl = $"{baseUrl}/Payment/ECPayReturn";
+                }
 
-                string sign = GenerateSign(signDataKeyPairs, tenantConfig.SecretKey, tenantConfig.HashIV);
+                // 獲取 ClientBackURL（支付完成後跳轉的前端頁面）
+                var clientBackUrl = _configuration["AppSettings:ClientBackURL"];
+                if (string.IsNullOrEmpty(clientBackUrl))
+                {
+                    clientBackUrl = "http://localhost:3000/"; // 預設值
+                }
 
-                //加上非簽名參數
-                AddNoneSignData(signDataKeyPairs, sign);
+                // 調用 ec-payment-service API
+                var paymentServiceUrl = _configuration["AppSettings:PaymentServiceUrl"] ?? "http://localhost:8081";
+                var apiUrl = $"{paymentServiceUrl}/api/payment/process";
 
-                return Success<PaymentInfomation>
+                var paymentRequest = new
+                {
+                    recordNo = requestData.RecordNo,
+                    amount = requestData.Amount,
+                    payType = requestData.PayType,
+                    callbackUrl = callbackUrl,
+                    clientBackUrl = clientBackUrl
+                };
+
+                try
+                {
+                    _logger.LogInformation("準備發送支付請求到 ec-payment-service，訂單號: {RecordNo}, 金額: {Amount}, 支付類型: {PayType}, 回調URL: {CallbackUrl}", 
+                        requestData.RecordNo, requestData.Amount, requestData.PayType, callbackUrl);
+                    
+                    var response = await _httpUtils.PostJsonAsync<PaymentServiceResponse>(apiUrl, paymentRequest);
+                    
+                    _logger.LogInformation("支付請求已發送到 ec-payment-service，訂單號: {RecordNo}, 支付ID: {PaymentID}, 返回的訂單號: {ResponseRecordNo}", 
+                        requestData.RecordNo, response?.PaymentID, response?.RecordNo);
+
+                    // 回傳支付請求已接收的確認
+                    return Success<PaymentInfomation>
                     (
                         new PaymentInfomation
                         {
-                            PaymentData = signDataKeyPairs,
-                            PaymentUrl = ECPayCreditPaymentUrl
+                            PaymentData = new Dictionary<string, string>
+                            {
+                                { "PaymentID", response?.PaymentID ?? "" },
+                                { "RecordNo", response?.RecordNo ?? requestData.RecordNo },
+                                { "Status", response?.Status ?? "Pending" },
+                                { "Message", response?.Message ?? "支付請求已接收" }
+                            },
+                            PaymentUrl = "" // 不再需要支付表單 URL
                         }
                     );
-                
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "調用 ec-payment-service 失敗，訂單號: {RecordNo}", requestData.RecordNo);
+                    return Error<PaymentInfomation>($"調用支付服務失敗: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "處理支付請求時發生錯誤，訂單號: {RecordNo}", requestData?.RecordNo);
                 return Error<PaymentInfomation>(ex.Message);
-                
             }
+        }
 
+        // 支付服務回應模型
+        private class PaymentServiceResponse
+        {
+            public string PaymentID { get; set; } = "";
+            public string RecordNo { get; set; } = "";
+            public string Status { get; set; } = "";
+            public string Message { get; set; } = "";
         }
 
 
@@ -245,11 +274,12 @@ namespace Application.Services
         {
             try
             {
+                _logger.LogInformation("收到支付回調，訂單號: {RecordCode}", RecordCode);
 
                 //檢查是否交易成功
                 if (!IsSuccessfulTransaction())
                 {
-
+                    _logger.LogWarning("支付回調交易失敗，訂單號: {RecordCode}", RecordCode);
                     return await TransactionFail();
                 }
 
@@ -258,6 +288,7 @@ namespace Application.Services
 
                 if (tenantConfig == null)
                 {
+                    _logger.LogError("獲取租戶配置失敗，訂單號: {RecordCode}", RecordCode);
                     return Fail<object>("請求配置失敗");
                     
                 }
@@ -265,16 +296,17 @@ namespace Application.Services
                 //驗證回調簽名
                 if (!VerifySign(tenantConfig.TenantConfig.SecretKey, tenantConfig.TenantConfig.HashIV))
                 {
+                    _logger.LogWarning("支付回調簽名驗證失敗，訂單號: {RecordCode}", RecordCode);
                     return SignVerificationFailed();
                 }
 
-
-
+                _logger.LogInformation("支付回調簽名驗證成功，開始處理交易成功邏輯，訂單號: {RecordCode}", RecordCode);
 
                 return await TransactionSuccess();
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "處理支付回調時發生錯誤，訂單號: {RecordCode}", RecordCode);
                 return Error<object>(ex.Message);
                 
             }
@@ -308,9 +340,19 @@ namespace Application.Services
 
             string returnSign = ReqData["CheckMacValue"].ToString();
 
-
-            string sign = _encryptionService.Sha256Hash(HttpUtility.UrlEncode(rawString).ToLower()).ToUpper();
-            return string.Equals(sign, returnSign, StringComparison.OrdinalIgnoreCase); ;
+            string encoded = HttpUtility.UrlEncode(rawString).ToLower();
+            string sign = _encryptionService.Sha256Hash(encoded).ToUpper();
+            
+            // 添加調試日誌
+            _logger.LogInformation("簽名驗證 - 原始字串: {RawString}", rawString);
+            _logger.LogInformation("簽名驗證 - URL編碼後: {Encoded}", encoded);
+            _logger.LogInformation("簽名驗證 - 計算的簽名: {CalculatedSign}", sign);
+            _logger.LogInformation("簽名驗證 - 接收的簽名: {ReceivedSign}", returnSign);
+            
+            bool isValid = string.Equals(sign, returnSign, StringComparison.OrdinalIgnoreCase);
+            _logger.LogInformation("簽名驗證結果: {IsValid}", isValid);
+            
+            return isValid;
         }
 
         /// <summary>
@@ -400,21 +442,33 @@ namespace Application.Services
 
         private async Task<ServiceResult<object>> TransactionSuccess()
         {
+            _logger.LogInformation("開始處理交易成功邏輯，訂單號: {RecordCode}", RecordCode);
 
             // 修改資料庫狀態
             var payment = await _paymentRepository.GetPaymentRecord(recordCode: RecordCode);
 
-            if (payment != null)
+            if (payment == null)
             {
-                // 檢查是否已經有更新過數據，避免重複回調
-                if(payment.PaymentStatus != (byte)OrderStepStatus.PaymentReceived)
-                {
-                    // 使用 Payment 的業務方法標記為已付款
-                    payment.MarkAsPaid();
-                    
-                    // 使用 Order 的業務方法標記訂單已付款
-                    // 使用 Order 中已存在的 PayWay 作為付款方式
-                    payment.Order.MarkAsPaid(payment.Order.PayWay);
+                _logger.LogError("找不到支付記錄，訂單號: {RecordCode}", RecordCode);
+                return Fail<object>("找不到支付記錄");
+            }
+
+            _logger.LogInformation("找到支付記錄，訂單號: {RecordCode}, 支付ID: {PaymentId}, 當前支付狀態: {PaymentStatus}, 訂單狀態: {OrderStatus}", 
+                RecordCode, payment.Id, payment.PaymentStatus, payment.Order.Status);
+
+            // 檢查是否已經有更新過數據，避免重複回調
+            if(payment.PaymentStatus != (byte)OrderStepStatus.PaymentReceived)
+            {
+                _logger.LogInformation("開始標記為已付款，訂單號: {RecordCode}", RecordCode);
+                
+                // 使用 Payment 的業務方法標記為已付款
+                payment.MarkAsPaid();
+                
+                // 使用 Order 的業務方法標記訂單已付款
+                // 使用 Order 中已存在的 PayWay 作為付款方式
+                payment.Order.MarkAsPaid(payment.Order.PayWay);
+                
+                _logger.LogInformation("已標記為已付款，訂單號: {RecordCode}, 訂單狀態: {OrderStatus}", RecordCode, payment.Order.Status);
 
                     // 付款成功後，確認庫存（正式扣除）
                     var confirmResult = await _inventoryService.ConfirmInventoryAsync(RecordCode);
@@ -426,18 +480,32 @@ namespace Application.Services
                     }
 
                     // 通知物流系統開始處理
-                    var message = new
+                    var shipmentMessage = new
                     {
                         Status = (int)ShipmentStatus.Pending,
                         OrderId = payment.OrderId,
                         RecordCode = payment.Order.RecordCode
                     };
-                    await _shipmentProducer.SendMessage(message);
+                    await _shipmentProducer.SendMessage(shipmentMessage);
+
+                    // 通知訂單狀態服務支付已完成
+                    var orderStateMessage = new
+                    {
+                        eventType = "PaymentCompleted",
+                        orderId = payment.Order.RecordCode, // 使用 RecordCode 作為 orderId
+                        timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                    };
+                    await _orderStateProducer.SendMessage(orderStateMessage);
+                    
+                    _logger.LogInformation("支付成功，已發送訂單狀態更新消息，訂單號: {RecordCode}", RecordCode);
+                }
+                else
+                {
+                    _logger.LogInformation("訂單已經標記為已付款，跳過處理，訂單號: {RecordCode}", RecordCode);
                 }
 
-                await _paymentRepository.SaveChangesAsync();
-
-            }
+            await _paymentRepository.SaveChangesAsync();
+            _logger.LogInformation("支付記錄已保存，訂單號: {RecordCode}", RecordCode);
 
             return Success<object>("OK");
             

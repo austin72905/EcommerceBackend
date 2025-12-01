@@ -59,9 +59,11 @@ namespace EcommerceBackend.MiddleWares
 
                 // csrf token 檢查
                 // 只對 POST、PUT、DELETE 請求進行 CSRF 檢查
-                if (context.Request.Method == HttpMethods.Post ||
+                // 排除支付回調路徑（外部服務回調不需要 CSRF token）
+                if ((context.Request.Method == HttpMethods.Post ||
                     context.Request.Method == HttpMethods.Put ||
-                    context.Request.Method == HttpMethods.Delete)
+                    context.Request.Method == HttpMethods.Delete) &&
+                    !path.Contains("/payment/ecpayreturn", StringComparison.OrdinalIgnoreCase))
                 {
                     // 從請求標頭中獲取 CSRF Token
                     var csrfToken = context.Request.Headers["X-CSRF-Token"].FirstOrDefault();
