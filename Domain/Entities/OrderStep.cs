@@ -14,8 +14,8 @@
             return new OrderStep
             {
                 StepStatus = stepStatus,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
         }
 
@@ -26,8 +26,8 @@
             {
                 OrderId = orderId,
                 StepStatus = stepStatus,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
         }
 

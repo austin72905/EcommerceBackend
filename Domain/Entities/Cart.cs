@@ -32,8 +32,8 @@ namespace Domain.Entities
             return new Cart
             {
                 UserId = userId,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
         }
 
@@ -75,7 +75,7 @@ namespace Domain.Entities
                 CartItems.Add(cartItem);
             }
 
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace Domain.Entities
                 throw new InvalidOperationException("購物車中不存在此商品");
 
             item.UpdateQuantity(newQuantity);
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace Domain.Entities
                 throw new InvalidOperationException("購物車中不存在此商品");
 
             CartItems.Remove(item);
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace Domain.Entities
         public void Clear()
         {
             CartItems.Clear();
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -149,7 +149,7 @@ namespace Domain.Entities
                 }
             }
 
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -170,7 +170,7 @@ namespace Domain.Entities
                 }
             }
 
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>

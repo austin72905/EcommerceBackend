@@ -14,8 +14,8 @@
             return new Shipment
             {
                 ShipmentStatus = shipmentStatus,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
         }
 
@@ -26,8 +26,8 @@
             {
                 OrderId = orderId,
                 ShipmentStatus = shipmentStatus,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
         }
 
@@ -49,7 +49,7 @@
         public void UpdateStatus(int newStatus)
         {
             ShipmentStatus = newStatus;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
     }
 }

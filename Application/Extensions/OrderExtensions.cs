@@ -53,7 +53,7 @@ namespace Application.Extensions
                 Status = (OrderStatus)order.Status,
                 PayWay = (PaymentMethod)order.PayWay,
                 ShippingPrice = order.ShippingPrice,
-                UpdatedAt = DateTime.Now,
+                UpdatedAt = order.UpdatedAt, // 使用訂單實際的更新時間
             };
         }
 

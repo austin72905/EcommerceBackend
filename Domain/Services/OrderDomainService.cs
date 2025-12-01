@@ -35,7 +35,7 @@ namespace Domain.Services
             }
 
             // 取得 ProductVariant 的有效折扣
-            var currentDate = DateTime.Now;
+            var currentDate = DateTime.UtcNow;
             var discountAmount = orderProduct.ProductVariant.ProductVariantDiscounts
                 .Where(pvd => pvd.Discount.StartDate <= currentDate && pvd.Discount.EndDate >= currentDate)  // 過濾有效期內的折扣
                 .Select(pvd => pvd.Discount.DiscountAmount) // 取得折扣金額

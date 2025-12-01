@@ -33,8 +33,8 @@ namespace Domain.Entities
                 TenantConfigId = tenantConfigId,
                 PaymentStatus = (byte)OrderStepStatus.WaitingForPayment,
                 TransactionId = string.Empty,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
         }
 
@@ -64,7 +64,7 @@ namespace Domain.Entities
                 throw new InvalidOperationException("付款記錄已經是已付款狀態");
 
             PaymentStatus = (byte)OrderStepStatus.PaymentReceived;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace Domain.Entities
                 throw new InvalidOperationException("付款記錄已經是已取消狀態");
 
             PaymentStatus = (byte)OrderStepStatus.OrderCanceled;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace Domain.Entities
                 throw new ArgumentException("交易 ID 不能為空", nameof(transactionId));
 
             TransactionId = transactionId;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
     }
 }

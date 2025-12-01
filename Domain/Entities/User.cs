@@ -46,9 +46,9 @@ namespace Domain.Entities
                 Email = emailValue.Value, // 存儲為字串（EF Core 映射）
                 Username = username,
                 PasswordHash = passwordHash,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-                LastLogin = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                LastLogin = DateTime.UtcNow
             };
         }
 
@@ -67,9 +67,9 @@ namespace Domain.Entities
                 GoogleId = googleId,
                 NickName = nickName,
                 Picture = picture,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-                LastLogin = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                LastLogin = DateTime.UtcNow
             };
         }
 
@@ -119,7 +119,7 @@ namespace Domain.Entities
             if (birthday.HasValue)
                 Birthday = birthday;
 
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace Domain.Entities
                 throw new InvalidOperationException("Google 登入用戶無法更新密碼");
 
             PasswordHash = newPasswordHash;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -146,7 +146,7 @@ namespace Domain.Entities
                 throw new ArgumentException("圖片 URL 不能為空", nameof(pictureUrl));
 
             Picture = pictureUrl;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -154,8 +154,8 @@ namespace Domain.Entities
         /// </summary>
         public void RecordLogin()
         {
-            LastLogin = DateTime.Now;
-            UpdatedAt = DateTime.Now;
+            LastLogin = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -167,7 +167,7 @@ namespace Domain.Entities
                 throw new ArgumentNullException(nameof(address));
 
             UserShipAddresses.Add(address);
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace Domain.Entities
                 throw new InvalidOperationException("地址不存在");
 
             UserShipAddresses.Remove(address);
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -199,7 +199,7 @@ namespace Domain.Entities
             };
 
             FavoriteProducts.Add(favorite);
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -212,7 +212,7 @@ namespace Domain.Entities
             if (favorite != null)
             {
                 FavoriteProducts.Remove(favorite);
-                UpdatedAt = DateTime.Now;
+                UpdatedAt = DateTime.UtcNow;
             }
         }
 
@@ -230,7 +230,7 @@ namespace Domain.Entities
         public void SetAsAdmin()
         {
             Role = "admin";
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
     }
 }

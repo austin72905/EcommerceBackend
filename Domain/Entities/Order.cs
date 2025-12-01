@@ -62,8 +62,8 @@ namespace Domain.Entities
                 Email = emailValue.Value, // 存儲為字串（EF Core 映射）
                 ShippingPrice = shippingPrice,
                 OrderPrice = 0, // 初始為 0，待添加商品後計算
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
 
             // 添加初始訂單步驟
@@ -153,7 +153,7 @@ namespace Domain.Entities
             );
 
             OrderProducts.Add(orderProduct);
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace Domain.Entities
             var total = orderDomainService.CalculateOrderTotal(OrderProducts.ToList(), ShippingPrice);
 
             OrderPrice = total;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace Domain.Entities
                 throw new InvalidOperationException($"訂單狀態 {(OrderStatus)Status} 無法取消");
 
             Status = (int)OrderStatus.Canceled;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
             
             AddOrderStep(OrderStatus.Canceled);
         }
@@ -194,11 +194,15 @@ namespace Domain.Entities
             if (Status != (int)OrderStatus.Created)
                 throw new InvalidOperationException("只能標記創建狀態的訂單為已付款");
 
-            Status = (int)OrderStatus.WaitingForPayment;
+            // 支付完成後，訂單狀態應該轉換為等待出貨
+            Status = (int)OrderStatus.WaitingForShipment;
             PayWay = paymentMethod;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
             
-            AddOrderStep(OrderStatus.WaitingForPayment);
+            // 添加支付已接收的訂單步驟（使用 OrderStepStatus.PaymentReceived）
+            AddOrderStepStatus(Domain.Enums.OrderStepStatus.PaymentReceived);
+            // 添加等待出貨的訂單步驟
+            AddOrderStepStatus(Domain.Enums.OrderStepStatus.WaitingForShipment);
         }
 
         /// <summary>
@@ -211,7 +215,7 @@ namespace Domain.Entities
                 throw new InvalidOperationException($"無法從 {(OrderStatus)Status} 轉換到 {newStatus}");
 
             Status = (int)newStatus;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
             
             AddOrderStep(newStatus);
         }
@@ -222,7 +226,7 @@ namespace Domain.Entities
         public void SetAddress(int addressId)
         {
             AddressId = addressId;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -230,11 +234,11 @@ namespace Domain.Entities
         /// </summary>
         public void Complete()
         {
-            if (Status != (int)OrderStatus.WaitingForPayment)
-                throw new InvalidOperationException("只能完成已付款的訂單");
+            if (Status != (int)OrderStatus.WaitPickup)
+                throw new InvalidOperationException("只能完成待取貨狀態的訂單");
 
             Status = (int)OrderStatus.Completed;
-            UpdatedAt = DateTime.Now;
+            UpdatedAt = DateTime.UtcNow;
             
             AddOrderStep(OrderStatus.Completed);
         }
@@ -244,6 +248,15 @@ namespace Domain.Entities
         private void AddOrderStep(OrderStatus status)
         {
             var orderStep = OrderStep.Create((int)status);
+            OrderSteps.Add(orderStep);
+        }
+
+        /// <summary>
+        /// 添加訂單步驟（使用 OrderStepStatus）
+        /// </summary>
+        private void AddOrderStepStatus(Domain.Enums.OrderStepStatus stepStatus)
+        {
+            var orderStep = OrderStep.Create((int)stepStatus);
             OrderSteps.Add(orderStep);
         }
 
@@ -261,9 +274,16 @@ namespace Domain.Entities
             return (currentStatus, newStatus) switch
             {
                 (OrderStatus.Created, OrderStatus.WaitingForPayment) => true,
+                (OrderStatus.Created, OrderStatus.WaitingForShipment) => true, // 支付完成後直接轉換為等待出貨
                 (OrderStatus.Created, OrderStatus.Canceled) => true,
+                (OrderStatus.WaitingForPayment, OrderStatus.WaitingForShipment) => true, // 從待付款轉換為待出貨
                 (OrderStatus.WaitingForPayment, OrderStatus.Completed) => true,
                 (OrderStatus.WaitingForPayment, OrderStatus.Canceled) => true,
+                (OrderStatus.WaitingForShipment, OrderStatus.InTransit) => true, // 從待出貨轉換為運送中
+                (OrderStatus.WaitingForShipment, OrderStatus.Canceled) => true,
+                (OrderStatus.InTransit, OrderStatus.WaitPickup) => true, // 從運送中轉換為待取貨
+                (OrderStatus.InTransit, OrderStatus.Canceled) => true,
+                (OrderStatus.WaitPickup, OrderStatus.Completed) => true, // 從待取貨轉換為已完成
                 _ => false
             };
         }
