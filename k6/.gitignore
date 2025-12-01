@@ -1,0 +1,16 @@
+# k6 測試結果文件
+*.json
+*.csv
+*.html
+
+# 但保留測試數據文件
+!data/*.json
+
+# 測試日誌
+*.log
+logs/
+
+# 臨時文件
+*.tmp
+.DS_Store
+

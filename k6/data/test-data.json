@@ -1,0 +1,32 @@
+{
+  "users": [
+    {
+      "email": "testuser1@example.com",
+      "password": "Test123456!",
+      "name": "測試用戶1"
+    },
+    {
+      "email": "testuser2@example.com",
+      "password": "Test123456!",
+      "name": "測試用戶2"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "測試商品1",
+      "price": 100
+    },
+    {
+      "id": 2,
+      "name": "測試商品2",
+      "price": 200
+    }
+  ],
+  "testConfig": {
+    "baseUrl": "http://localhost:5025",
+    "defaultTimeout": 30000,
+    "retryAttempts": 3
+  }
+}
+
