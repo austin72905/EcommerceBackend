@@ -2,6 +2,7 @@
 using Application.DummyData;
 using Application.Extensions;
 using Application.Interfaces;
+using Common.Interfaces.Application.Services;
 using Common.Interfaces.Infrastructure;
 using Domain.Entities;
 using Domain.Enums;
@@ -14,7 +15,7 @@ using DomainOrder = Domain.Entities.Order; // 使用別名避免命名空間衝�
 
 namespace Application.Services
 {
-    public class OrderService : BaseService<OrderService>, IOrderService
+    public class OrderService : BaseService<OrderService>, IOrderService, IOrderStatusSyncService
     {
         private readonly IOrderRepostory _orderRepostory;
         private readonly IProductRepository _productRepository;
@@ -86,6 +87,9 @@ namespace Application.Services
                                             o.RecordCode == query
                     );
                 }
+
+                // 按更新時間降序排序（最新的在上面）
+                orderList = orderList.OrderByDescending(o => o.UpdatedAt);
 
                 var ordersDto = orderList.ToOrderDTOList();
                 
@@ -237,6 +241,78 @@ namespace Application.Services
                 _logger.LogError(ex, "Error handling order timeout for order {RecordCode}", recordcode);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// 從訂單狀態服務同步訂單狀態
+        /// </summary>
+        public async Task SyncOrderStatusFromStateServiceAsync(string recordCode, string fromStatus, string toStatus)
+        {
+            try
+            {
+                _logger.LogInformation("[訂單狀態同步] 開始同步訂單狀態: RecordCode={RecordCode}, FromStatus={FromStatus}, ToStatus={ToStatus}",
+                    recordCode, fromStatus, toStatus);
+
+                // 根據 RecordCode 獲取訂單（不使用 userId，因為這是從外部服務同步）
+                var order = await _orderRepostory.GetOrderInfoByRecordCode(recordCode);
+
+                if (order == null)
+                {
+                    _logger.LogWarning("[訂單狀態同步] 訂單不存在: RecordCode={RecordCode}", recordCode);
+                    return;
+                }
+
+                // 將 Go 服務的狀態字串映射到 .NET 的 OrderStatus 枚舉
+                OrderStatus? targetStatus = MapGoStatusToDotNetStatus(toStatus);
+                if (targetStatus == null)
+                {
+                    _logger.LogWarning("[訂單狀態同步] 無法映射狀態: ToStatus={ToStatus}, RecordCode={RecordCode}", toStatus, recordCode);
+                    return;
+                }
+
+                // 檢查當前狀態是否與目標狀態一致
+                var currentStatus = (OrderStatus)order.Status;
+                if (currentStatus == targetStatus.Value)
+                {
+                    _logger.LogInformation("[訂單狀態同步] 訂單狀態已是最新: RecordCode={RecordCode}, Status={Status}", 
+                        recordCode, targetStatus.Value);
+                    return;
+                }
+
+                // 使用領域方法更新狀態（這會自動添加 OrderStep）
+                order.UpdateStatus(targetStatus.Value);
+
+                // 保存變更
+                await _orderRepostory.SaveChangesAsync();
+
+                _logger.LogInformation("[訂單狀態同步] 訂單狀態同步成功: RecordCode={RecordCode}, FromStatus={FromStatus}, ToStatus={ToStatus}",
+                    recordCode, fromStatus, toStatus);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[訂單狀態同步] 同步訂單狀態失敗: RecordCode={RecordCode}, FromStatus={FromStatus}, ToStatus={ToStatus}",
+                    recordCode, fromStatus, toStatus);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 將 Go 服務的狀態字串映射到 .NET 的 OrderStatus 枚舉
+        /// </summary>
+        private OrderStatus? MapGoStatusToDotNetStatus(string goStatus)
+        {
+            return goStatus switch
+            {
+                "Created" => OrderStatus.Created,
+                "WaitingForPayment" => OrderStatus.WaitingForPayment,
+                "WaitingForShipment" => OrderStatus.WaitingForShipment,
+                "InTransit" => OrderStatus.InTransit,
+                "WaitPickup" => OrderStatus.WaitPickup,
+                "Completed" => OrderStatus.Completed,
+                "Canceled" => OrderStatus.Canceled,
+                "Refund" => OrderStatus.Refund,
+                _ => null
+            };
         }
 
         private static OrderInfomationDTO fakeOderInfo = new OrderInfomationDTO

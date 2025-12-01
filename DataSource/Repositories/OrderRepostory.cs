@@ -78,6 +78,26 @@ namespace DataSource.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<Order?> GetOrderInfoByRecordCode(string recordCode)
+        {
+            return await _dbSet
+                .Include(o => o.OrderProducts)
+                    .ThenInclude(op => op.ProductVariant)
+                        .ThenInclude(pv => pv.Size)
+                .Include(o => o.OrderProducts)
+                    .ThenInclude(op => op.ProductVariant)
+                           .ThenInclude(pv => pv.Product)
+                .Include(o => o.OrderProducts)
+                    .ThenInclude(op => op.ProductVariant)
+                           .ThenInclude(pv => pv.ProductVariantDiscounts)
+                                .ThenInclude(pvd => pvd.Discount)
+                .Include(o => o.OrderSteps)
+                .Include(o => o.Shipments)
+                .Include(o => o.Address)
+                .Where(o => o.RecordCode == recordCode)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task GenerateOrder(Order order)
         {
             await _dbSet.AddAsync(order);
@@ -92,7 +112,7 @@ namespace DataSource.Repositories
                     .Where(o => o.RecordCode == recordcode)
                     .ExecuteUpdateAsync(set => set
                     .SetProperty(prop => prop.Status, status)
-                    .SetProperty(prop => prop.UpdatedAt, DateTime.Now));
+                    .SetProperty(prop => prop.UpdatedAt, DateTime.UtcNow));
         }
 
         

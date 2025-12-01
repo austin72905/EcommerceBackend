@@ -15,6 +15,8 @@ namespace Domain.Interfaces.Repositories
 
         public Task<Order?> GetOrderInfoByUserId(int userid, string recordCode);
 
+        public Task<Order?> GetOrderInfoByRecordCode(string recordCode);
+
         public Task GenerateOrder(Order order);
 
         

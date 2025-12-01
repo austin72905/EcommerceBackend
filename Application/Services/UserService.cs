@@ -360,8 +360,8 @@ namespace Application.Services
                     RecieveStore = address.RecieveStore,
                     RecieveWay = address.RecieveWay,
                     AddressLine = address.AddressLine,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                 };
 
 
@@ -404,8 +404,8 @@ namespace Application.Services
                     RecieveStore = address.RecieveStore,
                     RecieveWay = address.RecieveWay,
                     AddressLine = address.AddressLine,
-                    //CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
+                    //CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                 };
 
                 _userRepository.ModifyUserShippingAddress(userid, addressEntity);

@@ -16,7 +16,9 @@ using Infrastructure.Services;
 using Common.Interfaces.Infrastructure;
 using Infrastructure.MQ;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 using Serilog;
 using StackExchange.Redis;
 using System.Collections.Generic;
@@ -37,8 +39,22 @@ if (string.IsNullOrEmpty(redisConnectionString))
     throw new ArgumentNullException("RedisConnString", "Environment variable RedisConnString is not set or is empty.");
 }
 
+// 構建連接字符串，添加連接池和超時配置
+var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionStringBuilder = new NpgsqlConnectionStringBuilder(baseConnectionString)
+{
+    // 連接池配置
+    Pooling = true,
+    MinPoolSize = 5,
+    MaxPoolSize = 100,
+    // 連接超時時間（秒）
+    Timeout = 15,
+    // 命令超時時間（秒）- 通過連接字符串參數設置
+    CommandTimeout = 30
+};
+
 builder.Services.AddDbContext<EcommerceDBContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseNpgsql(connectionStringBuilder.ConnectionString)
         //.LogTo(Console.WriteLine, LogLevel.Information) // 開啟詳細日誌
         .LogTo(Console.WriteLine, LogLevel.Error)  // 只顯示錯誤日誌
         //.EnableSensitiveDataLogging()  // 僅建議於 production 環境使用
@@ -58,6 +74,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderStatusSyncService, OrderService>(); // OrderService 同時實現 IOrderStatusSyncService
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IShipmentService, ShipmentService>();
 builder.Services.AddScoped<IOrderTimeoutHandler, OrderTimeoutHandler>();
@@ -82,6 +99,8 @@ builder.Services.AddScoped<IShipmentRepository, ShipmentRepository>();
 builder.Services.AddSingleton<IShipmentProducer, ShipmentProducer>();
 builder.Services.AddSingleton<IShipmentConsumer, ShipmentConsumer>();
 builder.Services.AddSingleton<IOrderTimeoutProducer, OrderTimeoutProducer>();
+builder.Services.AddSingleton<IOrderStateProducer, OrderStateProducer>();
+builder.Services.AddSingleton<IOrderStatusChangedConsumer, OrderStatusChangedConsumer>();
 
 // 消費者服務改為 Scoped，因為它需要在每次消費時重新創建，並且依賴其他 Scoped 服務
 builder.Services.AddScoped<IOrderTimeoutConsumer, OrderTimeoutConsumer>();
@@ -93,6 +112,7 @@ builder.Services.AddSingleton<IQueueProcessor, QueueProcessor>();
 // 註冊背景服務
 builder.Services.AddHostedService<ShipmentConsumerService>();
 builder.Services.AddHostedService<OrderTimeoutConsumerService>();
+builder.Services.AddHostedService<OrderStatusChangedConsumerService>();
 
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp=> 
