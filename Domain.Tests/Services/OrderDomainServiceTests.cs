@@ -48,10 +48,16 @@ namespace Domain.Tests.Services
                 ProductVariantDiscounts = new List<ProductVariantDiscount>()
             };
 
+            // 使用反射創建 OrderProduct（因為 Create 方法是 internal）
+            var createMethod = typeof(OrderProduct)
+                .GetMethod("Create", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var orderProduct1 = createMethod?.Invoke(null, new object[] { 1, 100, 2, (ProductVariant?)null }) as OrderProduct;
+            var orderProduct2 = createMethod?.Invoke(null, new object[] { 2, 200, 1, (ProductVariant?)null }) as OrderProduct;
+
             var orderProducts = new List<OrderProduct>
             {
-                OrderProduct.Create(1, 100, 2), // ProductPrice = 100, Count = 2
-                OrderProduct.Create(2, 200, 1)  // ProductPrice = 200, Count = 1
+                orderProduct1!, // ProductPrice = 100, Count = 2
+                orderProduct2!  // ProductPrice = 200, Count = 1
             };
 
             var productVariants = new Dictionary<int, ProductVariant>
@@ -84,9 +90,14 @@ namespace Domain.Tests.Services
                 ProductVariantDiscounts = new List<ProductVariantDiscount>()
             };
 
+            // 使用反射創建 OrderProduct（因為 Create 方法是 internal）
+            var createMethod = typeof(OrderProduct)
+                .GetMethod("Create", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var orderProduct = createMethod?.Invoke(null, new object[] { 1, 100, 3, (ProductVariant?)null }) as OrderProduct;
+
             var orderProducts = new List<OrderProduct>
             {
-                OrderProduct.Create(1, 100, 3) // ProductPrice = 100, Count = 3
+                orderProduct! // ProductPrice = 100, Count = 3
             };
 
             var productVariants = new Dictionary<int, ProductVariant>
@@ -107,7 +118,10 @@ namespace Domain.Tests.Services
         public void GetDiscountAmountForOrderProduct_WithValidDiscount_ReturnsDiscountAmount()
         {
             // Arrange
-            var orderProduct = OrderProduct.Create(1, 100, 1);
+            // 使用反射創建 OrderProduct（因為 Create 方法是 internal）
+            var createMethod = typeof(OrderProduct)
+                .GetMethod("Create", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var orderProduct = createMethod?.Invoke(null, new object[] { 1, 100, 1, (ProductVariant?)null }) as OrderProduct;
             var productVariant = new ProductVariant
             {
                 Id = 1,
@@ -133,7 +147,7 @@ namespace Domain.Tests.Services
             // Act
             var discount = _orderDomainService.GetType()
                 .GetMethod("GetDiscountAmountForOrderProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .Invoke(_orderDomainService, new object[] { orderProduct, productVariants });
+                ?.Invoke(_orderDomainService, new object[] { orderProduct!, productVariants });
 
             // Assert
             Assert.AreEqual(30, discount);
@@ -143,7 +157,10 @@ namespace Domain.Tests.Services
         public void GetDiscountAmountForOrderProduct_WithNoValidDiscount_ReturnsZero()
         {
             // Arrange
-            var orderProduct = OrderProduct.Create(1, 100, 1);
+            // 使用反射創建 OrderProduct（因為 Create 方法是 internal）
+            var createMethod = typeof(OrderProduct)
+                .GetMethod("Create", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var orderProduct = createMethod?.Invoke(null, new object[] { 1, 100, 1, (ProductVariant?)null }) as OrderProduct;
             var productVariant = new ProductVariant
             {
                 Id = 1,
@@ -158,7 +175,7 @@ namespace Domain.Tests.Services
             // Act
             var discount = _orderDomainService.GetType()
                 .GetMethod("GetDiscountAmountForOrderProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .Invoke(_orderDomainService, new object[] { orderProduct, productVariants });
+                ?.Invoke(_orderDomainService, new object[] { orderProduct!, productVariants });
 
             // Assert
             Assert.AreEqual(0, discount);
@@ -168,13 +185,16 @@ namespace Domain.Tests.Services
         public void GetDiscountAmountForOrderProduct_WithNullProductVariant_ReturnsZero()
         {
             // Arrange
-            var orderProduct = OrderProduct.Create(1, 100, 1);
+            // 使用反射創建 OrderProduct（因為 Create 方法是 internal）
+            var createMethod = typeof(OrderProduct)
+                .GetMethod("Create", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var orderProduct = createMethod?.Invoke(null, new object[] { 1, 100, 1, (ProductVariant?)null }) as OrderProduct;
             // 不提供 productVariants 字典，或提供 null
 
             // Act
-            var discount = _orderDomainService.GetType()
-                .GetMethod("GetDiscountAmountForOrderProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .Invoke(_orderDomainService, new object[] { orderProduct, null });
+            var method = _orderDomainService.GetType()
+                .GetMethod("GetDiscountAmountForOrderProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var discount = method?.Invoke(_orderDomainService, new object[] { orderProduct!, (Dictionary<int, ProductVariant>?)null });
 
             // Assert
             Assert.AreEqual(0, discount);

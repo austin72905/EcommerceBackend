@@ -3,6 +3,7 @@ using Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Application.Extensions;
@@ -39,16 +40,9 @@ namespace Application.Tests.Extensions
         public void ToUserInfoDTO_User_MapsCorrectly()
         {
             // Arrange
-            var user = new User
-            {
-                Id = 1,
-                Username = "testuser",
-                Email = "test@example.com",
-                NickName = "Test User",
-                PhoneNumber = "1234567890",
-                Gender = "Male",
-                Birthday = new DateTime(2000, 1, 1)
-            };
+            var user = User.CreateWithPassword("test@example.com", "testuser", "hashedPassword");
+            typeof(User).GetProperty("Id")!.SetValue(user, 1);
+            user.UpdateProfile("Test User", "1234567890", "Male", new DateTime(2000, 1, 1));
 
             // Act
             var dto = user.ToUserInfoDTO();
@@ -81,19 +75,9 @@ namespace Application.Tests.Extensions
                 Type = "admin"
             };
 
-            // Act
-            var user = dto.ToUserEntity();
-
-            // Assert
-            Assert.AreEqual(dto.UserId, user.Id);
-            Assert.AreEqual(dto.Username, user.Username);
-            Assert.AreEqual(dto.Email, user.Email);
-            Assert.AreEqual(dto.NickName, user.NickName);
-            Assert.AreEqual(dto.PhoneNumber, user.PhoneNumber);
-            Assert.AreEqual(dto.Gender, user.Gender);
-            Assert.AreEqual(new DateTime(2000, 1, 1), user.Birthday);
-            Assert.AreEqual(dto.Picture, user.Picture);
-            Assert.AreEqual(dto.Type, user.Role);
+            // Act & Assert
+            // ToUserEntity 方法已過時並拋出異常，測試應該驗證這個行為
+            Assert.Throws<NotSupportedException>(() => dto.ToUserEntity());
         }
 
         [Test]
@@ -109,16 +93,9 @@ namespace Application.Tests.Extensions
                 Type = null      // 沒有角色
             };
 
-            // Act
-            var user = dto.ToUserEntity();
-
-            // Assert
-            Assert.AreEqual(dto.UserId, user.Id);
-            Assert.AreEqual(dto.Username, user.Username);
-            Assert.AreEqual(string.Empty, user.Email); // 預設值
-            Assert.AreEqual(dto.NickName, user.NickName);
-            Assert.AreEqual(DateTime.MinValue, user.Birthday); // 預設值   DateTime.MinValue    (DateTime? 沒有值)  試圖直接訪問未賦值的 DateTime? 時，可能隱式轉換為 DateTime 類型，這時候 DateTime 的默認值是 0001-01-01 00:00:00（即 DateTime.MinValue）。
-            Assert.AreEqual("user", user.Role); // 預設值
+            // Act & Assert
+            // ToUserEntity 方法已過時並拋出異常，測試應該驗證這個行為
+            Assert.Throws<NotSupportedException>(() => dto.ToUserEntity());
         }
 
         [Test]

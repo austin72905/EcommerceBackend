@@ -23,28 +23,21 @@ namespace Domain.Tests.Services
         public void MergeCartItems_UpdatesExistingItemQuantity()
         {
             // Arrange
-            var cart = new Cart
-            {
-                CartItems = new List<CartItem>
-                {
-                    new CartItem { ProductVariantId = 1, Quantity = 1 }
-                }
-            };
-
+            var cart = Cart.CreateForUser(1);
+            cart.AddItem(new ProductVariant { Id = 1 }, 1);
 
             var frontEndCartItems = new List<CartItem>
             {
-                new CartItem { ProductVariantId = 1, Quantity = 5 }
+                CartItem.Create(1, 5)
             };
-
 
             var productVariants = new List<ProductVariant>
             {
                 new ProductVariant { Id = 1 }
             };
 
-            // Act
-            _cartDomainService.MergeCartItems(cart, frontEndCartItems, productVariants);
+            // Act - 直接使用 Cart.MergeItems 方法（因為 CartDomainService 的方法已過時）
+            cart.MergeItems(frontEndCartItems, productVariants);
 
             // Assert
             Assert.AreEqual(1, cart.CartItems.Count);
@@ -55,27 +48,20 @@ namespace Domain.Tests.Services
         public void MergeCartItems_AddsNewItemToCart()
         {
             // Arrange
-            var cart = new Cart
-            {
-                CartItems = new List<CartItem>()
-            };
-
-
+            var cart = Cart.CreateForUser(1);
 
             var frontEndCartItems = new List<CartItem>
             {
-                new CartItem { ProductVariantId = 2, Quantity = 3 }
+                CartItem.Create(2, 3)
             };
-
-
 
             var productVariants = new List<ProductVariant>
             {
                 new ProductVariant { Id = 2 }
             };
 
-            // Act
-            _cartDomainService.MergeCartItems(cart, frontEndCartItems, productVariants);
+            // Act - 直接使用 Cart.MergeItems 方法
+            cart.MergeItems(frontEndCartItems, productVariants);
 
             // Assert
             Assert.AreEqual(1, cart.CartItems.Count);
@@ -89,29 +75,21 @@ namespace Domain.Tests.Services
         public void ClearAndRebuildCart_ClearsExistingItemsAndAddsNewOnes()
         {
             // Arrange
-            var cart = new Cart
-            {
-                CartItems = new List<CartItem>
-                {
-                    new CartItem { ProductVariantId = 1, Quantity = 2 }
-                }
-            };
-
-
+            var cart = Cart.CreateForUser(1);
+            cart.AddItem(new ProductVariant { Id = 1 }, 2);
 
             var frontEndCartItems = new List<CartItem>
             {
-                new CartItem { ProductVariantId = 2, Quantity = 4 }
+                CartItem.Create(2, 4)
             };
-
 
             var productVariants = new List<ProductVariant>
             {
                 new ProductVariant { Id = 2 }
             };
 
-            // Act
-            _cartDomainService.ClearAndRebuildCart(cart, frontEndCartItems, productVariants);
+            // Act - 直接使用 Cart.Rebuild 方法
+            cart.Rebuild(frontEndCartItems, productVariants);
 
             // Assert
             Assert.AreEqual(1, cart.CartItems.Count);

@@ -65,8 +65,8 @@ namespace Application.Tests.Services
             Assert.IsTrue(result.IsSuccess);
             Assert.IsNotNull(result.Data);
 
-            Assert.AreEqual(productId, result.Data.Product.ProductId);
-            Assert.AreEqual(product.Title, result.Data.Product.Title);
+            Assert.AreEqual(productId, result.Data!.Product.ProductId);
+            Assert.AreEqual(product.Title, result.Data!.Product.Title);
 
             //  確保 ProductService 中的 GetProductById 方法實際調用了 _repository.GetProductById，並且只調用了一次。
             _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);  
@@ -134,7 +134,7 @@ namespace Application.Tests.Services
             var product = new Product
             {
                 Id = productId,
-                Title = null // 模擬數據問題，導致 ToProductInformationDTO 拋出 NullReferenceException
+                Title = null! // 模擬數據問題，導致 ToProductInformationDTO 拋出 NullReferenceException
             };
 
             _productRepositoryMock
@@ -181,8 +181,8 @@ namespace Application.Tests.Services
             Assert.IsTrue(result.IsSuccess);
             Assert.IsNotNull(result.Data);
 
-            Assert.AreEqual(productId, result.Data.Product.ProductId);
-            Assert.IsTrue(result.Data.IsFavorite);
+            Assert.AreEqual(productId, result.Data!.Product.ProductId);
+            Assert.IsTrue(result.Data!.IsFavorite);
 
             _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Once);
@@ -218,8 +218,8 @@ namespace Application.Tests.Services
             // Assert
             Assert.IsTrue(result.IsSuccess);
             Assert.IsNotNull(result.Data);
-            Assert.AreEqual(productId, result.Data.Product.ProductId);
-            Assert.IsFalse(result.Data.IsFavorite);
+            Assert.AreEqual(productId, result.Data!.Product.ProductId);
+            Assert.IsFalse(result.Data!.IsFavorite);
 
             _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Once);
@@ -320,7 +320,7 @@ namespace Application.Tests.Services
             var product = new Product
             {
                 Id = productId,
-                Title = null // 模擬數據問題，導致 ToProductInformationDTO 拋出 NullReferenceException
+                Title = null! // 模擬數據問題，導致 ToProductInformationDTO 拋出 NullReferenceException
             };
 
             _productRepositoryMock
@@ -352,7 +352,7 @@ namespace Application.Tests.Services
         {
             // Arrange
             string tag = "Sports";
-            string kind = null;
+            string? kind = null;
 
             var products = new List<Product>
             {
@@ -432,21 +432,21 @@ namespace Application.Tests.Services
             };
 
             _productRepositoryMock
-                .Setup(repo => repo.GetProductsByTag(tag))
+                .Setup(repo => repo.GetProductsByTag(tag, It.IsAny<string>()))
                 .ReturnsAsync(products);
 
             // Act
-            var result = await _productService.GetProducts(kind, tag,"");
+            var result = await _productService.GetProducts(kind, tag, "");
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual(2, result.Data.Count);
+            Assert.AreEqual(2, result.Data!.Count);
 
-            Assert.AreEqual("Product 1", result.Data[0].Product.Title);
-            Assert.AreEqual("Product 2", result.Data[1].Product.Title);
+            Assert.AreEqual("Product 1", result.Data![0].Product.Title);
+            Assert.AreEqual("Product 2", result.Data![1].Product.Title);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(tag), Times.Once);
-            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>()), Times.Never);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(tag, ""), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
         /*
@@ -461,7 +461,7 @@ namespace Application.Tests.Services
         {
             // Arrange
             string kind = "Electronics";
-            string tag = null;
+            string? tag = null;
 
             var products = new List<Product>
             {
@@ -541,21 +541,21 @@ namespace Application.Tests.Services
             };
 
             _productRepositoryMock
-                .Setup(repo => repo.GetProductsByKind(kind))
+                .Setup(repo => repo.GetProductsByKind(kind, It.IsAny<string>()))
                 .ReturnsAsync(products);
 
             // Act
-            var result = await _productService.GetProducts(kind, tag);
+            var result = await _productService.GetProducts(kind, tag, null);
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual(2, result.Data.Count);
+            Assert.AreEqual(2, result.Data!.Count);
 
-            Assert.AreEqual("Product 1", result.Data[0].Product.Title);
-            Assert.AreEqual("Product 2", result.Data[1].Product.Title);
+            Assert.AreEqual("Product 1", result.Data![0].Product.Title);
+            Assert.AreEqual("Product 2", result.Data![1].Product.Title);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind), Times.Once);
-            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>()), Times.Never);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind, It.IsAny<string>()), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
         /*
@@ -567,18 +567,18 @@ namespace Application.Tests.Services
         public async Task GetProducts_WithNoKindOrTag_ReturnsEmptyList()
         {
             // Arrange
-            string kind = null;
-            string tag = null;
+            string? kind = null;
+            string? tag = null;
 
             // Act
-            var result = await _productService.GetProducts(kind, tag);
+            var result = await _productService.GetProducts(kind, tag, null);
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
             Assert.IsEmpty(result.Data);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>()), Times.Never);
-            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>()), Times.Never);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
 
@@ -592,41 +592,41 @@ namespace Application.Tests.Services
 
             // 模擬存儲庫的 GetProductsByTag 拋出異常
             _productRepositoryMock
-                .Setup(repo => repo.GetProductsByTag(tag))
+                .Setup(repo => repo.GetProductsByTag(tag, It.IsAny<string>()))
                 .ThrowsAsync(new Exception("Database error"));
 
             // Act
-            var result = await _productService.GetProducts(kind, tag);
+            var result = await _productService.GetProducts(kind, tag, null);
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
             Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(tag), Times.Once);
-            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>()), Times.Never); // 確保未調用其他方法
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(tag, It.IsAny<string>()), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>(), It.IsAny<string>()), Times.Never); // 確保未調用其他方法
         }
 
         [Test]
         public async Task GetProducts_WhenGetProductsByKindThrowsException_ReturnsErrorResult()
         {
             // Arrange
-            string tag = null;
+            string? tag = null;
             string kind = "electronics";
 
             // 模擬存儲庫的 GetProductsByKind 拋出異常
             _productRepositoryMock
-                .Setup(repo => repo.GetProductsByKind(kind))
+                .Setup(repo => repo.GetProductsByKind(kind, It.IsAny<string>()))
                 .ThrowsAsync(new Exception("Database error"));
 
             // Act
-            var result = await _productService.GetProducts(kind, tag);
+            var result = await _productService.GetProducts(kind, tag, null);
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
             Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind), Times.Once);
-            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>()), Times.Never); // 確保未調用其他方法
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind, It.IsAny<string>()), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>(), It.IsAny<string>()), Times.Never); // 確保未調用其他方法
         }
 
 
@@ -754,10 +754,10 @@ namespace Application.Tests.Services
             // Arrange
             int userId = 1;
             string tag = "sports";
-            string kind = null;
+            string? kind = null;
 
             _productRepositoryMock
-                .Setup(repo => repo.GetProductsByTag(tag))
+                .Setup(repo => repo.GetProductsByTag(tag, It.IsAny<string>()))
                 .ThrowsAsync(new Exception("Database error"));
 
             // Act
@@ -767,8 +767,8 @@ namespace Application.Tests.Services
             Assert.IsFalse(result.IsSuccess);
             Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(tag), Times.Once);
-            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>()), Times.Never);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(tag, It.IsAny<string>()), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(It.IsAny<int>()), Times.Never);
         }
 
@@ -778,11 +778,11 @@ namespace Application.Tests.Services
         {
             // Arrange
             int userId = 1;
-            string tag = null;
+            string? tag = null;
             string kind = "electronics";
 
             _productRepositoryMock
-                .Setup(repo => repo.GetProductsByKind(kind))
+                .Setup(repo => repo.GetProductsByKind(kind, It.IsAny<string>()))
                 .ThrowsAsync(new Exception("Database error"));
 
             // Act
@@ -792,8 +792,8 @@ namespace Application.Tests.Services
             Assert.IsFalse(result.IsSuccess);
             Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind), Times.Once);
-            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>()), Times.Never);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind, It.IsAny<string>()), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByTag(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(It.IsAny<int>()), Times.Never);
         }
 
@@ -802,7 +802,7 @@ namespace Application.Tests.Services
         {
             // Arrange
             int userId = 1;
-            string tag = null;
+            string? tag = null;
             string kind = "electronics";
 
             var products = new List<Product>
@@ -883,7 +883,7 @@ namespace Application.Tests.Services
             };
 
             _productRepositoryMock
-                .Setup(repo => repo.GetProductsByKind(kind))
+                .Setup(repo => repo.GetProductsByKind(kind, It.IsAny<string>()))
                 .ReturnsAsync(products);
 
             _userRepositoryMock
@@ -897,7 +897,7 @@ namespace Application.Tests.Services
             Assert.IsFalse(result.IsSuccess);
             Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductsByKind(kind, It.IsAny<string>()), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Once);
         }
 
@@ -1004,11 +1004,11 @@ namespace Application.Tests.Services
             Assert.AreEqual(2, result.Data.Count);
 
             // 檢查每個產品是否標記為收藏
-            Assert.AreEqual(1, result.Data[0].Product.ProductId);
-            Assert.IsTrue(result.Data[0].IsFavorite);
+            Assert.AreEqual(1, result.Data![0].Product.ProductId);
+            Assert.IsTrue(result.Data![0].IsFavorite);
 
-            Assert.AreEqual(2, result.Data[1].Product.ProductId);
-            Assert.IsTrue(result.Data[1].IsFavorite);
+            Assert.AreEqual(2, result.Data![1].Product.ProductId);
+            Assert.IsTrue(result.Data![1].IsFavorite);
 
             _productRepositoryMock.Verify(repo => repo.GetfavoriteProducts(userId), Times.Once);
         }
@@ -1028,7 +1028,7 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.IsEmpty(result.Data);
+            Assert.IsEmpty(result.Data!);
 
             _productRepositoryMock.Verify(repo => repo.GetfavoriteProducts(userId), Times.Once);
         }

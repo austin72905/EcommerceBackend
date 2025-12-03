@@ -3,6 +3,7 @@ using Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,11 +16,7 @@ namespace Application.Tests.Extensions
         public void ToCartItemDTO_ShouldMapPropertiesCorrectly()
         {
             // Arrange
-            var cartItem = new CartItem
-            {
-                ProductVariantId = 101,
-                Quantity = 2
-            };
+            var cartItem = CartItem.Create(101, 2);
 
             // Act
             var result = cartItem.ToCartItemDTO();
@@ -35,8 +32,8 @@ namespace Application.Tests.Extensions
             // Arrange
             var cartItems = new List<CartItem>
         {
-            new CartItem { ProductVariantId = 101, Quantity = 2 },
-            new CartItem { ProductVariantId = 102, Quantity = 3 }
+            CartItem.Create(101, 2),
+            CartItem.Create(102, 3)
         };
 
             // Act
@@ -52,11 +49,8 @@ namespace Application.Tests.Extensions
         public void ToProductWithCountDTO_ShouldMapPropertiesCorrectly()
         {
             // Arrange
-            var cartItem = new CartItem
-            {
-                ProductVariantId = 101,
-                Quantity = 2,
-                ProductVariant = new ProductVariant
+            var cartItem = CartItem.Create(101, 2);
+            typeof(CartItem).GetProperty("ProductVariant")!.SetValue(cartItem, new ProductVariant
                 {
                     Id = 101,
                     Color = "Red",
@@ -82,18 +76,17 @@ namespace Application.Tests.Extensions
                             }
                         }
                     }
-                }
-            };
+                });
 
             // Act
             var result = cartItem.ToProductWithCountDTO();
 
             // Assert
             Assert.AreEqual(cartItem.Quantity, result.Count);
-            Assert.AreEqual(cartItem.ProductVariant.Product.Id, result.Product.ProductId);
-            Assert.AreEqual(cartItem.ProductVariant.Color, result.SelectedVariant.Color);
-            Assert.AreEqual(cartItem.ProductVariant.Size.SizeValue, result.SelectedVariant.Size);
-            Assert.AreEqual(cartItem.ProductVariant.VariantPrice, result.SelectedVariant.Price);
+            Assert.AreEqual(cartItem.ProductVariant!.Product.Id, result.Product.ProductId);
+            Assert.AreEqual(cartItem.ProductVariant!.Color, result.SelectedVariant.Color);
+            Assert.AreEqual(cartItem.ProductVariant!.Size.SizeValue, result.SelectedVariant.Size);
+            Assert.AreEqual(cartItem.ProductVariant!.VariantPrice, result.SelectedVariant.Price);
             Assert.AreEqual(50, result.SelectedVariant.DiscountPrice);
         }
 
@@ -103,11 +96,10 @@ namespace Application.Tests.Extensions
             // Arrange
             var cartItems = new List<CartItem>
             {
-                new CartItem
-                {
-                    ProductVariantId = 101,
-                    Quantity = 2,
-                    ProductVariant = new ProductVariant
+                CartItem.Create(101, 2),
+                CartItem.Create(102, 3)
+            };
+            typeof(CartItem).GetProperty("ProductVariant")!.SetValue(cartItems[0], new ProductVariant
                     {
                         Id = 101,
                         Color = "Red",
@@ -121,13 +113,8 @@ namespace Application.Tests.Extensions
                             Title = "Test Product 1",
                             CoverImg = "cover1.jpg"
                         }
-                    }
-                },
-                new CartItem
-                {
-                    ProductVariantId = 102,
-                    Quantity = 3,
-                    ProductVariant = new ProductVariant
+                    });
+            typeof(CartItem).GetProperty("ProductVariant")!.SetValue(cartItems[1], new ProductVariant
                     {
                         Id = 102,
                         Color = "Blue",
@@ -141,17 +128,15 @@ namespace Application.Tests.Extensions
                             Title = "Test Product 2",
                             CoverImg = "cover2.jpg"
                         }
-                    }
-                }
-            };
+                    });
 
             // Act
             var result = cartItems.ToProductWithCountDTOList();
 
             // Assert
             Assert.AreEqual(cartItems.Count, result.Count);
-            Assert.AreEqual(cartItems[0].ProductVariant.Product.Id, result[0].Product.ProductId);
-            Assert.AreEqual(cartItems[1].ProductVariant.Color, result[1].SelectedVariant.Color);
+            Assert.AreEqual(cartItems[0].ProductVariant!.Product.Id, result[0].Product.ProductId);
+            Assert.AreEqual(cartItems[1].ProductVariant!.Color, result[1].SelectedVariant.Color);
         }
 
 
@@ -159,11 +144,8 @@ namespace Application.Tests.Extensions
         public void CalculateDiscountPrice_ShouldReturnNull_WhenNoDiscountsAvailable()
         {
             // Arrange
-            var cartItem = new CartItem
-            {
-                ProductVariantId = 101,
-                Quantity = 2,
-                ProductVariant = new ProductVariant
+            var cartItem = CartItem.Create(101, 2);
+            typeof(CartItem).GetProperty("ProductVariant")!.SetValue(cartItem, new ProductVariant
                 {
                     Id = 101,
                     Color = "Red",
@@ -178,8 +160,7 @@ namespace Application.Tests.Extensions
                         CoverImg = "cover.jpg"
                     },
                     ProductVariantDiscounts = null
-                }
-            };
+                });
 
             // Act
             var result = cartItem.ToProductWithCountDTO();

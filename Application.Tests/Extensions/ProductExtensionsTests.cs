@@ -87,7 +87,7 @@ namespace Application.Tests.Extensions
             Assert.AreEqual(product.HowToWash, result.HowToWash);
             Assert.AreEqual(product.Features, result.Features);
             Assert.AreEqual(product.CoverImg, result.CoverImg);
-            Assert.AreEqual(2, result.Variants.Count);
+            Assert.AreEqual(2, result.Variants!.Count);
         }
 
         [Test]

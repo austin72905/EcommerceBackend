@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Net;
+using System.Reflection;
 
 namespace Application.Tests.Services
 {
@@ -68,19 +69,11 @@ namespace Application.Tests.Services
         {
             // Arrange
             int userId = 1;
-            var user = new User
-            {
-                Id = userId,
-                NickName = "Test User",
-                Email = "test@example.com",
-                Username = "aaaaa",
-                PhoneNumber = "11111111",
-                Gender = "男",
-                Picture = "",
-                Birthday = null,
-                Role = "user"
-
-            };
+            var user = User.CreateWithPassword("test@example.com", "aaaaa", "hashedPassword");
+            // 使用反射設置 Id 和其他屬性（測試需要）
+            typeof(User).GetProperty("Id")!.SetValue(user, userId);
+            user.UpdateProfile("Test User", "11111111", "男", null);
+            typeof(User).GetProperty("Picture")!.SetValue(user, "");
 
             // 模擬從 repo 拿到的資料是 user
             _userRepositoryMock
@@ -144,12 +137,8 @@ namespace Application.Tests.Services
             };
             var sessionId = "session123";
 
-            var existingUser = new User
-            {
-                Id = 1,
-                Username = "OldUser",
-                Email = "old@example.com"
-            };
+            var existingUser = User.CreateWithPassword("old@example.com", "OldUser", "hashedPassword");
+            typeof(User).GetProperty("Id")!.SetValue(existingUser, 1);
 
             _userRepositoryMock
                 .Setup(repo => repo.GetUserInfo(userDto.UserId))
@@ -174,7 +163,8 @@ namespace Application.Tests.Services
             Assert.IsTrue(result.IsSuccess);
             Assert.AreEqual("操作成功", result.Data);
 
-            _userDomainServiceMock.Verify(service => service.UpdateUser(existingUser, It.IsAny<User>()), Times.Once);
+            // ModifyUserInfo 方法直接調用 user.UpdateProfile()，不調用 Domain Service 的 UpdateUser
+            // 所以不需要驗證 UpdateUser 的調用
             _userRepositoryMock.Verify(repo => repo.SaveChangesAsync(), Times.Once);
             _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(sessionId, It.IsAny<string>()), Times.Once);
         }
@@ -188,7 +178,7 @@ namespace Application.Tests.Services
             var sessionId = "session123";
             var userDto = new UserInfoDTO { UserId = userId };
 
-            _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync((User)null);
+            _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync((User?)null);
 
             // Act
             var result = await _userService.ModifyUserInfo(userDto, sessionId);
@@ -269,7 +259,7 @@ namespace Application.Tests.Services
                 Password = "newPass123"
             };
 
-            _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync((User)null);
+            _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync((User?)null);
 
             // Act
             var result = await _userService.ModifyPassword(userId, modifyPasswordDto);
@@ -293,7 +283,8 @@ namespace Application.Tests.Services
                 Password = "newPass123"
             };
 
-            var user = new User { Id = userId, PasswordHash = "hashedOldPassword" };
+            var user = User.CreateWithPassword("test@example.com", "testuser", "hashedOldPassword");
+            typeof(User).GetProperty("Id")!.SetValue(user, userId);
 
             var domainServiceResult =new DomainServiceResult<object> { IsSuccess = false,ErrorMessage= "舊密碼不正確" };
 
@@ -325,7 +316,8 @@ namespace Application.Tests.Services
                 Password = "newPass123"
             };
 
-            var user = new User { Id = userId, PasswordHash = "hashedOldPassword" };
+            var user = User.CreateWithPassword("test@example.com", "testuser", "hashedOldPassword");
+            typeof(User).GetProperty("Id")!.SetValue(user, userId);
 
             _userRepositoryMock.Setup(repo => repo.GetUserInfo(userId)).ReturnsAsync(user);
 
@@ -403,16 +395,9 @@ namespace Application.Tests.Services
             };
 
                             var userEntity = signUpDto.ToUserEntity(_encryptionServiceMock.Object);
-            var createdUser = new User
-            {
-                Id = 1,
-                Username = signUpDto.Username,
-                Email = signUpDto.Email,
-                NickName = signUpDto.NickName,
-                Role = "user",
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
-            };
+            var createdUser = User.CreateWithPassword(signUpDto.Email, signUpDto.Username, $"hashed_{signUpDto.Password}");
+            typeof(User).GetProperty("Id")!.SetValue(createdUser, 1);
+            createdUser.UpdateProfile(signUpDto.NickName, null, null, null);
 
             var userInfoDto = createdUser.ToUserInfoDTO();
 
@@ -425,7 +410,7 @@ namespace Application.Tests.Services
 
             _userRepositoryMock
                 .Setup(repo => repo.AddUser(It.IsAny<User>()))
-                .Callback<User>(user => user.Id = createdUser.Id);
+                .Callback<User>(user => typeof(User).GetProperty("Id")!.SetValue(user, 1));
 
             _userRepositoryMock
                 .Setup(repo => repo.CheckUserExists(signUpDto.Username, signUpDto.Email))
@@ -446,8 +431,8 @@ namespace Application.Tests.Services
 
             _userDomainServiceMock.Verify(service => service.EnsureUserNotExists(signUpDto.Username, signUpDto.Email), Times.Once);
             _userRepositoryMock.Verify(repo => repo.AddUser(It.IsAny<User>()), Times.Once);
-            _userRepositoryMock.Verify(repo => repo.CheckUserExists(signUpDto.Username, signUpDto.Email), Times.Once);
-            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.Is<string>(data => data.Contains(userInfoDto.Username))), Times.Once);
+            // UserRegister 方法沒有調用 CheckUserExists，只調用 EnsureUserNotExists 和 AddUser
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.Is<string>(data => data.Contains(userInfoDto.Username!))), Times.Once);
         }
 
         [Test]
@@ -494,8 +479,12 @@ namespace Application.Tests.Services
                 Password = "password123"
             };
 
+            _redisServiceMock
+                .Setup(r => r.GetWrongPasswordTimeAsync(loginDto.Username))
+                .ReturnsAsync(0);
+
             _userRepositoryMock
-                .Setup(repo => repo.CheckUserExists(loginDto.Username, loginDto.Username))
+                .Setup(repo => repo.GetUserByUsername(loginDto.Username))
                 .ReturnsAsync((User)null);
 
             // Act
@@ -518,15 +507,15 @@ namespace Application.Tests.Services
                 Password = "wrongPassword"
             };
 
-            var user = new User
-            {
-                Id = 1,
-                Username = loginDto.Username,
-                                    PasswordHash = "hashed_correctPassword"
-            };
+            var user = User.CreateWithPassword("test@example.com", loginDto.Username, "hashed_correctPassword");
+            typeof(User).GetProperty("Id")!.SetValue(user, 1);
+
+            _redisServiceMock
+                .Setup(r => r.GetWrongPasswordTimeAsync(loginDto.Username))
+                .ReturnsAsync(0);
 
             _userRepositoryMock
-                .Setup(repo => repo.CheckUserExists(loginDto.Username, loginDto.Username))
+                .Setup(repo => repo.GetUserByUsername(loginDto.Username))
                 .ReturnsAsync(user);
 
             // Act
@@ -537,6 +526,7 @@ namespace Application.Tests.Services
             Assert.AreEqual("密碼錯誤", result.ErrorMessage);
 
             _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            _redisServiceMock.Verify(redis => redis.SetWrongPasswordTimeAsync(loginDto.Username, It.IsAny<bool>()), Times.Once);
         }
 
         [Test]
@@ -549,20 +539,22 @@ namespace Application.Tests.Services
                 Password = "correctPassword"
             };
 
-            var user = new User
-            {
-                Id = 1,
-                Username = loginDto.Username,
-                                    PasswordHash = $"hashed_{loginDto.Password}",
-                Email = "test@example.com",
-                Role = "user"
-            };
+            var user = User.CreateWithPassword("test@example.com", loginDto.Username, $"hashed_{loginDto.Password}");
+            typeof(User).GetProperty("Id")!.SetValue(user, 1);
 
             var userInfoDto = user.ToUserInfoDTO();
 
+            _redisServiceMock
+                .Setup(r => r.GetWrongPasswordTimeAsync(loginDto.Username))
+                .ReturnsAsync(0);
+
             _userRepositoryMock
-                .Setup(repo => repo.CheckUserExists(loginDto.Username, loginDto.Username))
+                .Setup(repo => repo.GetUserByUsername(loginDto.Username))
                 .ReturnsAsync(user);
+
+            _userRepositoryMock
+                .Setup(repo => repo.SaveChangesAsync())
+                .Returns(Task.CompletedTask);
 
             _redisServiceMock
                 .Setup(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.IsAny<string>()))
@@ -576,7 +568,7 @@ namespace Application.Tests.Services
             Assert.AreEqual("登入成功", result.ErrorMessage);
             Assert.IsNotNull(result.Data);
 
-            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.Is<string>(data => data.Contains(userInfoDto.Username))), Times.Once);
+            _redisServiceMock.Verify(redis => redis.SetUserInfoAsync(It.IsAny<string>(), It.Is<string>(data => data.Contains(userInfoDto.Username!))), Times.Once);
         }
 
         [Test]
@@ -589,9 +581,13 @@ namespace Application.Tests.Services
                 Password = "password123"
             };
 
+            _redisServiceMock
+                .Setup(r => r.GetWrongPasswordTimeAsync(It.IsAny<string>()))
+                .ReturnsAsync(0);
+
             _userRepositoryMock
-                .Setup(repo => repo.CheckUserExists(It.IsAny<string>(), It.IsAny<string>()))
-                .Throws(new Exception("Unexpected exception"));
+                .Setup(repo => repo.GetUserByUsername(It.IsAny<string>()))
+                .ThrowsAsync(new Exception("Unexpected exception"));
 
             // Act
             var result = await _userService.UserLogin(loginDto);
@@ -636,19 +632,11 @@ namespace Application.Tests.Services
                 Exp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()
             };
 
-            var user = new User
-            {
-                Id = 1,
-                Username = "Test User",
-                Email = "test@example.com",
-                GoogleId = "1234567890",
-                NickName = "TestNick",
-                Picture = jwtUserInfo.Picture,
-                Role = "user",
-                CreatedAt = DateTime.Now.AddDays(-10),
-                UpdatedAt = DateTime.Now,
-                LastLogin = DateTime.Now
-            };
+            var user = User.CreateWithGoogle("test@example.com", "1234567890", "TestNick", jwtUserInfo.Picture);
+            typeof(User).GetProperty("Id")!.SetValue(user, 1);
+            typeof(User).GetProperty("CreatedAt")!.SetValue(user, DateTime.Now.AddDays(-10));
+            typeof(User).GetProperty("UpdatedAt")!.SetValue(user, DateTime.Now);
+            typeof(User).GetProperty("LastLogin")!.SetValue(user, DateTime.Now);
 
             _configurationMock.Setup(c => c["GoogleAuthClientSecret"]).Returns("test-secret");
 
@@ -677,9 +665,10 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual(user.Email, result.UserInfo.Email);
-            Assert.AreEqual(jwtUserInfo.Picture, result.UserInfo.Picture);
-            Assert.AreEqual(jwtUserInfo.Name, result.UserInfo.NickName);
+            Assert.NotNull(result.UserInfo);
+            Assert.AreEqual(user.Email, result.UserInfo!.Email);
+            Assert.AreEqual(jwtUserInfo.Picture, result.UserInfo!.Picture);
+            Assert.AreEqual(jwtUserInfo.Name, result.UserInfo!.NickName);
 
             _httpUtilsMock.Verify(utils => utils.PostFormAsync<OAuth2GoogleResp>(It.IsAny<string>(), It.IsAny<Dictionary<string, string>>(), null), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetUserIfExistsByGoogleID(jwtUserInfo.Sub), Times.Once);
@@ -713,19 +702,11 @@ namespace Application.Tests.Services
                 Exp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()
             };
 
-            var user = new User
-            {
-                Id = 1,
-                Username = "Test User",
-                Email = "test@example.com",
-                GoogleId = "1234567890",
-                NickName = "TestNick",
-                Picture = jwtUserInfo.Picture,
-                Role = "user",
-                CreatedAt = DateTime.Now.AddDays(-10),
-                UpdatedAt = DateTime.Now,
-                LastLogin = DateTime.Now
-            };
+            var user = User.CreateWithGoogle("test@example.com", "1234567890", "TestNick", jwtUserInfo.Picture);
+            typeof(User).GetProperty("Id")!.SetValue(user, 1);
+            typeof(User).GetProperty("CreatedAt")!.SetValue(user, DateTime.Now.AddDays(-10));
+            typeof(User).GetProperty("UpdatedAt")!.SetValue(user, DateTime.Now);
+            typeof(User).GetProperty("LastLogin")!.SetValue(user, DateTime.Now);
 
 
             _configurationMock.Setup(c => c["GoogleAuthClientSecret"]).Returns("test-secret");
@@ -760,9 +741,10 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual(user.Email, result.UserInfo.Email);
-            Assert.AreEqual(user.Picture, result.UserInfo.Picture);
-            Assert.AreEqual(user.NickName, result.UserInfo.NickName);
+            Assert.NotNull(result.UserInfo);
+            Assert.AreEqual(user.Email, result.UserInfo!.Email);
+            Assert.AreEqual(user.Picture, result.UserInfo!.Picture);
+            Assert.AreEqual(user.NickName, result.UserInfo!.NickName);
 
             _httpUtilsMock.Verify(utils => utils.PostFormAsync<OAuth2GoogleResp>(
                 "https://oauth2.googleapis.com/token",
@@ -788,9 +770,9 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.NotNull(decodedResult);
-            Assert.AreEqual("1234567890", decodedResult.Sub);
-            Assert.AreEqual("test@example.com", decodedResult.Email);
-            Assert.AreEqual("Test User", decodedResult.Name);
+            Assert.AreEqual("1234567890", decodedResult!.Sub);
+            Assert.AreEqual("test@example.com", decodedResult!.Email);
+            Assert.AreEqual("Test User", decodedResult!.Name);
         }
         [Test]
         public async Task UserAuthLogin_InvalidCode_ReturnsError()

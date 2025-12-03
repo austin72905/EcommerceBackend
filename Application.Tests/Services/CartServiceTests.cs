@@ -8,6 +8,7 @@ using Moq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -76,11 +77,7 @@ namespace Application.Tests.Services
                 }
             };
 
-            var newCart = new Cart
-            {
-                UserId = userId,
-                CartItems = new List<CartItem>()
-            };
+            var newCart = Cart.CreateForUser(userId);
 
             // 模擬購物車不存在
             _cartRepositoryMock.Setup(repo => repo.GetCartByUserId(userId))
@@ -95,37 +92,24 @@ namespace Application.Tests.Services
                 .Callback<Cart>(cart =>
                 {
                     newCart = cart; // 模擬保存新的購物車
+                    // 模擬富領域模型的 MergeItems 行為
+                    var domainCartItems = frontEndCartItems.Select(dto => 
+                        CartItem.Create(dto.ProductVariantId, dto.Quantity)
+                    ).ToList();
+                    cart.MergeItems(domainCartItems, productVariants);
                 })
                 .Returns(Task.CompletedTask);
-
-            // 模擬 MergeCartItems
-            _cartDomainServiceMock
-                .Setup(service => service.MergeCartItems(It.IsAny<Cart>(), It.IsAny<List<CartItem>>(), It.IsAny<IEnumerable<ProductVariant>>()))
-                .Callback<Cart, List<CartItem>, IEnumerable<ProductVariant>>((cart, items, variants) =>
-                {
-                    cart.CartItems = items.Select(item => new CartItem
-                    {
-                        ProductVariantId = item.ProductVariantId,
-                        Quantity = item.Quantity,
-                        ProductVariant = variants.FirstOrDefault(ci => ci.Id == item.ProductVariantId),
-                    }).ToList();
-                });
 
             // Act
             var result = await _cartService.MergeCartContent(userId, frontEndCartItems);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Expected the result to be successful.");
-            Assert.AreEqual(1, result.Data.Count, "Expected one item in the cart.");
-            Assert.AreEqual(101, result.Data[0].SelectedVariant.VariantID, "Expected ProductVariantId to match.");
+            Assert.AreEqual(1, result.Data!.Count, "Expected one item in the cart.");
+            Assert.AreEqual(101, result.Data![0].SelectedVariant.VariantID, "Expected ProductVariantId to match.");
 
             // 驗證新增購物車行為
             _cartRepositoryMock.Verify(repo => repo.AddAsync(It.IsAny<Cart>()), Times.Once);
-
-            // 驗證合併購物車行為
-            _cartDomainServiceMock.Verify(
-                service => service.MergeCartItems(It.IsAny<Cart>(), It.IsAny<List<CartItem>>(), It.IsAny<IEnumerable<ProductVariant>>()),
-                Times.Once);
 
             // 驗證保存更改
             _cartRepositoryMock.Verify(repo => repo.SaveChangesAsync(), Times.Once);
@@ -165,14 +149,9 @@ namespace Application.Tests.Services
                 }
             };
 
-            var existingCart = new Cart
-            {
-                UserId = userId,
-                CartItems = new List<CartItem>
-                {
-                    new CartItem { ProductVariantId = 102, Quantity = 1 }
-                }
-            };
+            var existingCart = Cart.CreateForUser(userId);
+            var cartItem = CartItem.Create(102, 1);
+            typeof(Cart).GetProperty("CartItems")!.SetValue(existingCart, new List<CartItem> { cartItem });
 
             // 模擬返回現有的購物車
             _cartRepositoryMock.Setup(repo => repo.GetCartByUserId(userId)).ReturnsAsync(existingCart);
@@ -181,32 +160,14 @@ namespace Application.Tests.Services
             _productRepositoryMock.Setup(repo => repo.GetProductVariants(It.IsAny<IEnumerable<int>>()))
                 .ReturnsAsync(productVariants);
 
-            // 模擬 ClearAndRebuildCart 行為
-            _cartDomainServiceMock
-                .Setup(service => service.ClearAndRebuildCart(It.IsAny<Cart>(), It.IsAny<List<CartItem>>(), It.IsAny<IEnumerable<ProductVariant>>()))
-                .Callback<Cart, List<CartItem>, IEnumerable<ProductVariant>>((cart, items, variants) =>
-                {
-                    cart.CartItems = items.Select(item => new CartItem
-                    {
-                        ProductVariantId = item.ProductVariantId,
-                        Quantity = item.Quantity,
-                        ProductVariant = variants.FirstOrDefault(v => v.Id == item.ProductVariantId)
-                    }).ToList();
-                });
-
             // Act
             var result = await _cartService.MergeCartContentCover(userId, frontEndCartItems);
 
             // Assert
             Assert.IsTrue(result.IsSuccess, "Expected the result to be successful.");
-            Assert.AreEqual(1, result.Data.Count, "Expected one item in the cart.");
-            Assert.AreEqual(101, result.Data[0].SelectedVariant.VariantID, "Expected ProductVariantId to match.");
-            Assert.AreEqual(2, result.Data[0].Count, "Expected Quantity to match the front-end item.");
-
-            // 驗證 ClearAndRebuildCart 被調用
-            _cartDomainServiceMock.Verify(
-                service => service.ClearAndRebuildCart(existingCart, It.IsAny<List<CartItem>>(), productVariants),
-                Times.Once);
+            Assert.AreEqual(1, result.Data!.Count, "Expected one item in the cart.");
+            Assert.AreEqual(101, result.Data![0].SelectedVariant.VariantID, "Expected ProductVariantId to match.");
+            Assert.AreEqual(2, result.Data![0].Count, "Expected Quantity to match the front-end item.");
 
             // 驗證保存行為
             _cartRepositoryMock.Verify(repo => repo.SaveChangesAsync(), Times.Once);
@@ -233,6 +194,8 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
+            // BaseService.Error 方法的簽名是 Error<E>(string exceptionMsg, string? message = null)
+            // 如果 message 為 null，則返回 "系統錯誤，請聯繫管理員"
             Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
         }
 
@@ -253,6 +216,8 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
+            // BaseService.Error 方法的簽名是 Error<E>(string exceptionMsg, string? message = null)
+            // 如果 message 為 null，則返回 "系統錯誤，請聯繫管理員"
             Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
         }
     }

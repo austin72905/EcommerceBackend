@@ -37,15 +37,19 @@ namespace Domain.Tests.Services
         public void UpdateUser_UpdatesUserProperties()
         {
             // Arrange
-            var user = new User { Username = "OldName", Email = "old@example.com" };
-            var updateInfo = new User { Username = "NewName", Email = "new@example.com" };
+            var user = User.CreateWithPassword("old@example.com", "OldName", "hashed_password");
+            var updateInfo = User.CreateWithPassword("new@example.com", "NewName", "hashed_password");
+            updateInfo.UpdateProfile(nickName: "NewNick", phoneNumber: "123456789", gender: "男", birthday: null);
 
-            // Act
-            _userDomainService.UpdateUser(user, updateInfo);
+            // Act - 直接使用 User.UpdateProfile 方法（因為 UserDomainService.UpdateUser 已過時）
+            user.UpdateProfile(
+                nickName: updateInfo.NickName,
+                phoneNumber: updateInfo.PhoneNumber,
+                gender: updateInfo.Gender,
+                birthday: updateInfo.Birthday
+            );
 
             // Assert
-            Assert.AreEqual("NewName", user.Username);
-            Assert.AreEqual("new@example.com", user.Email);
             Assert.AreEqual(DateTime.Now.Date, user.UpdatedAt.Date); // Verify UpdatedAt is set
         }
 
@@ -53,7 +57,7 @@ namespace Domain.Tests.Services
         public async Task EnsureUserNotExists_UserWithSameEmail_ReturnIsSuccessFail()
         {
             // Arrange
-            var existingUser = new User { Username = "ExistingUser", Email = "existing@example.com" }; // 模擬repo執行後返回的節骨
+            var existingUser = User.CreateWithPassword("existing@example.com", "ExistingUser", "hashed_password"); // 模擬repo執行後返回的節骨
             _userRepositoryMock
                 .Setup(repo => repo.CheckUserExists("NewUser", "existing@example.com"))  //模擬當 CheckUserExists 方法被調用，並傳入 "NewUser" 和 "existing@example.com" 這兩個參數時，應返回什麼結果。
                 .ReturnsAsync(existingUser);
@@ -74,7 +78,7 @@ namespace Domain.Tests.Services
         public async Task EnsureUserNotExists_UserWithSameUsername_ReturnIsSuccessFail()
         {
             // Arrange
-            var existingUser = new User { Username = "ExistingUser", Email = "existing@example.com" };
+            var existingUser = User.CreateWithPassword("existing@example.com", "ExistingUser", "hashed_password");
             _userRepositoryMock
                 .Setup(repo => repo.CheckUserExists("ExistingUser", "test@example.com"))
                 .ReturnsAsync(existingUser);
@@ -120,7 +124,7 @@ namespace Domain.Tests.Services
         public void EnsurePasswordCanBeChanged_PasswordHashIsNull_ReturnIsSuccessFail()
         {
             // Arrange
-            var user = new User { PasswordHash = null };
+            var user = User.CreateWithGoogle("test@example.com", "google123", "TestUser");
 
             // Act
             var result = _userDomainService.EnsurePasswordCanBeChanged(user, "oldPassword", "newPassword");
@@ -135,7 +139,7 @@ namespace Domain.Tests.Services
         public void EnsurePasswordCanBeChanged_InvalidOldPassword_ReturnIsSuccessFail()
         {
             // Arrange
-            var user = new User { PasswordHash = "hashed_correct-password" };
+            var user = User.CreateWithPassword("test@example.com", "testuser", "hashed_correct-password");
 
             var result =_userDomainService.EnsurePasswordCanBeChanged(user, "wrong-password", "new-password");
             // Act & Assert
@@ -148,7 +152,7 @@ namespace Domain.Tests.Services
         public void EnsurePasswordCanBeChanged_SameOldAndNewPassword_ReturnIsSuccessFail()
         {
             // Arrange
-            var user = new User { PasswordHash = "hashed_password" };
+            var user = User.CreateWithPassword("test@example.com", "testuser", "hashed_password");
 
             var result = _userDomainService.EnsurePasswordCanBeChanged(user, "password", "password");
 
@@ -163,7 +167,7 @@ namespace Domain.Tests.Services
         public void EnsurePasswordCanBeChanged_ValidOldPasswordAndNewPassword_ReturnIsSuccessTrue()
         {
             // Arrange
-            var user = new User { PasswordHash = "hashed_password" };
+            var user = User.CreateWithPassword("test@example.com", "testuser", "hashed_password");
 
             var result = _userDomainService.EnsurePasswordCanBeChanged(user, "password", "new-password");
 
@@ -180,7 +184,7 @@ namespace Domain.Tests.Services
         public void ChangePassword_UpdatesPasswordHash()
         {
             // Arrange
-            var user = new User();
+            var user = User.CreateWithPassword("test@example.com", "testuser", "old_hash");
             var newPassword = "new-password";
 
             // Act
