@@ -9,6 +9,7 @@
         private CartItem() { }
 
         // 工廠方法：創建購物車項目
+        // 注意：不設定 productVariant 導航屬性，避免 EF Core 追蹤整個物件圖（導致重複追蹤）
         public static CartItem Create(int productVariantId, int quantity, ProductVariant productVariant = null)
         {
             if (productVariantId <= 0)
@@ -21,7 +22,9 @@
             {
                 ProductVariantId = productVariantId,
                 Quantity = quantity,
-                ProductVariant = productVariant
+                // 不設定 ProductVariant 導航屬性，EF Core 會根據 ProductVariantId 自動建立關聯
+                // 避免追蹤整個物件圖（包含 Product、Size、Discount 等）導致重複追蹤問題
+                // ProductVariant = productVariant  // ❌ 不設定，避免 EF Core 重複追蹤
             };
         }
 

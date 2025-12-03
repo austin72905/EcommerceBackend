@@ -9,6 +9,7 @@
         private OrderProduct() { }
 
         // 內部工廠方法（僅供 Order 使用）
+        // 注意：不保存 productVariant 導航屬性，避免 EF Core 嘗試插入相關實體（導致主鍵衝突）
         internal static OrderProduct Create(int productVariantId, int productPrice, int count, ProductVariant productVariant = null)
         {
             if (productVariantId <= 0)
@@ -25,7 +26,9 @@
                 ProductVariantId = productVariantId,
                 ProductPrice = productPrice,
                 Count = count,
-                ProductVariant = productVariant
+                // 不設定 ProductVariant 導航屬性，EF Core 會根據 ProductVariantId 自動建立關聯
+                // 避免將整個物件圖（包含 Product）插入資料庫
+                // ProductVariant = productVariant // ❌ 不設定，避免 EF Core 嘗試插入 Product
             };
         }
 

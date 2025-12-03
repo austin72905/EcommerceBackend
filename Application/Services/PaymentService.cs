@@ -16,6 +16,7 @@ namespace Application.Services
     {
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IPaymentRepository _paymentRepository;
+        private readonly IOrderRepostory _orderRepository;
         private readonly IShipmentProducer _shipmentProducer;
         private readonly IOrderStateProducer _orderStateProducer;
         private readonly IEncryptionService _encryptionService;
@@ -25,6 +26,7 @@ namespace Application.Services
         private readonly IConfiguration _configuration;
         public PaymentService(
             IPaymentRepository paymentRepository, 
+            IOrderRepostory orderRepository,
             IHttpContextAccessor contextAccessor, 
             IShipmentProducer shipmentProducer,
             IOrderStateProducer orderStateProducer,
@@ -35,6 +37,7 @@ namespace Application.Services
             ILogger<PaymentService> logger):base(logger)
         {
             _paymentRepository = paymentRepository;
+            _orderRepository = orderRepository;
             _contextAccessor = contextAccessor;
             _shipmentProducer = shipmentProducer;
             _orderStateProducer = orderStateProducer;
@@ -407,8 +410,8 @@ namespace Application.Services
 
         private async Task<ServiceResult<object>> TransactionFail()
         {
-            // 修改資料庫狀態
-            var payment = await _paymentRepository.GetPaymentRecord(recordCode: RecordCode);
+            // 使用帶追蹤的方法獲取支付記錄，以便 EF Core 可以追蹤變更
+            var payment = await _paymentRepository.GetPaymentRecordForUpdate(recordCode: RecordCode);
 
             if (payment != null)
             {
@@ -444,8 +447,8 @@ namespace Application.Services
         {
             _logger.LogInformation("開始處理交易成功邏輯，訂單號: {RecordCode}", RecordCode);
 
-            // 修改資料庫狀態
-            var payment = await _paymentRepository.GetPaymentRecord(recordCode: RecordCode);
+            // 使用帶追蹤的方法獲取支付記錄，以便 EF Core 可以追蹤 Order 的變更
+            var payment = await _paymentRepository.GetPaymentRecordForUpdate(recordCode: RecordCode);
 
             if (payment == null)
             {
@@ -470,42 +473,43 @@ namespace Application.Services
                 
                 _logger.LogInformation("已標記為已付款，訂單號: {RecordCode}, 訂單狀態: {OrderStatus}", RecordCode, payment.Order.Status);
 
-                    // 付款成功後，確認庫存（正式扣除）
-                    var confirmResult = await _inventoryService.ConfirmInventoryAsync(RecordCode);
-                    if (!confirmResult.IsSuccess)
-                    {
-                        _logger.LogWarning("付款成功後確認庫存失敗，訂單編號: {RecordCode}, 錯誤: {Error}", 
-                            RecordCode, confirmResult.ErrorMessage);
-                        // 即使確認失敗，也繼續處理（庫存已經在創建訂單時預扣）
-                    }
-
-                    // 通知物流系統開始處理
-                    var shipmentMessage = new
-                    {
-                        Status = (int)ShipmentStatus.Pending,
-                        OrderId = payment.OrderId,
-                        RecordCode = payment.Order.RecordCode
-                    };
-                    await _shipmentProducer.SendMessage(shipmentMessage);
-
-                    // 通知訂單狀態服務支付已完成
-                    var orderStateMessage = new
-                    {
-                        eventType = "PaymentCompleted",
-                        orderId = payment.Order.RecordCode, // 使用 RecordCode 作為 orderId
-                        timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                    };
-                    await _orderStateProducer.SendMessage(orderStateMessage);
-                    
-                    _logger.LogInformation("支付成功，已發送訂單狀態更新消息，訂單號: {RecordCode}", RecordCode);
-                }
-                else
+                // 付款成功後，確認庫存（正式扣除）
+                var confirmResult = await _inventoryService.ConfirmInventoryAsync(RecordCode);
+                if (!confirmResult.IsSuccess)
                 {
-                    _logger.LogInformation("訂單已經標記為已付款，跳過處理，訂單號: {RecordCode}", RecordCode);
+                    _logger.LogWarning("付款成功後確認庫存失敗，訂單編號: {RecordCode}, 錯誤: {Error}", 
+                        RecordCode, confirmResult.ErrorMessage);
+                    // 即使確認失敗，也繼續處理（庫存已經在創建訂單時預扣）
                 }
 
+                // 通知物流系統開始處理
+                var shipmentMessage = new
+                {
+                    Status = (int)ShipmentStatus.Pending,
+                    OrderId = payment.OrderId,
+                    RecordCode = payment.Order.RecordCode
+                };
+                await _shipmentProducer.SendMessage(shipmentMessage);
+
+                // 通知訂單狀態服務支付已完成
+                var orderStateMessage = new
+                {
+                    eventType = "PaymentCompleted",
+                    orderId = payment.Order.RecordCode, // 使用 RecordCode 作為 orderId
+                    timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                };
+                await _orderStateProducer.SendMessage(orderStateMessage);
+                
+                _logger.LogInformation("支付成功，已發送訂單狀態更新消息，訂單號: {RecordCode}", RecordCode);
+            }
+            else
+            {
+                _logger.LogInformation("訂單已經標記為已付款，跳過處理，訂單號: {RecordCode}", RecordCode);
+            }
+
+            // 保存變更（包括 Payment 和 Order 的變更）
             await _paymentRepository.SaveChangesAsync();
-            _logger.LogInformation("支付記錄已保存，訂單號: {RecordCode}", RecordCode);
+            _logger.LogInformation("支付記錄和訂單狀態已保存，訂單號: {RecordCode}", RecordCode);
 
             return Success<object>("OK");
             

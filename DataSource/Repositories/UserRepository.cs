@@ -26,6 +26,7 @@ namespace DataSource.Repositories
         public async Task<User?> GetUserInfo(int userid)
         {
             return await _dbSet
+                .AsNoTracking()
                 .Where(u => u.Id == userid)
                 .FirstOrDefaultAsync();
 
@@ -96,8 +97,31 @@ namespace DataSource.Repositories
 
         public async Task<User?> CheckUserExists(string userName,string email)
         {
+            // 優化：將 OR 查詢拆分為兩個查詢，更好地使用索引
+            // 先查 Username（通常更常用），如果找不到再查 Email
+            var userByUsername = await _dbSet
+                .AsNoTracking()
+                .Where(u => u.Username == userName)
+                .FirstOrDefaultAsync();
+            
+            if (userByUsername != null)
+                return userByUsername;
+            
+            // 如果 Username 找不到，再查 Email
             return await _dbSet
-                .Where(u => u.Username== userName || u.Email==email)
+                .AsNoTracking()
+                .Where(u => u.Email == email)
+                .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// 根據 Username 查詢用戶（用於登入，效能優化）
+        /// </summary>
+        public async Task<User?> GetUserByUsername(string userName)
+        {
+            return await _dbSet
+                .AsNoTracking()
+                .Where(u => u.Username == userName)
                 .FirstOrDefaultAsync();
         }
 
@@ -108,7 +132,10 @@ namespace DataSource.Repositories
         }
         public async Task<User?> GetUserIfExistsByGoogleID(string gooleID)
         {
-            return await _dbSet.Where(u => u.GoogleId == gooleID).FirstOrDefaultAsync();
+            return await _dbSet
+                .AsNoTracking()
+                .Where(u => u.GoogleId == gooleID)
+                .FirstOrDefaultAsync();
         }
 
         public async Task AddUser(User user)

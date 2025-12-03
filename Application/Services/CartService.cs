@@ -68,8 +68,12 @@ namespace Application.Services
                 // 保存更改到資料庫
                 await _cartRepository.SaveChangesAsync();
 
-                // 將 cartItems 轉換為 DTO 列表
-                var productsDTOs = cart.CartItems.ToProductWithCountDTOList();
+                // 優化：使用已載入的 productVariants 資料轉換為 DTO，避免重新載入購物車
+                // 將 productVariants 轉換為字典以便快速查找
+                var productVariantDict = productVariants.ToDictionary(pv => pv.Id);
+                
+                // 將 cartItems 轉換為 DTO 列表（使用已載入的資料）
+                var productsDTOs = cart.CartItems.ToProductWithCountDTOList(productVariantDict);
 
                 return Success<List<ProductWithCountDTO>>(productsDTOs);
             }
@@ -109,8 +113,12 @@ namespace Application.Services
                 // 保存更改到資料庫
                 await _cartRepository.SaveChangesAsync();
 
-                // 返回更新後的購物車數據
-                var productsDTOs = cart.CartItems.ToProductWithCountDTOList();
+                // 優化：使用已載入的 productVariants 資料轉換為 DTO，避免重新載入購物車
+                // 將 productVariants 轉換為字典以便快速查找
+                var productVariantDict = productVariants.ToDictionary(pv => pv.Id);
+                
+                // 返回更新後的購物車數據（使用已載入的資料）
+                var productsDTOs = cart.CartItems.ToProductWithCountDTOList(productVariantDict);
 
                 return Success<List<ProductWithCountDTO>>(productsDTOs);
             }

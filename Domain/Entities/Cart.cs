@@ -70,8 +70,8 @@ namespace Domain.Entities
             }
             else
             {
-                // 新增商品
-                var cartItem = CartItem.Create(productVariant.Id, quantity, productVariant);
+                // 新增商品（只傳入 ID，不傳入實體，避免 EF Core 追蹤整個物件圖）
+                var cartItem = CartItem.Create(productVariant.Id, quantity, null);
                 CartItems.Add(cartItem);
             }
 
@@ -143,8 +143,8 @@ namespace Domain.Entities
                 }
                 else
                 {
-                    // 新增商品
-                    var newItem = CartItem.Create(itemToMerge.ProductVariantId, itemToMerge.Quantity, productVariant);
+                    // 新增商品（只傳入 ID，不傳入實體，避免 EF Core 追蹤整個物件圖）
+                    var newItem = CartItem.Create(itemToMerge.ProductVariantId, itemToMerge.Quantity, null);
                     CartItems.Add(newItem);
                 }
             }
@@ -165,7 +165,8 @@ namespace Domain.Entities
                 
                 if (productVariant != null)
                 {
-                    var newItem = CartItem.Create(item.ProductVariantId, item.Quantity, productVariant);
+                    // 只傳入 ID，不傳入實體，避免 EF Core 追蹤整個物件圖
+                    var newItem = CartItem.Create(item.ProductVariantId, item.Quantity, null);
                     CartItems.Add(newItem);
                 }
             }

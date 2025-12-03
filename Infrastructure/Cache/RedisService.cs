@@ -195,6 +195,54 @@ namespace Infrastructure.Cache
         }
 
         /// <summary>
+        /// 檢查訊息是否已處理（冪等性檢查）
+        /// </summary>
+        public async Task<bool> IsMessageProcessedAsync(string messageKey)
+        {
+            string key = $"message:processed:{messageKey}";
+            
+            try
+            {
+                var exists = await _db.KeyExistsAsync(key);
+                return exists;
+            }
+            catch (RedisConnectionException ex)
+            {
+                Console.WriteLine($"Redis connection error: {ex.Message}");
+                // 連線失敗時返回 false，允許繼續處理（避免因 Redis 故障導致服務中斷）
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 標記訊息為已處理（冪等性處理）
+        /// </summary>
+        public async Task MarkMessageAsProcessedAsync(string messageKey, TimeSpan? ttl = null)
+        {
+            string key = $"message:processed:{messageKey}";
+            var expiration = ttl ?? TimeSpan.FromHours(24); // 預設 24 小時
+            
+            try
+            {
+                await _db.StringSetAsync(key, "1", expiration);
+                Console.WriteLine($"Marked message as processed: {messageKey}");
+            }
+            catch (RedisConnectionException ex)
+            {
+                Console.WriteLine($"Redis connection error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// 獲取單個商品變體的庫存
         /// </summary>
         /// <param name="productId">商品ID</param>

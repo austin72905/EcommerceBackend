@@ -13,13 +13,13 @@ namespace Domain.Interfaces.Repositories
 
         public Task<IEnumerable<Product>> GetProductsBasicInfoByQuery(string keyword);
 
-        public Task<IEnumerable<Product>> GetProductsByKind(string kind);
+        public Task<IEnumerable<Product>> GetProductsByKind(string kind, string? query = null);
 
-        public Task<IEnumerable<Product>> GetProductsBasicInfoByKind(string kind);
+        public Task<IEnumerable<Product>> GetProductsBasicInfoByKind(string kind, string? query = null);
 
-        public Task<IEnumerable<Product>> GetProductsByTag(string tag);
+        public Task<IEnumerable<Product>> GetProductsByTag(string tag, string? query = null);
 
-        public Task<IEnumerable<Product>> GetProductsBasicInfByTag(string tag);
+        public Task<IEnumerable<Product>> GetProductsBasicInfByTag(string tag, string? query = null);
 
         public Task<Product?> GetProductById(int productId);
 

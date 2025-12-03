@@ -2,6 +2,7 @@
 using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Application
 {
@@ -12,12 +13,14 @@ namespace Application
         private bool _isProcessing = false;
 
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ILogger<QueueProcessor> _logger;
 
-        public QueueProcessor(IServiceScopeFactory serviceScopeFactory)
+        public QueueProcessor(IServiceScopeFactory serviceScopeFactory, ILogger<QueueProcessor> logger)
         {
             // 初始化時不啟動處理
 
             _scopeFactory = serviceScopeFactory;
+            _logger = logger;
         }
 
 
@@ -116,7 +119,14 @@ namespace Application
             using (var scope = _scopeFactory.CreateScope())
             {
                 var scopedService = scope.ServiceProvider.GetRequiredService<IOrderRepostory>();
-                var order = await scopedService.GetOrderInfoById(item.OrderId);
+                // 使用帶追蹤的方法獲取訂單，以便 EF Core 可以追蹤變更
+                var order = await scopedService.GetOrderInfoByIdForUpdate(item.OrderId);
+                
+                if (order == null)
+                {
+                    _logger.LogWarning("找不到訂單: OrderId={OrderId}", item.OrderId);
+                    return;
+                }
                 
                 // 使用 Order 的業務方法更新狀態
                 if (item.ShipmentStatus == (int)ShipmentStatus.InTransit)

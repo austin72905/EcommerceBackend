@@ -289,7 +289,7 @@ namespace Application.Tests.Services
                 .ReturnsAsync(productVariants);
 
             _orderDomainServiceMock
-                .Setup(service => service.CalculateOrderTotal(It.IsAny<List<OrderProduct>>(), It.IsAny<int>()))
+                .Setup(service => service.CalculateOrderTotal(It.IsAny<List<OrderProduct>>(), It.IsAny<int>(), It.IsAny<Dictionary<int, ProductVariant>>()))
                 .Returns(120); // 2 items * 50 + 20 shipping fee
 
             _orderRepositoryMock
@@ -310,7 +310,7 @@ namespace Application.Tests.Services
             Assert.IsNotNull(result.Data.RecordNo);
 
             _productRepositoryMock.Verify(repo => repo.GetProductVariants(It.IsAny<List<int>>()), Times.Once);
-            _orderDomainServiceMock.Verify(service => service.CalculateOrderTotal(It.IsAny<List<OrderProduct>>(), 20), Times.Once);
+            _orderDomainServiceMock.Verify(service => service.CalculateOrderTotal(It.IsAny<List<OrderProduct>>(), 20, It.IsAny<Dictionary<int, ProductVariant>>()), Times.Once);
             _orderRepositoryMock.Verify(repo => repo.GenerateOrder(It.IsAny<Order>()), Times.Once);
             _paymentRepositoryMock.Verify(repo => repo.GeneratePaymentRecord(It.IsAny<Payment>()), Times.Once);
         }

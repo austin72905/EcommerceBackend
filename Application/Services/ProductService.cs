@@ -255,29 +255,20 @@ namespace Application.Services
         {
             try
             {
-                IEnumerable<Domain.Entities.Product> products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集合
+                // 將過濾條件傳遞給 Repository，在資料庫層執行，避免載入所有資料到記憶體
+                IEnumerable<Domain.Entities.Product> products = Enumerable.Empty<Product>();
 
                 if (!string.IsNullOrEmpty(tag))
                 {
-                    products = await _repository.GetProductsByTag(tag);
-
+                    products = await _repository.GetProductsByTag(tag, query);
                 }
                 else if (!string.IsNullOrEmpty(kind))
                 {
-                    products = await _repository.GetProductsByKind(kind);
-
+                    products = await _repository.GetProductsByKind(kind, query);
                 }
                 else if (!string.IsNullOrEmpty(query))
                 {
-
-                    products = await _repository.GetProductsByQuery(tag);
-
-                }
-
-                // 過濾出符合query 條件的結果
-                if (!string.IsNullOrEmpty(query))
-                {
-                    products = products.Where(p => p.Title.Contains(query));
+                    products = await _repository.GetProductsByQuery(query);
                 }
 
                 var productsDtos = products.ToProductInformationDTOs();
@@ -300,26 +291,20 @@ namespace Application.Services
         {
             try
             {
-                IEnumerable<Domain.Entities.Product> products = Enumerable.Empty<Product>(); // 如果沒有指定 tag 或 kind，返回空集
+                // 將過濾條件傳遞給 Repository，在資料庫層執行
+                IEnumerable<Domain.Entities.Product> products = Enumerable.Empty<Product>();
+                
                 if (!string.IsNullOrEmpty(tag))
                 {
-                    products = await _repository.GetProductsBasicInfByTag(tag);
-
+                    products = await _repository.GetProductsBasicInfByTag(tag, query);
                 }
                 else if (!string.IsNullOrEmpty(kind))
                 {
-                    products = await _repository.GetProductsBasicInfoByKind(kind);
-
+                    products = await _repository.GetProductsBasicInfoByKind(kind, query);
                 }
                 else if (!string.IsNullOrEmpty(query))
                 {
                     products = await _repository.GetProductsBasicInfoByQuery(query);
-                }
-
-                // 過濾出符合query 條件的結果
-                if (!string.IsNullOrEmpty(query))
-                {
-                    products = products.Where(p => p.Title.Contains(query));
                 }
 
                 var productsDtos = products.ToProductInBasicDTOs();

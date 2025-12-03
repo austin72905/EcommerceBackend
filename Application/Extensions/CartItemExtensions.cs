@@ -81,5 +81,50 @@ namespace Application.Extensions
         {
             return cartItems.Select(cartItem => cartItem.ToProductWithCountDTO()).ToList();
         }
+
+        /// <summary>
+        /// 將 CartItem 轉換為 ProductWithCountDTO，使用提供的 ProductVariant 資料（效能優化）
+        /// 避免重新載入購物車，直接使用已載入的 ProductVariant 資料
+        /// </summary>
+        public static ProductWithCountDTO ToProductWithCountDTO(this CartItem cartItem, ProductVariant productVariant)
+        {
+            if (productVariant == null)
+                throw new ArgumentNullException(nameof(productVariant));
+
+            return new ProductWithCountDTO
+            {
+                Product = new ProductInfomationDTO
+                {
+                    ProductId = productVariant.Product.Id,
+                    Title = productVariant.Product.Title,
+                    CoverImg = productVariant.Product.CoverImg,
+                },
+                Count = cartItem.Quantity,
+                SelectedVariant = new ProductVariantDTO
+                {
+                    VariantID = cartItem.ProductVariantId,
+                    Color = productVariant.Color,
+                    Size = productVariant.Size.SizeValue,
+                    Price = productVariant.VariantPrice,
+                    Stock = productVariant.Stock,
+                    SKU = productVariant.SKU,
+                    DiscountPrice = CalculateDiscountPrice(productVariant)
+                }
+            };
+        }
+
+        /// <summary>
+        /// 批量轉換擴充方法（效能優化版本）
+        /// 使用已載入的 ProductVariant 資料，避免重新查詢資料庫
+        /// </summary>
+        public static List<ProductWithCountDTO> ToProductWithCountDTOList(
+            this IEnumerable<CartItem> cartItems, 
+            Dictionary<int, ProductVariant> productVariantDict)
+        {
+            return cartItems
+                .Where(ci => productVariantDict.ContainsKey(ci.ProductVariantId))
+                .Select(cartItem => cartItem.ToProductWithCountDTO(productVariantDict[cartItem.ProductVariantId]))
+                .ToList();
+        }
     }
 }

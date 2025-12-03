@@ -67,6 +67,35 @@ namespace DataSource.DBContext
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.UserId);
 
+            // Order 表的 RecordCode 索引（用於依 RecordCode 查詢單筆訂單與付款）
+            modelBuilder.Entity<Order>()
+                .HasIndex(o => o.RecordCode)
+                .IsUnique();
+
+            // Order 表的 Status 索引（用於列表依狀態篩選）
+            modelBuilder.Entity<Order>()
+                .HasIndex(o => o.Status);
+
+            // Order 表的 UpdatedAt 索引（用於排序，提升 GetOrders 效能）
+            modelBuilder.Entity<Order>()
+                .HasIndex(o => o.UpdatedAt);
+
+            // ProductVariant 表的 ProductId 索引（用於 JOIN 查詢，提升商品列表效能）
+            modelBuilder.Entity<ProductVariant>()
+                .HasIndex(pv => pv.ProductId);
+
+            // ProductTag 表的 ProductId 和 TagId 索引（用於過濾查詢）
+            modelBuilder.Entity<ProductTag>()
+                .HasIndex(pt => pt.ProductId);
+            modelBuilder.Entity<ProductTag>()
+                .HasIndex(pt => pt.TagId);
+
+            // ProductKind 表的 ProductId 和 KindId 索引（用於過濾查詢）
+            modelBuilder.Entity<ProductKind>()
+                .HasIndex(pk => pk.ProductId);
+            modelBuilder.Entity<ProductKind>()
+                .HasIndex(pk => pk.KindId);
+
             // OrderProduct 表的 OrderId 和 ProductVariantId 外鍵索引
             modelBuilder.Entity<OrderProduct>()
                 .HasIndex(op => op.OrderId);
@@ -84,6 +113,10 @@ namespace DataSource.DBContext
             modelBuilder.Entity<CartItem>()
                 .HasIndex(ci => ci.ProductVariantId);
 
+            // UserShipAddress 表的 UserId 索引（用於查詢使用者所有地址）
+            modelBuilder.Entity<UserShipAddress>()
+                .HasIndex(ua => ua.UserId);
+
             // ProductDiscount 表的 ProductId 和 DiscountId 外鍵索引
             modelBuilder.Entity<ProductDiscount>()
                 .HasIndex(pd => pd.ProductId);
@@ -95,6 +128,17 @@ namespace DataSource.DBContext
                 .HasIndex(pvd => pvd.VariantId);
             modelBuilder.Entity<ProductVariantDiscount>()
                 .HasIndex(pvd => pvd.DiscountId);
+
+            // Shipment 表的 OrderId 索引（用於依訂單查詢所有物流記錄）
+            modelBuilder.Entity<Shipment>()
+                .HasIndex(sp => sp.OrderId);
+
+            // Payment 表的 OrderId 與 TenantConfigId 索引
+            modelBuilder.Entity<Payment>()
+                .HasIndex(p => p.OrderId);
+
+            modelBuilder.Entity<Payment>()
+                .HasIndex(p => p.TenantConfigId);
 
             // OrderStep 表的 OrderId 外鍵索引
             modelBuilder.Entity<OrderStep>()

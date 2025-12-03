@@ -172,11 +172,39 @@ namespace Infrastructure.MQ
 
         private async Task ProcessOrderStatusChangedAsync(OrderStatusChangedMessage message)
         {
+            // 冪等性檢查：避免重複處理相同訊息
+            var messageKey = $"{message.OrderID}:{message.FromStatus}:{message.ToStatus}:{message.Timestamp}";
+            
             // 動態建立 Scope
             using (var scope = _scopeFactory.CreateScope())
             {
-                var orderStatusSyncService = scope.ServiceProvider.GetRequiredService<IOrderStatusSyncService>();
-                await orderStatusSyncService.SyncOrderStatusFromStateServiceAsync(message.OrderID, message.FromStatus, message.ToStatus);
+                var redisService = scope.ServiceProvider.GetRequiredService<IRedisService>();
+                
+                // 檢查訊息是否已處理
+                var isProcessed = await redisService.IsMessageProcessedAsync(messageKey);
+                if (isProcessed)
+                {
+                    _logger.LogInformation("[訂單狀態同步] 訊息已處理，跳過: MessageKey={MessageKey}, OrderID={OrderID}", 
+                        messageKey, message.OrderID);
+                    return;
+                }
+                
+                try
+                {
+                    var orderStatusSyncService = scope.ServiceProvider.GetRequiredService<IOrderStatusSyncService>();
+                    await orderStatusSyncService.SyncOrderStatusFromStateServiceAsync(message.OrderID, message.FromStatus, message.ToStatus);
+                    
+                    // 處理成功後標記為已處理
+                    await redisService.MarkMessageAsProcessedAsync(messageKey);
+                    _logger.LogInformation("[訂單狀態同步] 訊息處理成功並標記: MessageKey={MessageKey}, OrderID={OrderID}", 
+                        messageKey, message.OrderID);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[訂單狀態同步] 訊息處理失敗: MessageKey={MessageKey}, OrderID={OrderID}", 
+                        messageKey, message.OrderID);
+                    throw; // 重新拋出異常，讓 RabbitMQ 重試
+                }
             }
         }
 

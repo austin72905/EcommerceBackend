@@ -49,11 +49,11 @@ var connectionStringBuilder = new NpgsqlConnectionStringBuilder(baseConnectionSt
     // 連接池配置
     Pooling = true,
     MinPoolSize = 5,
-    MaxPoolSize = 100,
+    MaxPoolSize = 30,
     // 連接超時時間（秒）
     Timeout = 15,
     // 命令超時時間（秒）- 通過連接字符串參數設置
-    CommandTimeout = 30
+    CommandTimeout = 60
 };
 
 builder.Services.AddDbContext<EcommerceDBContext>(options =>

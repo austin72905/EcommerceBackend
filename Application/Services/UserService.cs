@@ -139,7 +139,8 @@ namespace Application.Services
                     return Fail<string>("密碼錯誤次數已達上限，請稍後再試");
                 }
 
-                var user = await _userRepository.CheckUserExists(loginDto.Username, loginDto.Username);
+                // 優化：登入時只需要查 Username，使用專門的方法更高效
+                var user = await _userRepository.GetUserByUsername(loginDto.Username);
 
                 // 用戶不存在
                 if (user == null)
@@ -219,10 +220,9 @@ namespace Application.Services
                 var userEntity = signUpDto.ToUserEntity(_encryptionService);
                 await _userRepository.AddUser(userEntity);
 
-                // 新增完了
-                var user = await _userRepository.CheckUserExists(signUpDto.Username, signUpDto.Email);
-                // 將用戶資料存在redis，並將key返回給api 層
-                var userDto = user.ToUserInfoDTO();
+                // 優化：AddUser 已經 SaveChangesAsync，userEntity.Id 已經有值，不需要重新查詢
+                // 直接使用 userEntity 轉換為 DTO
+                var userDto = userEntity.ToUserInfoDTO();
 
                 string redisKey = await SaveUserInfoToRedis(userDto);
 

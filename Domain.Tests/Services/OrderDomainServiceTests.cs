@@ -23,69 +23,81 @@ namespace Domain.Tests.Services
         public void CalculateOrderTotal_WithValidProductsAndShipping_ReturnsCorrectTotal()
         {
             // Arrange
-            var orderProducts = new List<OrderProduct>
+            var productVariant1 = new ProductVariant
             {
-                new OrderProduct
+                Id = 1,
+                VariantPrice = 100,
+                ProductVariantDiscounts = new List<ProductVariantDiscount>
                 {
-                    Count = 2,
-                    ProductVariant = new ProductVariant
+                    new ProductVariantDiscount
                     {
-                        VariantPrice = 100,
-                        ProductVariantDiscounts = new List<ProductVariantDiscount>
+                        Discount = new Discount
                         {
-                            new ProductVariantDiscount
-                            {
-                                Discount = new Discount
-                                {
-                                    StartDate = DateTime.Now.AddDays(-1),
-                                    EndDate = DateTime.Now.AddDays(1),
-                                    DiscountAmount = 20
-                                }
-                            }
+                            StartDate = DateTime.Now.AddDays(-1),
+                            EndDate = DateTime.Now.AddDays(1),
+                            DiscountAmount = 20
                         }
                     }
-                },
-                new OrderProduct
-                {
-                    Count = 1,
-                    ProductVariant = new ProductVariant
-                    {
-                        VariantPrice = 200,
-                        ProductVariantDiscounts = new List<ProductVariantDiscount>()
-                    }
                 }
+            };
+
+            var productVariant2 = new ProductVariant
+            {
+                Id = 2,
+                VariantPrice = 200,
+                ProductVariantDiscounts = new List<ProductVariantDiscount>()
+            };
+
+            var orderProducts = new List<OrderProduct>
+            {
+                OrderProduct.Create(1, 100, 2), // ProductPrice = 100, Count = 2
+                OrderProduct.Create(2, 200, 1)  // ProductPrice = 200, Count = 1
+            };
+
+            var productVariants = new Dictionary<int, ProductVariant>
+            {
+                { 1, productVariant1 },
+                { 2, productVariant2 }
             };
 
             int shippingPrice = 50;
 
             // Act
-            var total = _orderDomainService.CalculateOrderTotal(orderProducts, shippingPrice);
+            var total = _orderDomainService.CalculateOrderTotal(orderProducts, shippingPrice, productVariants);
 
             // Assert
-            Assert.AreEqual(290, total); //   40 +200 +50
+            // 第一個商品：折扣價 20 * 2 = 40
+            // 第二個商品：原價 200 * 1 = 200
+            // 運費：50
+            // 總計：40 + 200 + 50 = 290
+            Assert.AreEqual(290, total);
         }
 
         [Test]
         public void CalculateOrderTotal_WithNoDiscounts_ReturnsCorrectTotal()
         {
             // Arrange
+            var productVariant = new ProductVariant
+            {
+                Id = 1,
+                VariantPrice = 100,
+                ProductVariantDiscounts = new List<ProductVariantDiscount>()
+            };
+
             var orderProducts = new List<OrderProduct>
             {
-                new OrderProduct
-                {
-                    Count = 3,
-                    ProductVariant = new ProductVariant
-                    {
-                        VariantPrice = 100,
-                        ProductVariantDiscounts = new List<ProductVariantDiscount>()
-                    }
-                }
+                OrderProduct.Create(1, 100, 3) // ProductPrice = 100, Count = 3
+            };
+
+            var productVariants = new Dictionary<int, ProductVariant>
+            {
+                { 1, productVariant }
             };
 
             int shippingPrice = 20;
 
             // Act
-            var total = _orderDomainService.CalculateOrderTotal(orderProducts, shippingPrice);
+            var total = _orderDomainService.CalculateOrderTotal(orderProducts, shippingPrice, productVariants);
 
             // Assert
             Assert.AreEqual(320, total); // (100*3) + (20) = 320
@@ -95,29 +107,33 @@ namespace Domain.Tests.Services
         public void GetDiscountAmountForOrderProduct_WithValidDiscount_ReturnsDiscountAmount()
         {
             // Arrange
-            var orderProduct = new OrderProduct
+            var orderProduct = OrderProduct.Create(1, 100, 1);
+            var productVariant = new ProductVariant
             {
-                ProductVariant = new ProductVariant
+                Id = 1,
+                ProductVariantDiscounts = new List<ProductVariantDiscount>
                 {
-                    ProductVariantDiscounts = new List<ProductVariantDiscount>
+                    new ProductVariantDiscount
                     {
-                        new ProductVariantDiscount
+                        Discount = new Discount
                         {
-                            Discount = new Discount
-                            {
-                                StartDate = DateTime.Now.AddDays(-1),
-                                EndDate = DateTime.Now.AddDays(1),
-                                DiscountAmount = 30
-                            }
+                            StartDate = DateTime.Now.AddDays(-1),
+                            EndDate = DateTime.Now.AddDays(1),
+                            DiscountAmount = 30
                         }
                     }
                 }
             };
 
+            var productVariants = new Dictionary<int, ProductVariant>
+            {
+                { 1, productVariant }
+            };
+
             // Act
             var discount = _orderDomainService.GetType()
                 .GetMethod("GetDiscountAmountForOrderProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .Invoke(_orderDomainService, new object[] { orderProduct });
+                .Invoke(_orderDomainService, new object[] { orderProduct, productVariants });
 
             // Assert
             Assert.AreEqual(30, discount);
@@ -127,18 +143,22 @@ namespace Domain.Tests.Services
         public void GetDiscountAmountForOrderProduct_WithNoValidDiscount_ReturnsZero()
         {
             // Arrange
-            var orderProduct = new OrderProduct
+            var orderProduct = OrderProduct.Create(1, 100, 1);
+            var productVariant = new ProductVariant
             {
-                ProductVariant = new ProductVariant
-                {
-                    ProductVariantDiscounts = new List<ProductVariantDiscount>()
-                }
+                Id = 1,
+                ProductVariantDiscounts = new List<ProductVariantDiscount>()
+            };
+
+            var productVariants = new Dictionary<int, ProductVariant>
+            {
+                { 1, productVariant }
             };
 
             // Act
             var discount = _orderDomainService.GetType()
                 .GetMethod("GetDiscountAmountForOrderProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .Invoke(_orderDomainService, new object[] { orderProduct });
+                .Invoke(_orderDomainService, new object[] { orderProduct, productVariants });
 
             // Assert
             Assert.AreEqual(0, discount);
@@ -148,12 +168,13 @@ namespace Domain.Tests.Services
         public void GetDiscountAmountForOrderProduct_WithNullProductVariant_ReturnsZero()
         {
             // Arrange
-            var orderProduct = new OrderProduct { ProductVariant = null };
+            var orderProduct = OrderProduct.Create(1, 100, 1);
+            // 不提供 productVariants 字典，或提供 null
 
             // Act
             var discount = _orderDomainService.GetType()
                 .GetMethod("GetDiscountAmountForOrderProduct", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                .Invoke(_orderDomainService, new object[] { orderProduct });
+                .Invoke(_orderDomainService, new object[] { orderProduct, null });
 
             // Assert
             Assert.AreEqual(0, discount);

@@ -54,6 +54,20 @@ namespace Common.Interfaces.Infrastructure
 
 
         /// <summary>
+        /// 檢查訊息是否已處理（冪等性檢查）
+        /// </summary>
+        /// <param name="messageKey">訊息唯一鍵</param>
+        /// <returns>true 表示已處理，false 表示未處理</returns>
+        public Task<bool> IsMessageProcessedAsync(string messageKey);
+
+        /// <summary>
+        /// 標記訊息為已處理（冪等性處理）
+        /// </summary>
+        /// <param name="messageKey">訊息唯一鍵</param>
+        /// <param name="ttl">過期時間（預設 24 小時）</param>
+        public Task MarkMessageAsProcessedAsync(string messageKey, TimeSpan? ttl = null);
+
+        /// <summary>
         /// api 限流 token bucket ， 每個用戶都有自己的token bucket，是針對單個用戶的限流
         /// </summary>
         /// <param name="userId"></param>

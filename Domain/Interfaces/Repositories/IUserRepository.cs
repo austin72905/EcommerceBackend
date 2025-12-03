@@ -8,6 +8,11 @@ namespace Domain.Interfaces.Repositories
         public Task<User?> GetUserInfo(int userid);
 
         public Task<User?> CheckUserExists(string userName,string email);
+        
+        /// <summary>
+        /// 根據 Username 查詢用戶（用於登入，效能優化）
+        /// </summary>
+        public Task<User?> GetUserByUsername(string userName);
 
         public Task<User?> GetUserIfExistsByGoogleID(string gooleID);
 

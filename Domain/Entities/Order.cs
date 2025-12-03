@@ -133,40 +133,59 @@ namespace Domain.Entities
 
         /// <summary>
         /// 添加訂單商品
+        /// 注意：為避免 EF Core 追蹤整個物件圖（導致主鍵衝突），只接受必要的資料，不接受完整的 ProductVariant 實體
         /// </summary>
-        public void AddOrderProduct(ProductVariant productVariant, int quantity)
+        public void AddOrderProduct(int productVariantId, int productPrice, int quantity)
         {
             if (Status != (int)OrderStatus.Created)
                 throw new InvalidOperationException("只能在訂單創建狀態時添加商品");
 
-            if (productVariant == null)
-                throw new ArgumentNullException(nameof(productVariant));
+            if (productVariantId <= 0)
+                throw new ArgumentException("商品變體 ID 必須大於 0", nameof(productVariantId));
+
+            if (productPrice < 0)
+                throw new ArgumentException("商品價格不能為負數", nameof(productPrice));
 
             if (quantity <= 0)
                 throw new ArgumentException("商品數量必須大於 0", nameof(quantity));
 
             var orderProduct = OrderProduct.Create(
-                productVariant.Id,
-                productVariant.VariantPrice,
+                productVariantId,
+                productPrice,
                 quantity,
-                productVariant
+                null // 不傳入 ProductVariant 實體，避免 EF Core 追蹤整個物件圖
             );
 
             OrderProducts.Add(orderProduct);
             UpdatedAt = DateTime.UtcNow;
+        }
+        
+        /// <summary>
+        /// 添加訂單商品（舊版本，已棄用）
+        /// 保留此方法以維持向後相容性，但建議使用新版本
+        /// </summary>
+        [Obsolete("請使用 AddOrderProduct(int productVariantId, int productPrice, int quantity) 以避免 EF Core 追蹤整個物件圖")]
+        public void AddOrderProduct(ProductVariant productVariant, int quantity)
+        {
+            if (productVariant == null)
+                throw new ArgumentNullException(nameof(productVariant));
+                
+            AddOrderProduct(productVariant.Id, productVariant.VariantPrice, quantity);
         }
 
         /// <summary>
         /// 計算訂單總價（使用 Money 值對象）
         /// 業務邏輯：計算所有訂單商品的總價（含折扣）+ 運費
         /// </summary>
-        public void CalculateTotalPrice(Domain.Interfaces.Services.IOrderDomainService orderDomainService)
+        /// <param name="orderDomainService">訂單領域服務</param>
+        /// <param name="productVariants">可選的商品變體字典，用於折扣計算（key: ProductVariantId, value: ProductVariant）</param>
+        public void CalculateTotalPrice(Domain.Interfaces.Services.IOrderDomainService orderDomainService, Dictionary<int, ProductVariant>? productVariants = null)
         {
             if (orderDomainService == null)
                 throw new ArgumentNullException(nameof(orderDomainService));
 
             // 使用 Domain Service 計算訂單總價（包含折扣計算）
-            var total = orderDomainService.CalculateOrderTotal(OrderProducts.ToList(), ShippingPrice);
+            var total = orderDomainService.CalculateOrderTotal(OrderProducts.ToList(), ShippingPrice, productVariants);
 
             OrderPrice = total;
             UpdatedAt = DateTime.UtcNow;

@@ -73,23 +73,10 @@ namespace Application.Services
 
         public async Task<ServiceResult<List<OrderInfomationDTO>>> GetOrders(int userid, string query)
         {
-
             try
             {
-
-
-                var orderList = await _orderRepostory.GetOrdersByUserId(userid);
-
-                if (!string.IsNullOrEmpty(query))
-                {
-                    orderList = orderList.Where(o =>
-                                            o.OrderProducts.Any(op => op.ProductVariant.Product.Title.Contains(query)) ||
-                                            o.RecordCode == query
-                    );
-                }
-
-                // 按更新時間降序排序（最新的在上面）
-                orderList = orderList.OrderByDescending(o => o.UpdatedAt);
+                // 直接在資料庫層過濾和排序，避免載入所有訂單到記憶體
+                var orderList = await _orderRepostory.GetOrdersByUserId(userid, query);
 
                 var ordersDto = orderList.ToOrderDTOList();
                 
@@ -97,12 +84,8 @@ namespace Application.Services
             }
             catch (Exception ex)
             {
-
                 return Error<List<OrderInfomationDTO>>(ex.Message);
-            
             }
-
-
         }
 
         /// <summary>
@@ -149,8 +132,8 @@ namespace Application.Services
 
                     variantInventoryPair.Add(productVariant.Id, item.Quantity);
 
-                    // 使用領域方法添加商品
-                    order.AddOrderProduct(productVariant, item.Quantity);
+                    // 使用領域方法添加商品（只傳入必要資料，避免 EF Core 追蹤整個物件圖）
+                    order.AddOrderProduct(productVariant.Id, productVariant.VariantPrice, item.Quantity);
                 }
 
                 // 檢查並預扣庫存（使用庫存服務）
@@ -167,7 +150,9 @@ namespace Application.Services
                 await _orderTimeoutProducer.SendOrderTimeoutMessageAsync(info.UserId, order.RecordCode, 2);
 
                 // 使用領域方法計算總金額（業務邏輯在 Domain 層）
-                order.CalculateTotalPrice(_orderDomainService);
+                // 傳入已載入的 productVariants 用於折扣計算
+                var productVariantDict = productVariants.ToDictionary(pv => pv.Id);
+                order.CalculateTotalPrice(_orderDomainService, productVariantDict);
 
                 // 保存訂單（領域模型已經自動添加了 OrderStep 和 Shipment）
                 await _orderRepostory.GenerateOrder(order);
@@ -253,8 +238,8 @@ namespace Application.Services
                 _logger.LogInformation("[訂單狀態同步] 開始同步訂單狀態: RecordCode={RecordCode}, FromStatus={FromStatus}, ToStatus={ToStatus}",
                     recordCode, fromStatus, toStatus);
 
-                // 根據 RecordCode 獲取訂單（不使用 userId，因為這是從外部服務同步）
-                var order = await _orderRepostory.GetOrderInfoByRecordCode(recordCode);
+                // 使用帶追蹤的方法獲取訂單，以便 EF Core 可以追蹤變更
+                var order = await _orderRepostory.GetOrderInfoByRecordCodeForUpdate(recordCode);
 
                 if (order == null)
                 {
@@ -270,7 +255,7 @@ namespace Application.Services
                     return;
                 }
 
-                // 檢查當前狀態是否與目標狀態一致
+                // 檢查當前狀態是否與目標狀態一致（冪等性檢查）
                 var currentStatus = (OrderStatus)order.Status;
                 if (currentStatus == targetStatus.Value)
                 {
@@ -279,8 +264,47 @@ namespace Application.Services
                     return;
                 }
 
-                // 使用領域方法更新狀態（這會自動添加 OrderStep）
-                order.UpdateStatus(targetStatus.Value);
+                // 檢查訂單是否處於終態（Completed、Canceled、Refund）
+                if (currentStatus == OrderStatus.Completed || 
+                    currentStatus == OrderStatus.Canceled || 
+                    currentStatus == OrderStatus.Refund)
+                {
+                    _logger.LogWarning("[訂單狀態同步] 訂單已處於終態，忽略狀態轉換: RecordCode={RecordCode}, 當前狀態={CurrentStatus}, 目標狀態={ToStatus}", 
+                        recordCode, currentStatus, toStatus);
+                    return; // 終態訂單不再處理狀態轉換
+                }
+
+                // 日誌記錄狀態不匹配情況（Go 服務的 fromStatus 可能與實際狀態不同）
+                var expectedFromStatus = MapGoStatusToDotNetStatus(fromStatus);
+                if (expectedFromStatus != null && currentStatus != expectedFromStatus.Value)
+                {
+                    _logger.LogWarning("[訂單狀態同步] 狀態不一致: RecordCode={RecordCode}, 資料庫狀態={DbStatus}, Go服務認為的狀態={GoStatus}, 目標狀態={ToStatus}", 
+                        recordCode, currentStatus, fromStatus, toStatus);
+                }
+
+                // 嘗試直接更新狀態
+                bool updateSuccess = false;
+                try
+                {
+                    order.UpdateStatus(targetStatus.Value);
+                    updateSuccess = true;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // 如果直接轉換失敗，嘗試逐步轉換狀態
+                    _logger.LogInformation("[訂單狀態同步] 直接狀態轉換失敗，嘗試逐步轉換: RecordCode={RecordCode}, 從={FromStatus}, 到={ToStatus}, 錯誤={Error}", 
+                        recordCode, currentStatus, targetStatus.Value, ex.Message);
+                    
+                    // 逐步轉換狀態
+                    updateSuccess = await TryProgressiveStatusUpdate(order, currentStatus, targetStatus.Value);
+                }
+
+                if (!updateSuccess)
+                {
+                    _logger.LogWarning("[訂單狀態同步] 無法更新狀態: RecordCode={RecordCode}, 從={FromStatus}, 到={ToStatus}", 
+                        recordCode, currentStatus, targetStatus.Value);
+                    return;
+                }
 
                 // 保存變更
                 await _orderRepostory.SaveChangesAsync();
@@ -294,6 +318,103 @@ namespace Application.Services
                     recordCode, fromStatus, toStatus);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// 嘗試逐步轉換狀態（當直接轉換失敗時使用）
+        /// </summary>
+        private async Task<bool> TryProgressiveStatusUpdate(Order order, OrderStatus currentStatus, OrderStatus targetStatus)
+        {
+            // 定義狀態轉換路徑
+            var statusPath = GetStatusTransitionPath(currentStatus, targetStatus);
+            
+            if (statusPath == null || statusPath.Count == 0)
+            {
+                _logger.LogWarning("[訂單狀態同步] 無法找到狀態轉換路徑: 從={FromStatus}, 到={ToStatus}", 
+                    currentStatus, targetStatus);
+                return false;
+            }
+
+            _logger.LogInformation("[訂單狀態同步] 找到狀態轉換路徑: {FromStatus} -> {Path}", 
+                currentStatus, string.Join(" -> ", statusPath));
+
+            // 逐步轉換狀態
+            var current = currentStatus;
+            foreach (var nextStatus in statusPath)
+            {
+                try
+                {
+                    order.UpdateStatus(nextStatus);
+                    _logger.LogInformation("[訂單狀態同步] 狀態轉換成功: {FromStatus} -> {ToStatus}", 
+                        current, nextStatus);
+                    current = nextStatus;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogWarning("[訂單狀態同步] 逐步轉換失敗: {FromStatus} -> {ToStatus}, 錯誤={Error}", 
+                        current, nextStatus, ex.Message);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 獲取狀態轉換路徑
+        /// </summary>
+        private List<OrderStatus>? GetStatusTransitionPath(OrderStatus from, OrderStatus to)
+        {
+            // 定義狀態轉換路徑映射
+            var paths = new Dictionary<(OrderStatus, OrderStatus), List<OrderStatus>>
+            {
+                // WaitingForShipment -> Completed 的路徑
+                { (OrderStatus.WaitingForShipment, OrderStatus.Completed), 
+                    new List<OrderStatus> { OrderStatus.InTransit, OrderStatus.WaitPickup, OrderStatus.Completed } },
+                
+                // WaitingForShipment -> WaitPickup 的路徑
+                { (OrderStatus.WaitingForShipment, OrderStatus.WaitPickup), 
+                    new List<OrderStatus> { OrderStatus.InTransit, OrderStatus.WaitPickup } },
+                
+                // InTransit -> Completed 的路徑
+                { (OrderStatus.InTransit, OrderStatus.Completed), 
+                    new List<OrderStatus> { OrderStatus.WaitPickup, OrderStatus.Completed } },
+            };
+
+            if (paths.TryGetValue((from, to), out var path))
+            {
+                return path;
+            }
+
+            // 如果沒有預定義的路徑，檢查是否可以直接轉換
+            if (CanTransitionTo(from, to))
+            {
+                return new List<OrderStatus> { to };
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 檢查是否可以進行狀態轉換（與 Order 實體中的規則一致）
+        /// </summary>
+        private bool CanTransitionTo(OrderStatus from, OrderStatus to)
+        {
+            return (from, to) switch
+            {
+                (OrderStatus.Created, OrderStatus.WaitingForPayment) => true,
+                (OrderStatus.Created, OrderStatus.WaitingForShipment) => true,
+                (OrderStatus.Created, OrderStatus.Canceled) => true,
+                (OrderStatus.WaitingForPayment, OrderStatus.WaitingForShipment) => true,
+                (OrderStatus.WaitingForPayment, OrderStatus.Completed) => true,
+                (OrderStatus.WaitingForPayment, OrderStatus.Canceled) => true,
+                (OrderStatus.WaitingForShipment, OrderStatus.InTransit) => true,
+                (OrderStatus.WaitingForShipment, OrderStatus.Canceled) => true,
+                (OrderStatus.InTransit, OrderStatus.WaitPickup) => true,
+                (OrderStatus.InTransit, OrderStatus.Canceled) => true,
+                (OrderStatus.WaitPickup, OrderStatus.Completed) => true,
+                _ => false
+            };
         }
 
         /// <summary>
