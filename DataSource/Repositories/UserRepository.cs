@@ -8,7 +8,8 @@ namespace DataSource.Repositories
 {
     public class UserRepository : Repository<User>, IUserRepository
     {
-        public UserRepository(EcommerceDBContext context) : base(context)
+        public UserRepository(EcommerceDBContext context, EcommerceReadOnlyDBContext? readContext = null) 
+            : base(context, readContext)
         {
         }
 
@@ -17,7 +18,8 @@ namespace DataSource.Repositories
             // UserFavorites 表
             //return new List<int>() { 26790367, 2, 3 };
 
-            return await _context.FavoriteProducts.
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.FavoriteProducts.
                 Where(x => x.UserId == userId)
                 .Select(x => x.ProductId)
                 .ToListAsync();
@@ -25,7 +27,8 @@ namespace DataSource.Repositories
 
         public async Task<User?> GetUserInfo(int userid)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Users
                 .AsNoTracking()
                 .Where(u => u.Id == userid)
                 .FirstOrDefaultAsync();
@@ -34,7 +37,8 @@ namespace DataSource.Repositories
 
         public IEnumerable<UserShipAddress> GetUserShippingAddress(int userid)
         {
-            return _context.UserShipAddresses
+            // 讀取操作使用讀取 DbContext（從庫）
+            return ReadContext.UserShipAddresses
                 .Where(us => us.UserId == userid).AsNoTracking();
 
         }
@@ -97,9 +101,10 @@ namespace DataSource.Repositories
 
         public async Task<User?> CheckUserExists(string userName,string email)
         {
+            // 讀取操作使用讀取 DbContext（從庫）
             // 優化：將 OR 查詢拆分為兩個查詢，更好地使用索引
             // 先查 Username（通常更常用），如果找不到再查 Email
-            var userByUsername = await _dbSet
+            var userByUsername = await ReadContext.Users
                 .AsNoTracking()
                 .Where(u => u.Username == userName)
                 .FirstOrDefaultAsync();
@@ -108,7 +113,7 @@ namespace DataSource.Repositories
                 return userByUsername;
             
             // 如果 Username 找不到，再查 Email
-            return await _dbSet
+            return await ReadContext.Users
                 .AsNoTracking()
                 .Where(u => u.Email == email)
                 .FirstOrDefaultAsync();
@@ -119,20 +124,22 @@ namespace DataSource.Repositories
         /// </summary>
         public async Task<User?> GetUserByUsername(string userName)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Users
                 .AsNoTracking()
                 .Where(u => u.Username == userName)
                 .FirstOrDefaultAsync();
         }
 
 
-        public async Task SaveChangesAsync()
+        public new async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
         }
         public async Task<User?> GetUserIfExistsByGoogleID(string gooleID)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Users
                 .AsNoTracking()
                 .Where(u => u.GoogleId == gooleID)
                 .FirstOrDefaultAsync();
@@ -160,12 +167,14 @@ namespace DataSource.Repositories
 
         public async Task RemoveFromFavoriteList(int userid, int productId)
         {
+            // 寫入操作使用寫入 DbContext（主庫）
             await _context.FavoriteProducts.Where(fp => fp.UserId == userid && fp.ProductId == productId).ExecuteDeleteAsync();
         }
 
         public async Task AddToFavoriteList(int userid, int productId)
         {
-            var alreadyfavorited = await _context.FavoriteProducts
+            // 先檢查是否已存在（讀取操作使用讀取 DbContext）
+            var alreadyfavorited = await ReadContext.FavoriteProducts
                 .AnyAsync(fp => fp.UserId == userid && fp.ProductId == productId);
 
             if (alreadyfavorited)
@@ -173,6 +182,7 @@ namespace DataSource.Repositories
                 return;
             }
 
+            // 寫入操作使用寫入 DbContext（主庫）
             var favoriteProduct = new FavoriteProduct 
             { 
                 ProductId = productId,

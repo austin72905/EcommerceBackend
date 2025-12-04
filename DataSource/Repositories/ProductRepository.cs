@@ -7,13 +7,15 @@ namespace DataSource.Repositories
 {
     public class ProductRepository : Repository<Product>, IProductRepository
     {
-        public ProductRepository(EcommerceDBContext context) : base(context)
+        public ProductRepository(EcommerceDBContext context, EcommerceReadOnlyDBContext? readContext = null) 
+            : base(context, readContext)
         {
         }
 
         public async Task<IEnumerable<Product>> GetProductsByQuery(string keyword)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Products
                  .AsNoTracking()
                  .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
@@ -26,7 +28,8 @@ namespace DataSource.Repositories
 
         public async Task<IEnumerable<Product>> GetProductsBasicInfoByQuery(string keyword)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Products
                 .AsNoTracking()
                 .Where(p => p.Title.Contains(keyword))
                 .ToListAsync();
@@ -34,7 +37,8 @@ namespace DataSource.Repositories
 
         public async Task<IEnumerable<Product>> GetProductsByKind(string kind, string? query = null)
         {
-            var queryable = _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            var queryable = ReadContext.Products
                  .AsNoTracking()
                  .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
@@ -62,7 +66,8 @@ namespace DataSource.Repositories
         /// <returns></returns>
         public async Task<IEnumerable<Product>> GetProductsBasicInfoByKind(string kind, string? query = null)
         {
-            var queryable = _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            var queryable = ReadContext.Products
                  .AsNoTracking()
                  .Include(p => p.ProductKinds)
                      .ThenInclude(pkt => pkt.Kind)
@@ -81,7 +86,8 @@ namespace DataSource.Repositories
 
         public async Task<IEnumerable<Product>> GetProductsByTag(string tag, string? query = null)
         {
-            var queryable = _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            var queryable = ReadContext.Products
                 .AsNoTracking()
                  .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
@@ -109,7 +115,8 @@ namespace DataSource.Repositories
         /// <returns></returns>
         public async Task<IEnumerable<Product>> GetProductsBasicInfByTag(string tag, string? query = null)
         {
-            var queryable = _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            var queryable = ReadContext.Products
                 .AsNoTracking()
                .Include(p => p.ProductTags)
                    .ThenInclude(pkt => pkt.Tag)
@@ -126,7 +133,8 @@ namespace DataSource.Repositories
 
         public async Task<Product?> GetProductById(int productId)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Products
                 .AsNoTracking()
                 .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
@@ -145,7 +153,8 @@ namespace DataSource.Repositories
         /// <returns></returns>
         public async Task<Product?> GetProductBasicInfoById(int productId)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Products
                 .AsNoTracking()
                 .Include(p => p.ProductImages)
                 .Where(p => p.Id == productId)
@@ -155,7 +164,8 @@ namespace DataSource.Repositories
 
         public async Task<IEnumerable<ProductVariant>> GetProductVariantsByProductId(int productId)
         {
-            return await _context.ProductVariants
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.ProductVariants
                 .AsNoTracking()
                 .Include(pv => pv.Size)
                 .Include(pv => pv.ProductVariantDiscounts)
@@ -166,7 +176,8 @@ namespace DataSource.Repositories
 
         public async Task<IEnumerable<Product>> GetRecommendationProduct(int userid, int productId)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Products
                 .AsNoTracking()
                 .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
@@ -178,13 +189,16 @@ namespace DataSource.Repositories
 
         public async Task<IEnumerable<Product>> GetRecommendationProductBasicInfo(int userid, int productId)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Products
+                .AsNoTracking()
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<Product>> GetfavoriteProducts(int userid)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Products
                 .AsNoTracking()
                 .Include(p => p.ProductVariants)
                     .ThenInclude(pkt => pkt.Size)
@@ -198,7 +212,8 @@ namespace DataSource.Repositories
 
         public async Task<IEnumerable<ProductVariant>> GetProductVariants(IEnumerable<int> variantIds)
         {
-            return await _context.ProductVariants
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.ProductVariants
                 .AsNoTracking()
                 .Include(pv => pv.Product)
                 .Include(pv => pv.Size)
@@ -210,7 +225,8 @@ namespace DataSource.Repositories
 
         public async Task<IEnumerable<ProductVariant>> GetProductVariantsByProductIdList(IEnumerable<int> productIdList)
         {
-            return await _context.ProductVariants
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.ProductVariants
                 .AsNoTracking()
                 .Include(pv => pv.Size)
                 .Include(pv => pv.ProductVariantDiscounts)

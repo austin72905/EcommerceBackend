@@ -7,13 +7,15 @@ namespace DataSource.Repositories
 {
     public class PaymentRepository: Repository<Payment>,IPaymentRepository
     {
-        public PaymentRepository(EcommerceDBContext context) : base(context)
+        public PaymentRepository(EcommerceDBContext context, EcommerceReadOnlyDBContext? readContext = null) 
+            : base(context, readContext)
         {
         }
 
         public  async Task<Payment?> GetTenantConfig(string recordCode)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Payments
                 .AsNoTracking()
                 .Include(p => p.Order)
                 .Include(p=>p.TenantConfig)
@@ -29,7 +31,8 @@ namespace DataSource.Repositories
 
         public async Task<Payment?> GetPaymentRecord(string recordCode)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Payments
                 .AsNoTracking()
                 .Include(p => p.Order)
                     .ThenInclude(p => p.OrderSteps)

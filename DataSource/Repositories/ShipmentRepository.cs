@@ -12,13 +12,16 @@ namespace DataSource.Repositories
 {
     public class ShipmentRepository : Repository<Shipment>, IShipmentRepository
     {
-        public ShipmentRepository(EcommerceDBContext context) : base(context)
+        public ShipmentRepository(EcommerceDBContext context, EcommerceReadOnlyDBContext? readContext = null) 
+            : base(context, readContext)
         {
         }
 
         public async Task<IEnumerable<Shipment>> GetShipmentsByOrderId(int orderId)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Shipments
+                .AsNoTracking()
                 .Where(sp=>sp.OrderId== orderId)
                 .ToListAsync();
                    

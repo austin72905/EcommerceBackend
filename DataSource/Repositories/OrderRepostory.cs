@@ -8,7 +8,8 @@ namespace DataSource.Repositories
 {
     public class OrderRepostory : Repository<Order>, IOrderRepostory
     {
-        public OrderRepostory(EcommerceDBContext context) : base(context)
+        public OrderRepostory(EcommerceDBContext context, EcommerceReadOnlyDBContext? readContext = null) 
+            : base(context, readContext)
         {
         }
 
@@ -20,7 +21,8 @@ namespace DataSource.Repositories
         /// <returns></returns>
         public async Task<IEnumerable<Order>> GetOrdersByUserId(int userid, string? query = null)
         {
-            var queryable = _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            var queryable = ReadContext.Orders
                 .AsNoTracking()
                 .Include(o => o.OrderProducts)
                     .ThenInclude(op => op.ProductVariant)
@@ -53,7 +55,8 @@ namespace DataSource.Repositories
 
         public async Task<Order?> GetOrderInfoById(int orderId)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Orders
                 .AsNoTracking()
                 .Include(o => o.OrderProducts)
                     .ThenInclude(op => op.ProductVariant)
@@ -97,7 +100,8 @@ namespace DataSource.Repositories
 
         public async Task<Order?> GetOrderInfoByUserId(int userid, string recordCode)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Orders
                 .AsNoTracking()
                 .Include(o => o.OrderProducts)
                     .ThenInclude(op => op.ProductVariant)
@@ -118,7 +122,8 @@ namespace DataSource.Repositories
 
         public async Task<Order?> GetOrderInfoByRecordCode(string recordCode)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Orders
                 .AsNoTracking()
                 .Include(o => o.OrderProducts)
                     .ThenInclude(op => op.ProductVariant)

@@ -64,6 +64,25 @@ builder.Services.AddDbContext<EcommerceDBContext>(options =>
         //.EnableDetailedErrors()   // 僅建議於 production 環境使用
     );
 
+// 註冊讀取專用 DbContext（從庫）
+var readOnlyConnectionString = builder.Configuration.GetConnectionString("ReadOnlyConnection") 
+    ?? baseConnectionString; // 如果沒有配置從庫，使用主庫作為後備
+var readOnlyConnectionStringBuilder = new NpgsqlConnectionStringBuilder(readOnlyConnectionString)
+{
+    // 讀取連接池可以設定更大
+    Pooling = true,
+    MinPoolSize = 10,
+    MaxPoolSize = 50,
+    Timeout = 15,
+    CommandTimeout = 60
+};
+
+builder.Services.AddDbContext<EcommerceReadOnlyDBContext>(options =>
+    options.UseNpgsql(readOnlyConnectionStringBuilder.ConnectionString)
+        .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)  // 讀取專用，不追蹤變更
+        .LogTo(Console.WriteLine, LogLevel.Error)  // 只顯示錯誤日誌
+    );
+
 // 註冊 IHttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 
@@ -134,13 +153,43 @@ builder.Services.AddScoped<IUserDomainService, UserDomainService>();
 builder.Services.AddScoped<ICartDomainService, CartDomainService>();
 
 // 資料庫儲存庫註冊
-// repositories
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>(); 
-builder.Services.AddScoped<ICartRepository, CartRepository>();
-builder.Services.AddScoped<IOrderRepostory, OrderRepostory>();
-builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
-builder.Services.AddScoped<IShipmentRepository, ShipmentRepository>();
+// repositories - 使用工廠方法注入讀寫分離的 DbContext
+builder.Services.AddScoped<IProductRepository>(sp =>
+{
+    var writeContext = sp.GetRequiredService<EcommerceDBContext>();
+    var readContext = sp.GetService<EcommerceReadOnlyDBContext>();
+    return new ProductRepository(writeContext, readContext);
+});
+builder.Services.AddScoped<IUserRepository>(sp =>
+{
+    var writeContext = sp.GetRequiredService<EcommerceDBContext>();
+    var readContext = sp.GetService<EcommerceReadOnlyDBContext>();
+    return new UserRepository(writeContext, readContext);
+});
+builder.Services.AddScoped<ICartRepository>(sp =>
+{
+    var writeContext = sp.GetRequiredService<EcommerceDBContext>();
+    var readContext = sp.GetService<EcommerceReadOnlyDBContext>();
+    return new CartRepository(writeContext, readContext);
+});
+builder.Services.AddScoped<IOrderRepostory>(sp =>
+{
+    var writeContext = sp.GetRequiredService<EcommerceDBContext>();
+    var readContext = sp.GetService<EcommerceReadOnlyDBContext>();
+    return new OrderRepostory(writeContext, readContext);
+});
+builder.Services.AddScoped<IPaymentRepository>(sp =>
+{
+    var writeContext = sp.GetRequiredService<EcommerceDBContext>();
+    var readContext = sp.GetService<EcommerceReadOnlyDBContext>();
+    return new PaymentRepository(writeContext, readContext);
+});
+builder.Services.AddScoped<IShipmentRepository>(sp =>
+{
+    var writeContext = sp.GetRequiredService<EcommerceDBContext>();
+    var readContext = sp.GetService<EcommerceReadOnlyDBContext>();
+    return new ShipmentRepository(writeContext, readContext);
+});
 
 // 單例服務註冊
 // singleton services  

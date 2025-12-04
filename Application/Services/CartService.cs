@@ -33,7 +33,7 @@ namespace Application.Services
 
 
         /// <summary>
-        /// 合併購物車 - 使用富領域模型方法
+        /// 合併購物車 - 使用批次更新優化效能
         /// </summary>
         /// <param name="userid"></param>
         /// <param name="frontEndCartItems"></param>
@@ -49,30 +49,29 @@ namespace Application.Services
                 }
 
                 var cart = await _cartRepository.GetCartByUserId(userid);
-
                 var productVariants = await _productRepository.GetProductVariants(frontEndCartItems.Select(fc => fc.ProductVariantId));
 
-                // 如果資料庫沒有購物車，使用富領域模型的工廠方法創建
-                if (cart == null)
-                {
-                    cart = Cart.CreateForUser(userid);
-                    await _cartRepository.AddAsync(cart);
-                }
-
-                // DTO -> Domain Object（使用富領域模型的工廠方法）
+                // DTO -> Domain Object
                 var domainCartItems = ConvertToDomainCartItems(frontEndCartItems);
 
-                // 使用富領域模型的合併方法
-                cart.MergeItems(domainCartItems, productVariants);
+                // 如果資料庫沒有購物車，創建新購物車並插入項目
+                if (cart == null)
+                {
+                    cart = await _cartRepository.CreateCartWithItemsAsync(userid, domainCartItems);
+                }
+                else
+                {
+                    // 使用富領域模型的合併方法（在記憶體中合併）
+                    cart.MergeItems(domainCartItems, productVariants);
 
-                // 保存更改到資料庫
-                await _cartRepository.SaveChangesAsync();
+                    // 使用批次更新（ExecuteDelete + AddRange）取代 SaveChanges
+                    await _cartRepository.UpdateCartItemsBatchAsync(cart.Id, cart.CartItems);
+                }
 
-                // 優化：使用已載入的 productVariants 資料轉換為 DTO，避免重新載入購物車
                 // 將 productVariants 轉換為字典以便快速查找
                 var productVariantDict = productVariants.ToDictionary(pv => pv.Id);
                 
-                // 將 cartItems 轉換為 DTO 列表（使用已載入的資料）
+                // 將 cartItems 轉換為 DTO 列表
                 var productsDTOs = cart.CartItems.ToProductWithCountDTOList(productVariantDict);
 
                 return Success<List<ProductWithCountDTO>>(productsDTOs);
@@ -84,7 +83,7 @@ namespace Application.Services
         }
 
         /// <summary>
-        /// 以前端數據為主 - 使用富領域模型方法
+        /// 以前端數據為主 - 使用批次更新優化效能
         /// </summary>
         /// <param name="userid"></param>
         /// <param name="frontEndCartItems"></param>
@@ -94,30 +93,29 @@ namespace Application.Services
             try
             {
                 var cart = await _cartRepository.GetCartByUserId(userid);
-
                 var productVariants = await _productRepository.GetProductVariants(frontEndCartItems.Select(fc => fc.ProductVariantId));
 
-                // 如果資料庫沒有購物車，使用富領域模型的工廠方法創建
-                if (cart == null)
-                {
-                    cart = Cart.CreateForUser(userid);
-                    await _cartRepository.AddAsync(cart);
-                }
-
-                // DTO -> Domain Object（使用富領域模型的工廠方法）
+                // DTO -> Domain Object
                 var domainCartItems = ConvertToDomainCartItems(frontEndCartItems);
 
-                // 使用富領域模型的重建方法
-                cart.Rebuild(domainCartItems, productVariants);
+                // 如果資料庫沒有購物車，創建新購物車並插入項目
+                if (cart == null)
+                {
+                    cart = await _cartRepository.CreateCartWithItemsAsync(userid, domainCartItems);
+                }
+                else
+                {
+                    // 使用富領域模型的重建方法（在記憶體中重建）
+                    cart.Rebuild(domainCartItems, productVariants);
 
-                // 保存更改到資料庫
-                await _cartRepository.SaveChangesAsync();
+                    // 使用批次更新（ExecuteDelete + AddRange）取代 SaveChanges
+                    await _cartRepository.UpdateCartItemsBatchAsync(cart.Id, cart.CartItems);
+                }
 
-                // 優化：使用已載入的 productVariants 資料轉換為 DTO，避免重新載入購物車
                 // 將 productVariants 轉換為字典以便快速查找
                 var productVariantDict = productVariants.ToDictionary(pv => pv.Id);
                 
-                // 返回更新後的購物車數據（使用已載入的資料）
+                // 返回更新後的購物車數據
                 var productsDTOs = cart.CartItems.ToProductWithCountDTOList(productVariantDict);
 
                 return Success<List<ProductWithCountDTO>>(productsDTOs);

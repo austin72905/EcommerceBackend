@@ -1,9 +1,13 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace DataSource.DBContext
 {
-    public class EcommerceDBContext : DbContext, IEcommerceDbContext
+    /// <summary>
+    /// 讀取專用 DbContext，用於連接到從庫（Slave/Replica）
+    /// 預設使用 NoTracking 模式，提升讀取效能
+    /// </summary>
+    public class EcommerceReadOnlyDBContext : DbContext, IEcommerceDbContext
     {
 
         public DbSet<Product> Products { get; set; }
@@ -34,9 +38,10 @@ namespace DataSource.DBContext
         public DbSet<TenantConfig> TenantConfigs { get; set; }
 
 
-        public EcommerceDBContext(DbContextOptions<EcommerceDBContext> options) : base(options)
+        public EcommerceReadOnlyDBContext(DbContextOptions<EcommerceReadOnlyDBContext> options) : base(options)
         {
-
+            // 設定為唯讀模式，不追蹤變更
+            ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
         }
 
 
@@ -821,3 +826,4 @@ namespace DataSource.DBContext
         }
     }
 }
+

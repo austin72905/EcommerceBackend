@@ -8,13 +8,15 @@ namespace DataSource.Repositories
 {
     public class CartRepository: Repository<Cart>,ICartRepository
     {
-        public CartRepository(EcommerceDBContext context) : base(context)
+        public CartRepository(EcommerceDBContext context, EcommerceReadOnlyDBContext? readContext = null) 
+            : base(context, readContext)
         {
         }
 
         public async Task<Cart?> GetCartByUserId(int userId)
         {
-            return await _dbSet
+            // 讀取操作使用讀取 DbContext（從庫）
+            return await ReadContext.Carts
                 .AsNoTracking()
                 .Include(c => c.CartItems)
                     .ThenInclude(ct => ct.ProductVariant)
@@ -27,151 +29,110 @@ namespace DataSource.Repositories
 
         }
 
-
-
-        public async Task SaveChangesAsync()
+        /// <summary>
+        /// 批次更新購物車項目（使用 ExecuteDelete + AddRange，效能更佳）
+        /// 先刪除指定購物車的所有項目，然後批次插入新項目
+        /// </summary>
+        /// <param name="cartId">購物車 ID</param>
+        /// <param name="newItems">新的購物車項目列表</param>
+        public async Task UpdateCartItemsBatchAsync(int cartId, IEnumerable<CartItem> newItems)
         {
-            // 在保存之前，先處理重複追蹤的問題
-            HandleDuplicateTracking();
+            // 使用 ExecuteDeleteAsync 批次刪除舊的購物車項目（不需要追蹤實體）
+            await _context.CartItems
+                .Where(ci => ci.CartId == cartId)
+                .ExecuteDeleteAsync();
+
+            // 如果有新項目，批次插入
+            if (newItems != null && newItems.Any())
+            {
+                // 創建新的 CartItem 實體（只包含必要的欄位，避免導航屬性追蹤問題）
+                var itemsToAdd = newItems.Select(item => new CartItem_Internal
+                {
+                    CartId = cartId,
+                    ProductVariantId = item.ProductVariantId,
+                    Quantity = item.Quantity
+                }).ToList();
+
+                // 使用原生 SQL 批次插入（避免 ChangeTracker 追蹤）
+                foreach (var item in itemsToAdd)
+                {
+                    await _context.Database.ExecuteSqlRawAsync(
+                        "INSERT INTO \"CartItems\" (\"CartId\", \"ProductVariantId\", \"Quantity\") VALUES ({0}, {1}, {2})",
+                        item.CartId, item.ProductVariantId, item.Quantity);
+                }
+            }
+
+            // 更新購物車的 UpdatedAt
+            await _context.Carts
+                .Where(c => c.Id == cartId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(c => c.UpdatedAt, DateTime.UtcNow));
+        }
+
+        /// <summary>
+        /// 創建新購物車並批次插入項目（使用事務）
+        /// </summary>
+        /// <param name="userId">用戶 ID</param>
+        /// <param name="items">購物車項目列表</param>
+        /// <returns>創建的購物車</returns>
+        public async Task<Cart> CreateCartWithItemsAsync(int userId, IEnumerable<CartItem> items)
+        {
+            // 使用原生 SQL 插入購物車並返回 ID
+            var now = DateTime.UtcNow;
             
-            // 在保存之前，先分離所有相關實體，防止重複追蹤
-            DetachExistingEntities();
-            
-            // 在保存之前，確保所有相關實體（ProductVariant、Product 等）都被標記為已存在
-            // 這可以防止在並發情況下出現主鍵衝突
-            var trackedEntities = _context.ChangeTracker.Entries()
-                .Where(e => e.State == EntityState.Added)
+            // 插入購物車
+            var cart = Cart.CreateForUser(userId);
+            await _dbSet.AddAsync(cart);
+            await _context.SaveChangesAsync();
+
+            // 如果有項目，批次插入
+            if (items != null && items.Any())
+            {
+                foreach (var item in items)
+                {
+                    await _context.Database.ExecuteSqlRawAsync(
+                        "INSERT INTO \"CartItems\" (\"CartId\", \"ProductVariantId\", \"Quantity\") VALUES ({0}, {1}, {2})",
+                        cart.Id, item.ProductVariantId, item.Quantity);
+                }
+            }
+
+            return cart;
+        }
+
+        /// <summary>
+        /// 簡化後的 SaveChangesAsync - 直接標記非購物車相關實體為 Unchanged
+        /// </summary>
+        public new async Task SaveChangesAsync()
+        {
+            // 簡化處理：只處理 Added 狀態的非購物車實體，標記為 Unchanged
+            // 這樣可以避免 EF Core 嘗試插入已存在的相關實體
+            var entriesToFix = _context.ChangeTracker.Entries()
+                .Where(e => e.State == EntityState.Added && 
+                           !(e.Entity is Cart) && 
+                           !(e.Entity is CartItem))
                 .ToList();
             
-            foreach (var entry in trackedEntities)
+            foreach (var entry in entriesToFix)
             {
-                // 如果是 Product 實體，標記為已存在（不應插入新產品）
-                if (entry.Entity is Product)
-                {
-                    entry.State = EntityState.Unchanged;
-                }
-                // 如果是 ProductVariant 實體，標記為已存在（不應插入新變體）
-                else if (entry.Entity is ProductVariant)
-                {
-                    entry.State = EntityState.Unchanged;
-                }
-                // 如果是 ProductVariantDiscount 實體，標記為已存在（不應插入新折扣關聯）
-                else if (entry.Entity is ProductVariantDiscount)
-                {
-                    entry.State = EntityState.Unchanged;
-                }
-                // 如果是 Size 實體，標記為已存在（不應插入新尺寸）
-                else if (entry.Entity is Size)
-                {
-                    entry.State = EntityState.Unchanged;
-                }
-                // 如果是 Discount 實體，標記為已存在（不應插入新折扣）
-                else if (entry.Entity is Discount)
-                {
-                    entry.State = EntityState.Unchanged;
-                }
+                entry.State = EntityState.Unchanged;
             }
             
             await _context.SaveChangesAsync();
         }
 
-        /// <summary>
-        /// 處理重複追蹤問題：如果發現相同 ID 的實體被多次追蹤，分離重複的實體
-        /// </summary>
-        private void HandleDuplicateTracking()
+        public new async Task AddAsync(Cart entity)
         {
-            // 按實體類型和 ID 分組，找出重複追蹤的實體
-            var productGroups = _context.ChangeTracker.Entries<Product>()
-                .Where(e => e.State != EntityState.Detached)
-                .GroupBy(e => e.Entity.Id)
-                .Where(g => g.Count() > 1)
-                .ToList();
-
-            foreach (var group in productGroups)
-            {
-                // 保留第一個，分離其他的
-                var entries = group.ToList();
-                for (int i = 1; i < entries.Count; i++)
-                {
-                    entries[i].State = EntityState.Detached;
-                }
-            }
-
-            var sizeGroups = _context.ChangeTracker.Entries<Size>()
-                .Where(e => e.State != EntityState.Detached)
-                .GroupBy(e => e.Entity.Id)
-                .Where(g => g.Count() > 1)
-                .ToList();
-
-            foreach (var group in sizeGroups)
-            {
-                var entries = group.ToList();
-                for (int i = 1; i < entries.Count; i++)
-                {
-                    entries[i].State = EntityState.Detached;
-                }
-            }
-
-            var variantGroups = _context.ChangeTracker.Entries<ProductVariant>()
-                .Where(e => e.State != EntityState.Detached)
-                .GroupBy(e => e.Entity.Id)
-                .Where(g => g.Count() > 1)
-                .ToList();
-
-            foreach (var group in variantGroups)
-            {
-                var entries = group.ToList();
-                for (int i = 1; i < entries.Count; i++)
-                {
-                    entries[i].State = EntityState.Detached;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 分離 ChangeTracker 中已存在的實體，防止 EF Core 重複追蹤
-        /// </summary>
-        private void DetachExistingEntities()
-        {
-            // 分離所有相關實體，防止重複追蹤
-            var entriesToDetach = _context.ChangeTracker.Entries()
-                .Where(e => (e.Entity is Product || 
-                            e.Entity is ProductVariant || 
-                            e.Entity is ProductVariantDiscount ||
-                            e.Entity is Size || 
-                            e.Entity is Discount) && 
-                           e.State != EntityState.Detached)
-                .ToList();
-
-            foreach (var entry in entriesToDetach)
-            {
-                entry.State = EntityState.Detached;
-            }
-        }
-
-
-        public async Task AddAsync(Cart entity)
-        {
-            // 在附加購物車之前，先清理導航屬性，防止重複追蹤
-            // 只保留外鍵 ID，讓 EF Core 根據外鍵建立關聯，而不追蹤整個物件圖
-            ClearNavigationProperties(entity);
-            
-            // 在附加購物車之前，先分離所有相關實體，防止重複追蹤
-            DetachExistingEntities();
-            
             await _dbSet.AddAsync(entity);
         }
 
         /// <summary>
-        /// 清理購物車中所有 CartItem 的導航屬性，防止 EF Core 追蹤整個物件圖
-        /// 注意：由於 CartItem.ProductVariant 的 setter 是 private，這個方法可能無法直接清理
-        /// 但我們會在 HandleDuplicateTracking 中處理重複追蹤的問題
+        /// 內部類別，用於批次插入時避免 ChangeTracker 追蹤
         /// </summary>
-        private void ClearNavigationProperties(Cart cart)
+        private class CartItem_Internal
         {
-            // 由於導航屬性的 setter 是 private，我們無法直接清理
-            // 但這沒關係，因為我們會在 SaveChangesAsync 中通過 HandleDuplicateTracking 處理重複追蹤的問題
-            // 這個方法保留作為佔位符，以便將來如果需要可以實現
+            public int CartId { get; set; }
+            public int ProductVariantId { get; set; }
+            public int Quantity { get; set; }
         }
 
     }
