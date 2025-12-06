@@ -121,6 +121,27 @@ namespace Domain.Entities
         public DateTime CreatedAt { get; private set; }
         public DateTime UpdatedAt { get; private set; }
 
+        // ============ 關鍵狀態時間戳（用於快速查詢，提升性能） ============
+        /// <summary>
+        /// 支付時間（用於前端快速顯示，避免 JOIN OrderStep 查詢）
+        /// </summary>
+        public DateTime? PaidAt { get; private set; }
+
+        /// <summary>
+        /// 送貨時間（用於前端快速顯示）
+        /// </summary>
+        public DateTime? ShippedAt { get; private set; }
+
+        /// <summary>
+        /// 取貨時間（用於前端快速顯示）
+        /// </summary>
+        public DateTime? PickedUpAt { get; private set; }
+
+        /// <summary>
+        /// 訂單完成時間（用於前端快速顯示）
+        /// </summary>
+        public DateTime? CompletedAt { get; private set; }
+
         // 導航屬性
         public User User { get; private set; }
         public UserShipAddress Address { get; private set; }
@@ -217,11 +238,31 @@ namespace Domain.Entities
             Status = (int)OrderStatus.WaitingForShipment;
             PayWay = paymentMethod;
             UpdatedAt = DateTime.UtcNow;
+            PaidAt = DateTime.UtcNow;  // 同步記錄支付時間，用於前端快速查詢
             
             // 添加支付已接收的訂單步驟（使用 OrderStepStatus.PaymentReceived）
             AddOrderStepStatus(Domain.Enums.OrderStepStatus.PaymentReceived);
             // 添加等待出貨的訂單步驟
             AddOrderStepStatus(Domain.Enums.OrderStepStatus.WaitingForShipment);
+        }
+
+        /// <summary>
+        /// 標記為已付款（不創建 OrderStep，用於縮小事務範圍）
+        /// OrderStep 將在背景異步創建，減少事務時間和數據庫鎖競爭
+        /// 同時更新 PaidAt 時間戳，用於前端快速查詢
+        /// </summary>
+        public void MarkAsPaidWithoutSteps(int paymentMethod)
+        {
+            if (Status != (int)OrderStatus.Created)
+                throw new InvalidOperationException("只能標記創建狀態的訂單為已付款");
+
+            // 支付完成後，訂單狀態應該轉換為等待出貨
+            Status = (int)OrderStatus.WaitingForShipment;
+            PayWay = paymentMethod;
+            UpdatedAt = DateTime.UtcNow;
+            PaidAt = DateTime.UtcNow;  // 同步記錄支付時間，用於前端快速查詢
+            
+            // 不創建 OrderStep，將在背景異步創建（作為審計日誌）
         }
 
         /// <summary>
@@ -235,6 +276,30 @@ namespace Domain.Entities
 
             Status = (int)newStatus;
             UpdatedAt = DateTime.UtcNow;
+            
+            // 根據狀態更新對應的時間戳（用於前端快速查詢）
+            var now = DateTime.UtcNow;
+            switch (newStatus)
+            {
+                case OrderStatus.InTransit:
+                    // 出貨時間（當訂單開始運送時）
+                    if (ShippedAt == null)
+                    {
+                        ShippedAt = now;
+                    }
+                    break;
+                case OrderStatus.WaitPickup:
+                    // 取貨時間（當訂單送達等待取貨時）
+                    if (PickedUpAt == null)
+                    {
+                        PickedUpAt = now;
+                    }
+                    break;
+                case OrderStatus.Completed:
+                    // 完成時間
+                    CompletedAt = now;
+                    break;
+            }
             
             AddOrderStep(newStatus);
         }
@@ -258,6 +323,7 @@ namespace Domain.Entities
 
             Status = (int)OrderStatus.Completed;
             UpdatedAt = DateTime.UtcNow;
+            CompletedAt = DateTime.UtcNow;  // 同步記錄完成時間，用於前端快速查詢
             
             AddOrderStep(OrderStatus.Completed);
         }

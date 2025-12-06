@@ -2,12 +2,16 @@
 using Application.DTOs;
 using Application.Interfaces;
 using Common.Interfaces.Infrastructure;
+using Domain.Entities;
 using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections;
+using System.Diagnostics;
+using System.Text.Json;
 using System.Web;
 
 namespace Application.Services
@@ -17,34 +21,37 @@ namespace Application.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IPaymentRepository _paymentRepository;
         private readonly IOrderRepostory _orderRepository;
-        private readonly IShipmentProducer _shipmentProducer;
-        private readonly IOrderStateProducer _orderStateProducer;
+        private readonly IPaymentCompletedProducer _paymentCompletedProducer;
         private readonly IEncryptionService _encryptionService;
         private readonly IInventoryService _inventoryService;
         private readonly IHttpUtils _httpUtils;
+        private readonly IRedisService _redisService;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
         private readonly IConfiguration _configuration;
         public PaymentService(
             IPaymentRepository paymentRepository, 
             IOrderRepostory orderRepository,
             IHttpContextAccessor contextAccessor, 
-            IShipmentProducer shipmentProducer,
-            IOrderStateProducer orderStateProducer,
+            IPaymentCompletedProducer paymentCompletedProducer,
             IEncryptionService encryptionService, 
             IInventoryService inventoryService,
             IConfiguration configuration,
             IHttpUtils httpUtils,
+            IRedisService redisService,
+            IServiceScopeFactory serviceScopeFactory,
             ILogger<PaymentService> logger):base(logger)
         {
             _paymentRepository = paymentRepository;
             _orderRepository = orderRepository;
             _contextAccessor = contextAccessor;
-            _shipmentProducer = shipmentProducer;
-            _orderStateProducer = orderStateProducer;
+            _paymentCompletedProducer = paymentCompletedProducer;
             _encryptionService = encryptionService;
             _inventoryService = inventoryService;
             _configuration = configuration;
             _httpUtils = httpUtils;
+            _redisService = redisService;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         /// <summary>
@@ -65,8 +72,8 @@ namespace Application.Services
                     return Fail<PaymentInfomation>("訂單不合法");
                 }
 
-                // 獲取配置
-                var config = await _paymentRepository.GetTenantConfig(requestData.RecordNo);
+                // 獲取配置（帶緩存）
+                var config = await GetTenantConfigWithCache(requestData.RecordNo);
 
                 if (config == null)
                 {
@@ -74,7 +81,7 @@ namespace Application.Services
                 }
 
                 // 驗證金額
-                var orderAmount = Convert.ToInt32(config.PaymentAmount).ToString();
+                var orderAmount = Convert.ToInt32(config.TenantConfig.PaymentAmount).ToString();
                 if (!ValidOrderAmount(orderAmount, requestData.Amount))
                 {
                     return Fail<PaymentInfomation>("金額匹配錯誤");
@@ -244,6 +251,116 @@ namespace Application.Services
 
         #region 支付回調
 
+        /// <summary>
+        /// 獲取租戶配置和支付記錄（簡化版）
+        /// TenantConfig 從緩存獲取（應用啟動時已載入），Payment 從資料庫查詢
+        /// </summary>
+        private async Task<PaymentWithTenantConfig?> GetTenantConfigWithCache(string recordCode)
+        {
+            try
+            {
+                // 從緩存獲取 TenantConfig（應用啟動時已載入）
+                const string cacheKey = "tenant_config:default";
+                var cachedJson = await _redisService.GetCacheAsync(cacheKey);
+                
+                TenantConfigCacheData? tenantConfigData = null;
+                if (!string.IsNullOrEmpty(cachedJson))
+                {
+                    try
+                    {
+                        // 使用與 Program.cs 相同的命名策略（CamelCase）
+                        var jsonOptions = new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        };
+                        tenantConfigData = JsonSerializer.Deserialize<TenantConfigCacheData>(cachedJson, jsonOptions);
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.LogWarning(ex, "緩存數據格式錯誤，將從資料庫查詢租戶配置");
+                    }
+                }
+
+                // 如果緩存中沒有，從資料庫查詢（不應該發生，因為應用啟動時已載入）
+                if (tenantConfigData == null)
+                {
+                    _logger.LogWarning("緩存中沒有租戶配置，從資料庫查詢");
+                    var tenantConfig = await _paymentRepository.GetDefaultTenantConfigAsync();
+                    if (tenantConfig == null)
+                    {
+                        _logger.LogError("資料庫中沒有租戶配置");
+                        return null;
+                    }
+                    
+                    tenantConfigData = new TenantConfigCacheData
+                    {
+                        TenantConfigId = tenantConfig.Id,
+                        MerchantId = tenantConfig.MerchantId,
+                        SecretKey = tenantConfig.SecretKey,
+                        HashIV = tenantConfig.HashIV,
+                        PaymentAmount = "" // PaymentAmount 需要從 Payment 獲取
+                    };
+                    
+                    // 重新寫入緩存（使用與 Program.cs 相同的命名策略）
+                    var jsonOptions = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        WriteIndented = false
+                    };
+                    var json = JsonSerializer.Serialize(tenantConfigData, jsonOptions);
+                    await _redisService.SetCacheAsync(cacheKey, json, TimeSpan.FromDays(1));
+                }
+
+                // 從資料庫查詢 Payment（不包含 TenantConfig，因為已從緩存獲取）
+                var payment = await _paymentRepository.GetPaymentByRecordCode(recordCode);
+                
+                if (payment == null)
+                {
+                    return null;
+                }
+
+                // 組合返回結果
+                return new PaymentWithTenantConfig
+                {
+                    Payment = payment,
+                    TenantConfig = new TenantConfigCacheData
+                    {
+                        TenantConfigId = tenantConfigData.TenantConfigId,
+                        MerchantId = tenantConfigData.MerchantId,
+                        SecretKey = tenantConfigData.SecretKey,
+                        HashIV = tenantConfigData.HashIV,
+                        PaymentAmount = payment.PaymentAmount.ToString()
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "獲取租戶配置（帶緩存）時發生錯誤，訂單號: {RecordCode}", recordCode);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 租戶配置緩存數據結構
+        /// </summary>
+        private class TenantConfigCacheData
+        {
+            public int TenantConfigId { get; set; }
+            public string MerchantId { get; set; } = string.Empty;
+            public string SecretKey { get; set; } = string.Empty;
+            public string HashIV { get; set; } = string.Empty;
+            public string PaymentAmount { get; set; } = string.Empty;
+        }
+
+        /// <summary>
+        /// 支付記錄與租戶配置組合
+        /// </summary>
+        private class PaymentWithTenantConfig
+        {
+            public Payment Payment { get; set; } = null!;
+            public TenantConfigCacheData TenantConfig { get; set; } = null!;
+        }
+
         private decimal Amount => Convert.ToDecimal(ReqData["TradeAmt"]);
 
         private string RecordCode => ReqData["MerchantTradeNo"].ToString();
@@ -275,6 +392,7 @@ namespace Application.Services
 
         public async Task<ServiceResult<object>> PayReturn()
         {
+            var sw = Stopwatch.StartNew();
             try
             {
                 _logger.LogInformation("收到支付回調，訂單號: {RecordCode}", RecordCode);
@@ -286,10 +404,10 @@ namespace Application.Services
                     return await TransactionFail();
                 }
 
-                //請求配置
-                var tenantConfig = await _paymentRepository.GetTenantConfig(recordCode: RecordCode);
+                //請求配置（帶緩存）
+                var configResult = await GetTenantConfigWithCache(RecordCode);
 
-                if (tenantConfig == null)
+                if (configResult == null)
                 {
                     _logger.LogError("獲取租戶配置失敗，訂單號: {RecordCode}", RecordCode);
                     return Fail<object>("請求配置失敗");
@@ -297,13 +415,13 @@ namespace Application.Services
                 }
 
                 //驗證回調簽名
-                if (!VerifySign(tenantConfig.TenantConfig.SecretKey, tenantConfig.TenantConfig.HashIV))
+                if (!VerifySign(configResult.TenantConfig.SecretKey, configResult.TenantConfig.HashIV))
                 {
-                    _logger.LogWarning("支付回調簽名驗證失敗，訂單號: {RecordCode}", RecordCode);
+                    // _logger.LogWarning("支付回調簽名驗證失敗，訂單號: {RecordCode}", RecordCode);
                     return SignVerificationFailed();
                 }
 
-                _logger.LogInformation("支付回調簽名驗證成功，開始處理交易成功邏輯，訂單號: {RecordCode}", RecordCode);
+                // _logger.LogInformation("支付回調簽名驗證成功，開始處理交易成功邏輯，訂單號: {RecordCode}", RecordCode);
 
                 return await TransactionSuccess();
             }
@@ -312,6 +430,14 @@ namespace Application.Services
                 _logger.LogError(ex, "處理支付回調時發生錯誤，訂單號: {RecordCode}", RecordCode);
                 return Error<object>(ex.Message);
                 
+            }
+            finally
+            {
+                sw.Stop();
+                if (sw.Elapsed > TimeSpan.FromSeconds(10))
+                {
+                    _logger.LogWarning("支付回調耗時過長：{Elapsed}，訂單號: {RecordCode}", sw.Elapsed, RecordCode);
+                }
             }
 
         }
@@ -346,14 +472,14 @@ namespace Application.Services
             string encoded = HttpUtility.UrlEncode(rawString).ToLower();
             string sign = _encryptionService.Sha256Hash(encoded).ToUpper();
             
-            // 添加調試日誌
-            _logger.LogInformation("簽名驗證 - 原始字串: {RawString}", rawString);
-            _logger.LogInformation("簽名驗證 - URL編碼後: {Encoded}", encoded);
-            _logger.LogInformation("簽名驗證 - 計算的簽名: {CalculatedSign}", sign);
-            _logger.LogInformation("簽名驗證 - 接收的簽名: {ReceivedSign}", returnSign);
+            // 添加調試日誌（已註解）
+            // _logger.LogInformation("簽名驗證 - 原始字串: {RawString}", rawString);
+            // _logger.LogInformation("簽名驗證 - URL編碼後: {Encoded}", encoded);
+            // _logger.LogInformation("簽名驗證 - 計算的簽名: {CalculatedSign}", sign);
+            // _logger.LogInformation("簽名驗證 - 接收的簽名: {ReceivedSign}", returnSign);
             
             bool isValid = string.Equals(sign, returnSign, StringComparison.OrdinalIgnoreCase);
-            _logger.LogInformation("簽名驗證結果: {IsValid}", isValid);
+            // _logger.LogInformation("簽名驗證結果: {IsValid}", isValid);
             
             return isValid;
         }
@@ -445,74 +571,68 @@ namespace Application.Services
 
         private async Task<ServiceResult<object>> TransactionSuccess()
         {
+            var swTotal = Stopwatch.StartNew();
             _logger.LogInformation("開始處理交易成功邏輯，訂單號: {RecordCode}", RecordCode);
 
-            // 使用帶追蹤的方法獲取支付記錄，以便 EF Core 可以追蹤 Order 的變更
-            var payment = await _paymentRepository.GetPaymentRecordForUpdate(recordCode: RecordCode);
+            // 非阻塞分散式鎖（單次嘗試，短 TTL）
+            string lockKey = $"payment_callback:{RecordCode}";
+            string lockValue = Guid.NewGuid().ToString();
+            bool lockAcquired = false;
 
-            if (payment == null)
+            try
             {
-                _logger.LogError("找不到支付記錄，訂單號: {RecordCode}", RecordCode);
-                return Fail<object>("找不到支付記錄");
-            }
-
-            _logger.LogInformation("找到支付記錄，訂單號: {RecordCode}, 支付ID: {PaymentId}, 當前支付狀態: {PaymentStatus}, 訂單狀態: {OrderStatus}", 
-                RecordCode, payment.Id, payment.PaymentStatus, payment.Order.Status);
-
-            // 檢查是否已經有更新過數據，避免重複回調
-            if(payment.PaymentStatus != (byte)OrderStepStatus.PaymentReceived)
-            {
-                _logger.LogInformation("開始標記為已付款，訂單號: {RecordCode}", RecordCode);
-                
-                // 使用 Payment 的業務方法標記為已付款
-                payment.MarkAsPaid();
-                
-                // 使用 Order 的業務方法標記訂單已付款
-                // 使用 Order 中已存在的 PayWay 作為付款方式
-                payment.Order.MarkAsPaid(payment.Order.PayWay);
-                
-                _logger.LogInformation("已標記為已付款，訂單號: {RecordCode}, 訂單狀態: {OrderStatus}", RecordCode, payment.Order.Status);
-
-                // 付款成功後，確認庫存（正式扣除）
-                var confirmResult = await _inventoryService.ConfirmInventoryAsync(RecordCode);
-                if (!confirmResult.IsSuccess)
+                lockAcquired = await _redisService.TryAcquireLockAsync(lockKey, lockValue, TimeSpan.FromSeconds(5));
+                if (!lockAcquired)
                 {
-                    _logger.LogWarning("付款成功後確認庫存失敗，訂單編號: {RecordCode}, 錯誤: {Error}", 
-                        RecordCode, confirmResult.ErrorMessage);
-                    // 即使確認失敗，也繼續處理（庫存已經在創建訂單時預扣）
+                    _logger.LogWarning("同筆訂單鎖被占用，回應重試，訂單號: {RecordCode}", RecordCode);
+                    return Fail<object>("RETRY_LATER");
                 }
 
-                // 通知物流系統開始處理
-                var shipmentMessage = new
-                {
-                    Status = (int)ShipmentStatus.Pending,
-                    OrderId = payment.OrderId,
-                    RecordCode = payment.Order.RecordCode
-                };
-                await _shipmentProducer.SendMessage(shipmentMessage);
+                var swDb = Stopwatch.StartNew();
+                // 以單一 SQL 幂等更新付款/訂單狀態，避免應用層鎖競爭
+                var updateResult = await _paymentRepository.TryMarkPaymentAsPaidAsync(RecordCode);
+                swDb.Stop();
+                _logger.LogInformation("TryMarkPaymentAsPaidAsync 耗時：{Elapsed}，訂單號: {RecordCode}", swDb.Elapsed, RecordCode);
 
-                // 通知訂單狀態服務支付已完成
-                var orderStateMessage = new
+                if (!updateResult.Updated)
                 {
-                    eventType = "PaymentCompleted",
-                    orderId = payment.Order.RecordCode, // 使用 RecordCode 作為 orderId
-                    timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                };
-                await _orderStateProducer.SendMessage(orderStateMessage);
-                
-                _logger.LogInformation("支付成功，已發送訂單狀態更新消息，訂單號: {RecordCode}", RecordCode);
+                    _logger.LogInformation("訂單已經處理過或不存在，直接返回，訂單號: {RecordCode}", RecordCode);
+                    return Success<object>("OK");
+                }
+
+                _logger.LogInformation("已標記為已付款，訂單號: {RecordCode}, 支付ID: {PaymentId}, 訂單ID: {OrderId}", 
+                    RecordCode, updateResult.PaymentId, updateResult.OrderId);
+
+                // 發送支付完成事件，交由背景消費者處理後續動作
+                var evt = new PaymentCompletedEvent(
+                    RecordCode,
+                    updateResult.OrderId,
+                    updateResult.PaymentId,
+                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+
+                await _paymentCompletedProducer.SendMessage(evt);
+                return Success<object>("OK");
             }
-            else
+            finally
             {
-                _logger.LogInformation("訂單已經標記為已付款，跳過處理，訂單號: {RecordCode}", RecordCode);
+                if (lockAcquired)
+                {
+                    try
+                    {
+                        await _redisService.ReleaseLockAsync(lockKey, lockValue);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "釋放分散式鎖失敗，訂單號: {RecordCode}", RecordCode);
+                    }
+                }
+
+                swTotal.Stop();
+                if (swTotal.Elapsed > TimeSpan.FromSeconds(10))
+                {
+                    _logger.LogWarning("TransactionSuccess 耗時過長：{Elapsed}，訂單號: {RecordCode}", swTotal.Elapsed, RecordCode);
+                }
             }
-
-            // 保存變更（包括 Payment 和 Order 的變更）
-            await _paymentRepository.SaveChangesAsync();
-            _logger.LogInformation("支付記錄和訂單狀態已保存，訂單號: {RecordCode}", RecordCode);
-
-            return Success<object>("OK");
-            
         }
 
         #endregion

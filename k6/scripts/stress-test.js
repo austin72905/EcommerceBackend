@@ -100,8 +100,10 @@ export default function () {
     // 為這個 VU 生成一個唯一的用戶數據（用於註冊和登入）
     const userData = generateSignUpData();
     
-    // 場景 1: 高頻率瀏覽商品
-    const productResponse = http.get(`${BASE_URL}/Product/GetProductList?tag=all&kind=all&query=`, {
+    // 場景 1: 高頻率瀏覽商品（使用分頁查詢）
+    const randomPage = Math.floor(Math.random() * 5) + 1; // 1-5 頁
+    const pageSize = 20;
+    const productResponse = http.get(`${BASE_URL}/Product/GetProductList?tag=all&kind=all&query=&page=${randomPage}&pageSize=${pageSize}`, {
         headers: getAuthHeaders(),
         tags: { name: 'GetProductList', test_type: 'stress' },
     });
@@ -111,7 +113,8 @@ export default function () {
         '響應時間 < 10s': (r) => r.timings.duration < 10000,
         '響應包含數據': (r) => {
             const result = parseApiResponse(r);
-            return result.success && result.data !== null;
+            // 分頁回應：data.items 或 data（向後兼容）
+            return result.success && (result.data?.items !== undefined || result.data !== null);
         },
     });
     
@@ -124,8 +127,10 @@ export default function () {
     
     randomSleep(0.5, 2);
     
-    // 場景 2: 並發獲取商品基本信息
-    const productBasicResponse = http.get(`${BASE_URL}/Product/GetProductBasicInfoList?tag=all&kind=all&query=`, {
+    // 場景 2: 並發獲取商品基本信息（使用分頁查詢）
+    const randomPageBasic = Math.floor(Math.random() * 5) + 1; // 1-5 頁
+    const pageSizeBasic = 20;
+    const productBasicResponse = http.get(`${BASE_URL}/Product/GetProductBasicInfoList?tag=all&kind=all&query=&page=${randomPageBasic}&pageSize=${pageSizeBasic}`, {
         headers: getAuthHeaders(),
         tags: { name: 'GetProductBasicInfoList', test_type: 'stress' },
     });

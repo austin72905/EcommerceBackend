@@ -142,8 +142,11 @@ export function setup() {
 export default function (data) {
     // k6 會自動處理 cookie，每個 VU 都有獨立的 cookie jar
     
-    // ========== 場景 1: 商品列表查詢（複雜查詢，包含多層 Include）==========
-    const productResponse = http.get(`${BASE_URL}/Product/GetProductList?tag=all&kind=all&query=`, {
+    // ========== 場景 1: 商品列表查詢（複雜查詢，包含多層 Include，使用分頁）==========
+    // 隨機選擇頁碼（模擬用戶瀏覽不同頁面）
+    const randomPage = Math.floor(Math.random() * 5) + 1; // 1-5 頁
+    const pageSize = 20;
+    const productResponse = http.get(`${BASE_URL}/Product/GetProductList?tag=all&kind=all&query=&page=${randomPage}&pageSize=${pageSize}`, {
         headers: getAuthHeaders(),
         tags: { name: 'GetProductList', test_type: 'read_only' },
     });
@@ -154,7 +157,8 @@ export default function (data) {
         '響應包含數據': (r) => {
             if (r.status === 200) {
                 const result = parseApiResponse(r);
-                return result.success && result.data !== null;
+                // 分頁回應：data.items 或 data（向後兼容）
+                return result.success && (result.data?.items !== undefined || result.data !== null);
             }
             return true;
         },
@@ -169,8 +173,11 @@ export default function (data) {
     
     randomSleep(0.3, 1);
     
-    // ========== 場景 2: 商品基本信息列表（輕量查詢）==========
-    const productBasicResponse = http.get(`${BASE_URL}/Product/GetProductBasicInfoList?tag=all&kind=all&query=`, {
+    // ========== 場景 2: 商品基本信息列表（輕量查詢，使用分頁）==========
+    // 隨機選擇頁碼（模擬用戶瀏覽不同頁面）
+    const randomPageBasic = Math.floor(Math.random() * 5) + 1; // 1-5 頁
+    const pageSizeBasic = 20;
+    const productBasicResponse = http.get(`${BASE_URL}/Product/GetProductBasicInfoList?tag=all&kind=all&query=&page=${randomPageBasic}&pageSize=${pageSizeBasic}`, {
         headers: getAuthHeaders(),
         tags: { name: 'GetProductBasicInfoList', test_type: 'read_only' },
     });
@@ -181,7 +188,8 @@ export default function (data) {
         '響應包含數據': (r) => {
             if (r.status === 200) {
                 const result = parseApiResponse(r);
-                return result.success && result.data !== null;
+                // 分頁回應：data.items 或 data（向後兼容）
+                return result.success && (result.data?.items !== undefined || result.data !== null);
             }
             return true;
         },

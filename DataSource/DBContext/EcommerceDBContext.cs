@@ -32,6 +32,7 @@ namespace DataSource.DBContext
         public DbSet<Payment> Payments { get; set; }
 
         public DbSet<TenantConfig> TenantConfigs { get; set; }
+        public DbSet<Domain.Interfaces.Repositories.PaymentUpdateResult> PaymentUpdateResults { get; set; }
 
 
         public EcommerceDBContext(DbContextOptions<EcommerceDBContext> options) : base(options)
@@ -84,6 +85,10 @@ namespace DataSource.DBContext
             modelBuilder.Entity<ProductVariant>()
                 .HasIndex(pv => pv.ProductId);
 
+            // ProductImage 表的 ProductId 索引（用於查詢商品圖片，提升 GetProductById 效能）
+            modelBuilder.Entity<ProductImage>()
+                .HasIndex(pi => pi.ProductId);
+
             // ProductTag 表的 ProductId 和 TagId 索引（用於過濾查詢）
             modelBuilder.Entity<ProductTag>()
                 .HasIndex(pt => pt.ProductId);
@@ -128,6 +133,9 @@ namespace DataSource.DBContext
                 .HasIndex(pvd => pvd.VariantId);
             modelBuilder.Entity<ProductVariantDiscount>()
                 .HasIndex(pvd => pvd.DiscountId);
+            // ProductVariantDiscount 表的複合索引（優化 JOIN 查詢效能）
+            modelBuilder.Entity<ProductVariantDiscount>()
+                .HasIndex(pvd => new { pvd.VariantId, pvd.DiscountId });
 
             // Shipment 表的 OrderId 索引（用於依訂單查詢所有物流記錄）
             modelBuilder.Entity<Shipment>()
@@ -139,6 +147,8 @@ namespace DataSource.DBContext
 
             modelBuilder.Entity<Payment>()
                 .HasIndex(p => p.TenantConfigId);
+            modelBuilder.Entity<Payment>()
+                .HasIndex(p => p.PaymentStatus);
 
             // OrderStep 表的 OrderId 外鍵索引
             modelBuilder.Entity<OrderStep>()
@@ -153,6 +163,11 @@ namespace DataSource.DBContext
             modelBuilder.Entity<Tag>()
                 .HasIndex(t => t.Name)
                 .IsUnique();
+
+            // Keyless 型別，用於原生 SQL 回傳投影
+            modelBuilder.Entity<Domain.Interfaces.Repositories.PaymentUpdateResult>()
+                .HasNoKey()
+                .ToView(null);
 
 
 

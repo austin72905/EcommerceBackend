@@ -33,8 +33,8 @@ export default function () {
     // 測試 1: 健康檢查或基本端點
     console.log(`測試 API: ${BASE_URL}`);
     
-    // 測試 2: 獲取商品列表（不需要認證）
-    const productResponse = http.get(`${BASE_URL}/Product/GetProductList?tag=test&kind=all&query=`, {
+    // 測試 2: 獲取商品列表（不需要認證，使用分頁查詢）
+    const productResponse = http.get(`${BASE_URL}/Product/GetProductList?tag=test&kind=all&query=&page=1&pageSize=20`, {
         headers: getAuthHeaders(),
     });
     
@@ -52,8 +52,8 @@ export default function () {
     
     sleep(1);
     
-    // 測試 3: 獲取商品基本信息（不需要認證）
-    const productBasicResponse = http.get(`${BASE_URL}/Product/GetProductBasicInfoList?tag=test&kind=all&query=`, {
+    // 測試 3: 獲取商品基本信息（不需要認證，使用分頁查詢）
+    const productBasicResponse = http.get(`${BASE_URL}/Product/GetProductBasicInfoList?tag=test&kind=all&query=&page=1&pageSize=20`, {
         headers: getAuthHeaders(),
     });
     

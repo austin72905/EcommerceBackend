@@ -563,7 +563,480 @@ namespace Infrastructure.Cache
         }
 
 
+        #region 商品緩存相關方法
 
+        // 緩存 Key 前綴常量
+        private const string ProductBasicInfoKeyPrefix = "product:basic:";
+        private const string ProductListKeyPrefix = "product:list:";
+
+        /// <summary>
+        /// 緩存單個商品基本資訊
+        /// </summary>
+        public async Task SetProductBasicInfoAsync(int productId, string productJson, TimeSpan? ttl = null)
+        {
+            string key = $"{ProductBasicInfoKeyPrefix}{productId}";
+            var expiration = ttl ?? TimeSpan.FromHours(4); // 預設 4 小時
+
+            try
+            {
+                await _db.StringSetAsync(key, productJson, expiration);
+                Console.WriteLine($"Cached product basic info: {productId}");
+            }
+            catch (RedisConnectionException ex)
+            {
+                Console.WriteLine($"Redis connection error while caching product {productId}: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error caching product {productId}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 獲取單個商品基本資訊緩存
+        /// </summary>
+        public async Task<string?> GetProductBasicInfoAsync(int productId)
+        {
+            string key = $"{ProductBasicInfoKeyPrefix}{productId}";
+
+            try
+            {
+                var result = await _db.StringGetAsync(key);
+                if (result.HasValue)
+                {
+                    Console.WriteLine($"Cache HIT for product basic info: {productId}");
+                    return result.ToString();
+                }
+                Console.WriteLine($"Cache MISS for product basic info: {productId}");
+                return null;
+            }
+            catch (RedisConnectionException ex)
+            {
+                Console.WriteLine($"Redis connection error while getting product {productId}: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting product {productId}: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 批量緩存商品基本資訊
+        /// </summary>
+        public async Task SetProductBasicInfoBatchAsync(Dictionary<int, string> products, TimeSpan? ttl = null)
+        {
+            var expiration = ttl ?? TimeSpan.FromHours(4);
+
+            try
+            {
+                var batch = _db.CreateBatch();
+                var tasks = new List<Task>();
+
+                foreach (var kvp in products)
+                {
+                    string key = $"{ProductBasicInfoKeyPrefix}{kvp.Key}";
+                    tasks.Add(batch.StringSetAsync(key, kvp.Value, expiration));
+                }
+
+                batch.Execute();
+                await Task.WhenAll(tasks);
+
+                Console.WriteLine($"Batch cached {products.Count} product basic info records");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error batch caching products: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 批量獲取商品基本資訊緩存
+        /// </summary>
+        public async Task<Dictionary<int, string>> GetProductBasicInfoBatchAsync(IEnumerable<int> productIds)
+        {
+            var result = new Dictionary<int, string>();
+
+            try
+            {
+                var productIdList = productIds.ToList();
+                var keys = productIdList.Select(id => (RedisKey)$"{ProductBasicInfoKeyPrefix}{id}").ToArray();
+                var values = await _db.StringGetAsync(keys);
+
+                for (int i = 0; i < productIdList.Count; i++)
+                {
+                    if (values[i].HasValue)
+                    {
+                        result[productIdList[i]] = values[i].ToString();
+                    }
+                }
+
+                Console.WriteLine($"Batch get: {result.Count}/{productIdList.Count} cache hits for product basic info");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error batch getting products: {ex.Message}");
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// 緩存商品列表（按分類）
+        /// </summary>
+        public async Task SetProductListCacheAsync(string? kind, string? tag, string? query, string productsJson, TimeSpan? ttl = null)
+        {
+            string key = BuildProductListCacheKey(kind, tag, query);
+            var expiration = ttl ?? TimeSpan.FromMinutes(10); // 預設 10 分鐘
+
+            try
+            {
+                await _db.StringSetAsync(key, productsJson, expiration);
+                Console.WriteLine($"Cached product list: kind={kind}, tag={tag}, query={query}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error caching product list: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 獲取商品列表緩存（按分類）
+        /// </summary>
+        public async Task<string?> GetProductListCacheAsync(string? kind, string? tag, string? query)
+        {
+            string key = BuildProductListCacheKey(kind, tag, query);
+
+            try
+            {
+                var result = await _db.StringGetAsync(key);
+                if (result.HasValue)
+                {
+                    Console.WriteLine($"Cache HIT for product list: kind={kind}, tag={tag}, query={query}");
+                    return result.ToString();
+                }
+                Console.WriteLine($"Cache MISS for product list: kind={kind}, tag={tag}, query={query}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting product list cache: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 緩存分頁商品列表（基本資訊）
+        /// </summary>
+        public async Task SetProductListPagedCacheAsync(string? kind, string? tag, string? query, int page, int pageSize, string productsJson, TimeSpan? ttl = null)
+        {
+            string key = BuildProductListPagedCacheKey(kind, tag, query, page, pageSize);
+            var expiration = ttl ?? TimeSpan.FromMinutes(10); // 預設 10 分鐘
+
+            try
+            {
+                await _db.StringSetAsync(key, productsJson, expiration);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error caching paged product list: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 獲取分頁商品列表緩存（基本資訊）
+        /// </summary>
+        public async Task<string?> GetProductListPagedCacheAsync(string? kind, string? tag, string? query, int page, int pageSize)
+        {
+            string key = BuildProductListPagedCacheKey(kind, tag, query, page, pageSize);
+
+            try
+            {
+                var result = await _db.StringGetAsync(key);
+                if (result.HasValue)
+                {
+                    Console.WriteLine($"Cache HIT for paged product list: kind={kind}, tag={tag}, query={query}, page={page}, pageSize={pageSize}");
+                    return result.ToString();
+                }
+                Console.WriteLine($"Cache MISS for paged product list: kind={kind}, tag={tag}, query={query}, page={page}, pageSize={pageSize}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting paged product list cache: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 構建分頁商品列表緩存 Key
+        /// </summary>
+        private string BuildProductListPagedCacheKey(string? kind, string? tag, string? query, int page, int pageSize)
+        {
+            return $"{ProductListKeyPrefix}paged:{kind ?? "null"}:{tag ?? "null"}:{query ?? "null"}:{page}:{pageSize}";
+        }
+
+        // 緩存 Key 前綴常量 - 商品動態資訊
+        private const string ProductDynamicInfoKeyPrefix = "product:dynamic:";
+
+        /// <summary>
+        /// 緩存商品動態資訊（變體、價格、折扣等）
+        /// </summary>
+        public async Task SetProductDynamicInfoCacheAsync(int productId, string dynamicInfoJson, TimeSpan? ttl = null)
+        {
+            string key = $"{ProductDynamicInfoKeyPrefix}{productId}";
+            var expiration = ttl ?? TimeSpan.FromMinutes(10); // 預設 10 分鐘（動態資訊變化較頻繁）
+
+            try
+            {
+                await _db.StringSetAsync(key, dynamicInfoJson, expiration);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error caching product dynamic info: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 獲取商品動態資訊緩存（變體、價格、折扣等）
+        /// </summary>
+        public async Task<string?> GetProductDynamicInfoCacheAsync(int productId)
+        {
+            string key = $"{ProductDynamicInfoKeyPrefix}{productId}";
+
+            try
+            {
+                var result = await _db.StringGetAsync(key);
+                if (result.HasValue)
+                {
+                    Console.WriteLine($"Cache HIT for product dynamic info: {productId}");
+                    return result.ToString();
+                }
+                Console.WriteLine($"Cache MISS for product dynamic info: {productId}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting product dynamic info cache: {ex.Message}");
+                return null;
+            }
+        }
+
+        // 緩存 Key 前綴常量 - 完整商品列表（包含變體和折扣）
+        private const string ProductListFullKeyPrefix = "product:list:full:";
+
+        /// <summary>
+        /// 緩存分頁商品列表（完整資訊，包含變體和折扣）
+        /// </summary>
+        public async Task SetProductListFullPagedCacheAsync(string? kind, string? tag, string? query, int page, int pageSize, string productsJson, TimeSpan? ttl = null)
+        {
+            string key = BuildProductListFullPagedCacheKey(kind, tag, query, page, pageSize);
+            var expiration = ttl ?? TimeSpan.FromMinutes(10); // 預設 10 分鐘
+
+            try
+            {
+                await _db.StringSetAsync(key, productsJson, expiration);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error caching full paged product list: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 獲取分頁商品列表緩存（完整資訊，包含變體和折扣）
+        /// </summary>
+        public async Task<string?> GetProductListFullPagedCacheAsync(string? kind, string? tag, string? query, int page, int pageSize)
+        {
+            string key = BuildProductListFullPagedCacheKey(kind, tag, query, page, pageSize);
+
+            try
+            {
+                var result = await _db.StringGetAsync(key);
+                if (result.HasValue)
+                {
+                    Console.WriteLine($"Cache HIT for full paged product list: kind={kind}, tag={tag}, query={query}, page={page}, pageSize={pageSize}");
+                    return result.ToString();
+                }
+                Console.WriteLine($"Cache MISS for full paged product list: kind={kind}, tag={tag}, query={query}, page={page}, pageSize={pageSize}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting full paged product list cache: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 構建完整商品列表分頁緩存 Key
+        /// </summary>
+        private string BuildProductListFullPagedCacheKey(string? kind, string? tag, string? query, int page, int pageSize)
+        {
+            return $"{ProductListFullKeyPrefix}paged:{kind ?? "null"}:{tag ?? "null"}:{query ?? "null"}:{page}:{pageSize}";
+        }
+
+        /// <summary>
+        /// 清除單個商品緩存（包括基本資訊和動態資訊）
+        /// </summary>
+        public async Task InvalidateProductCacheAsync(int productId)
+        {
+            string basicInfoKey = $"{ProductBasicInfoKeyPrefix}{productId}";
+            string dynamicInfoKey = $"{ProductDynamicInfoKeyPrefix}{productId}";
+
+            try
+            {
+                // 清除基本資訊緩存
+                await _db.KeyDeleteAsync(basicInfoKey);
+                // 清除動態資訊緩存
+                await _db.KeyDeleteAsync(dynamicInfoKey);
+                Console.WriteLine($"Invalidated cache for product (basic + dynamic): {productId}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error invalidating product cache: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 清除所有商品列表緩存（商品變更時使用）
+        /// </summary>
+        public async Task InvalidateAllProductListCacheAsync()
+        {
+            try
+            {
+                var server = _redis.GetServer(_redis.GetEndPoints().First());
+                var keys = server.Keys(pattern: $"{ProductListKeyPrefix}*").ToArray();
+
+                if (keys.Length > 0)
+                {
+                    await _db.KeyDeleteAsync(keys);
+                    Console.WriteLine($"Invalidated {keys.Length} product list cache entries");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error invalidating product list caches: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 構建商品列表緩存 Key
+        /// </summary>
+        private string BuildProductListCacheKey(string? kind, string? tag, string? query)
+        {
+            // 使用 "_" 作為空值佔位符，確保 key 唯一性
+            var kindPart = string.IsNullOrEmpty(kind) ? "_" : kind;
+            var tagPart = string.IsNullOrEmpty(tag) ? "_" : tag;
+            var queryPart = string.IsNullOrEmpty(query) ? "_" : query;
+
+            return $"{ProductListKeyPrefix}{kindPart}:{tagPart}:{queryPart}";
+        }
+
+        #endregion
+
+        #region 分散式鎖相關方法
+
+        /// <summary>
+        /// 嘗試獲取分散式鎖（使用 SET NX EX 命令，原子性操作）
+        /// </summary>
+        public async Task<bool> TryAcquireLockAsync(string lockKey, string lockValue, TimeSpan? expiry = null)
+        {
+            string key = $"lock:{lockKey}";
+            var expiration = expiry ?? TimeSpan.FromSeconds(30); // 預設 30 秒
+
+            try
+            {
+                // 使用 SET key value NX EX seconds 命令，原子性地設置鎖
+                // NX: 只在鍵不存在時設置
+                // EX: 設置過期時間（秒）
+                bool acquired = await _db.StringSetAsync(key, lockValue, expiration, When.NotExists);
+                return acquired;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error acquiring lock: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 釋放分散式鎖（使用 Lua 腳本確保原子性，只有鎖的持有者才能釋放）
+        /// </summary>
+        public async Task<bool> ReleaseLockAsync(string lockKey, string lockValue)
+        {
+            string key = $"lock:{lockKey}";
+
+            try
+            {
+                // 使用 Lua 腳本確保原子性：只有當鎖的值匹配時才刪除
+                string luaScript = @"
+                    if redis.call('get', KEYS[1]) == ARGV[1] then
+                        return redis.call('del', KEYS[1])
+                    else
+                        return 0
+                    end
+                ";
+
+                var result = await _db.ScriptEvaluateAsync(
+                    luaScript,
+                    new RedisKey[] { key },
+                    new RedisValue[] { lockValue }
+                );
+
+                // 返回 true 表示成功釋放（刪除了鍵）
+                return result != null && result.ToString() == "1";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error releasing lock: {ex.Message}");
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region 通用緩存方法
+
+        /// <summary>
+        /// 設置緩存值
+        /// </summary>
+        public async Task SetCacheAsync(string key, string value, TimeSpan? ttl = null)
+        {
+            string cacheKey = $"cache:{key}";
+            var expiration = ttl ?? TimeSpan.FromHours(1); // 預設 1 小時
+
+            try
+            {
+                await _db.StringSetAsync(cacheKey, value, expiration);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting cache: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 獲取緩存值
+        /// </summary>
+        public async Task<string?> GetCacheAsync(string key)
+        {
+            string cacheKey = $"cache:{key}";
+
+            try
+            {
+                var result = await _db.StringGetAsync(cacheKey);
+                return result.HasValue ? result.ToString() : null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting cache: {ex.Message}");
+                return null;
+            }
+        }
+
+        #endregion
 
     }
 

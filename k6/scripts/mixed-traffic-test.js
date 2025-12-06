@@ -152,9 +152,12 @@ export function setup() {
 
 // 主要讀取：商品列表 / 輕量查詢 / 首頁推薦
 function executeMainRead() {
-    // 以輕量商品列表為主 (最接近首頁 / 推薦流量)
+    // 以輕量商品列表為主 (最接近首頁 / 推薦流量)，使用分頁查詢
+    // 隨機選擇頁碼（模擬用戶瀏覽不同頁面）
+    const randomPage = Math.floor(Math.random() * 5) + 1; // 1-5 頁
+    const pageSize = 20;
     const res = http.get(
-        `${BASE_URL}/Product/GetProductBasicInfoList?tag=all&kind=all&query=`,
+        `${BASE_URL}/Product/GetProductBasicInfoList?tag=all&kind=all&query=&page=${randomPage}&pageSize=${pageSize}`,
         {
             headers: getAuthHeaders(),
             tags: { name: 'GetProductBasicInfoList', traffic_type: 'main_read' },

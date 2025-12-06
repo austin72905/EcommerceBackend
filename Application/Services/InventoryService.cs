@@ -1,6 +1,7 @@
 using Application.DTOs;
 using Application.Interfaces;
 using Common.Interfaces.Infrastructure;
+using Domain.Interfaces.Repositories;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
@@ -12,12 +13,18 @@ namespace Application.Services
     public class InventoryService : BaseService<InventoryService>, IInventoryService
     {
         private readonly IRedisService _redisService;
+        private readonly IOrderRepostory _orderRepository;
+        private readonly IProductRepository _productRepository;
 
         public InventoryService(
             IRedisService redisService,
+            IOrderRepostory orderRepository,
+            IProductRepository productRepository,
             ILogger<InventoryService> logger) : base(logger)
         {
             _redisService = redisService;
+            _orderRepository = orderRepository;
+            _productRepository = productRepository;
         }
 
         /// <summary>
@@ -122,51 +129,114 @@ namespace Application.Services
         /// <summary>
         /// 確認庫存（付款成功後，正式扣除庫存）
         /// </summary>
-        public Task<ServiceResult<bool>> ConfirmInventoryAsync(string orderId)
+        public async Task<ServiceResult<bool>> ConfirmInventoryAsync(string orderId)
         {
+            // 使用分散式鎖防止同一訂單的庫存確認操作並發執行
+            string lockKey = $"inventory_confirm:{orderId}";
+            string lockValue = Guid.NewGuid().ToString();
+            bool lockAcquired = false;
+
             try
             {
                 if (string.IsNullOrEmpty(orderId))
                 {
-                    return Task.FromResult(new ServiceResult<bool>
+                    return new ServiceResult<bool>
                     {
                         IsSuccess = false,
                         ErrorMessage = "訂單編號不能為空"
-                    });
+                    };
                 }
 
-                // 付款成功後，刪除 holdKey，表示庫存正式確認扣除
-                // 注意：目前 Redis 的 holdKey 會自動過期，這裡可以選擇：
-                // 1. 提前刪除 holdKey（推薦，表示正式確認）
-                // 2. 保留 holdKey 直到過期（用於審計）
+                // 嘗試獲取分散式鎖（鎖定時間 10 秒，足夠完成庫存確認）
+                lockAcquired = await _redisService.TryAcquireLockAsync(lockKey, lockValue, TimeSpan.FromSeconds(10));
                 
-                // 實作：刪除 holdKey
-                var holdKey = $"stock:hold:{orderId}";
-                // 由於 IRedisService 沒有直接刪除 key 的方法，我們可以：
-                // 1. 在 IRedisService 中新增 DeleteKeyAsync 方法
-                // 2. 或者使用 RollbackStockAsync 後再重新扣除（不推薦）
-                // 3. 或者讓 holdKey 自然過期（目前實作）
+                if (!lockAcquired)
+                {
+                    _logger.LogWarning("無法獲取分散式鎖，訂單編號: {OrderId}，可能正在被其他請求處理，跳過此次庫存確認", orderId);
+                    // 返回成功，避免重複處理（庫存已經在創建訂單時預扣）
+                    return new ServiceResult<bool>
+                    {
+                        IsSuccess = true,
+                        Data = true
+                    };
+                }
+
+                // 1. 獲取訂單信息（僅載入 OrderProducts，減少資料庫查詢負載）
+                // 使用 ConfigureAwait(false) 避免捕獲同步上下文，確保操作順序執行
+                var order = await _orderRepository.GetOrderWithProductsOnlyForUpdate(orderId).ConfigureAwait(false);
+                if (order == null)
+                {
+                    _logger.LogWarning("找不到訂單，訂單編號: {OrderId}", orderId);
+                    return new ServiceResult<bool>
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "找不到訂單"
+                    };
+                }
+
+                // 2. 獲取訂單中的所有商品變體和數量（在記憶體中處理，不涉及資料庫）
+                var variantQuantities = order.OrderProducts
+                    .GroupBy(op => op.ProductVariantId)
+                    .Select(g => new { VariantId = g.Key, Quantity = g.Sum(op => op.Count) })
+                    .ToList();
+
+                if (!variantQuantities.Any())
+                {
+                    _logger.LogWarning("訂單中沒有商品，訂單編號: {OrderId}", orderId);
+                    return new ServiceResult<bool>
+                    {
+                        IsSuccess = false,
+                        ErrorMessage = "訂單中沒有商品"
+                    };
+                }
+
+                // 3. 批量扣除資料庫庫存（直接在 SQL 中計算，減少一次查詢）
+                // 將訂單商品變體和數量轉換為字典
+                var variantQuantitiesDict = variantQuantities
+                    .ToDictionary(vq => vq.VariantId, vq => vq.Quantity);
+
+                // 直接扣除庫存（SQL 中會使用 GREATEST(0, Stock - Quantity) 確保不會變成負數）
+                // 使用 ConfigureAwait(false) 確保操作順序執行，避免並發問題
+                await _productRepository.DeductProductVariantStocksAsync(variantQuantitiesDict).ConfigureAwait(false);
+
+                // 記錄日誌（簡化版，因為不再需要查詢當前庫存）
+                foreach (var item in variantQuantities)
+                {
+                    _logger.LogInformation("扣除商品變體庫存，變體 ID: {VariantId}, 扣除數量: {Quantity}, 訂單編號: {OrderId}",
+                        item.VariantId, item.Quantity, orderId);
+                }
+
+                _logger.LogInformation("庫存確認成功，已更新資料庫庫存，訂單編號: {OrderId}", orderId);
                 
-                // 目前實作：由於 Redis 的 holdKey 會自動過期，付款成功後不需要特別處理
-                // 庫存已經在 CheckAndHoldInventoryAsync 時從 Redis 扣除
-                // holdKey 只是用於記錄，過期後會自動清理
-                
-                _logger.LogInformation("庫存確認成功，訂單編號: {OrderId}", orderId);
-                
-                return Task.FromResult(new ServiceResult<bool>
+                return new ServiceResult<bool>
                 {
                     IsSuccess = true,
                     Data = true
-                });
+                };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "確認庫存時發生錯誤，訂單編號: {OrderId}", orderId);
-                return Task.FromResult(new ServiceResult<bool>
+                return new ServiceResult<bool>
                 {
                     IsSuccess = false,
                     ErrorMessage = "系統錯誤，請聯繫管理員"
-                });
+                };
+            }
+            finally
+            {
+                // 釋放分散式鎖
+                if (lockAcquired)
+                {
+                    try
+                    {
+                        await _redisService.ReleaseLockAsync(lockKey, lockValue).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "釋放分散式鎖失敗，訂單編號: {OrderId}，鎖會自動過期", orderId);
+                    }
+                }
             }
         }
 

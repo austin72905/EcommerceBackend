@@ -27,8 +27,6 @@ namespace EcommerceBackend.Controllers
         [HttpGet("GetProductList")]
         public async Task<IActionResult> GetProductList([FromQuery] Filter filter)
         {
-
-
             if (string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind) && string.IsNullOrEmpty(filter.query))
             {
                 return Fail("請求類型不得為空");
@@ -36,57 +34,103 @@ namespace EcommerceBackend.Controllers
 
             int userid = UserInfo != null ? UserInfo.UserId : 0;
 
-            ServiceResult<List<ProductWithFavoriteStatusDTO>> result;
-
-            if(userid == 0)
+            // 如果提供了分頁參數，使用分頁查詢
+            if (filter.page.HasValue && filter.pageSize.HasValue)
             {
-                //未登錄
-                result =await _productervice.GetProducts(filter.kind, filter.tag,filter.query);
+                var page = filter.page.Value;
+                var pageSize = filter.pageSize.Value;
+
+                // 驗證分頁參數
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 20;
+                if (pageSize > 100) pageSize = 100;
+
+                ServiceResult<PagedResponseDTO<ProductWithFavoriteStatusDTO>> pagedResult;
+
+                if (userid == 0)
+                {
+                    // 未登錄
+                    pagedResult = await _productervice.GetProductsPaged(filter.kind, filter.tag, filter.query, page, pageSize);
+                }
+                else
+                {
+                    // 已登錄
+                    pagedResult = await _productervice.GetProductsPagedForUser(userid, filter.kind, filter.tag, page, pageSize);
+                }
+
+                if (!pagedResult.IsSuccess)
+                {
+                    return Fail(msg: pagedResult.ErrorMessage);
+                }
+
+                return Success(pagedResult.Data);
             }
             else
             {
-                result =await _productervice.GetProductsForUser(userid, filter.kind, filter.tag);
+                // 未提供分頁參數，使用原有邏輯（向後兼容）
+                ServiceResult<List<ProductWithFavoriteStatusDTO>> result;
+
+                if (userid == 0)
+                {
+                    // 未登錄
+                    result = await _productervice.GetProducts(filter.kind, filter.tag, filter.query);
+                }
+                else
+                {
+                    // 已登錄
+                    result = await _productervice.GetProductsForUser(userid, filter.kind, filter.tag);
+                }
+
+                if (!result.IsSuccess)
+                {
+                    return Fail(msg: result.ErrorMessage);
+                }
+
+                return Success(result.Data);
             }
-
-
-            
-
-            if (!result.IsSuccess)
-            {
-                return Fail(msg:result.ErrorMessage);
-            }
-
-
-            return Success(result.Data);
-
-
         }
 
 
         [HttpGet("GetProductBasicInfoList")]
         public async Task<IActionResult> GetProductBasicInfoList([FromQuery] Filter filter)
         {
-
-
             if (string.IsNullOrEmpty(filter.tag) && string.IsNullOrEmpty(filter.kind) && string.IsNullOrEmpty(filter.query))
             {
                 return Fail("請求類型不得為空");
             }
 
-            int userid = UserInfo != null ? UserInfo.UserId : 0;
-
-            var result = await _productervice.GetProductsBasicInfo(filter.kind, filter.tag,filter.query);
-            
-
-            if (!result.IsSuccess)
+            // 如果提供了分頁參數，使用分頁查詢
+            if (filter.page.HasValue && filter.pageSize.HasValue)
             {
-                return Fail(msg: result.ErrorMessage);
+                var page = filter.page.Value;
+                var pageSize = filter.pageSize.Value;
+
+                // 驗證分頁參數
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 20;
+                if (pageSize > 100) pageSize = 100;
+
+                var pagedResult = await _productervice.GetProductsBasicInfoPaged(filter.kind, filter.tag, filter.query, page, pageSize);
+
+                if (!pagedResult.IsSuccess)
+                {
+                    return Fail(msg: pagedResult.ErrorMessage);
+                }
+
+                return Success(pagedResult.Data);
             }
+            else
+            {
+                // 未提供分頁參數，使用原有邏輯（向後兼容）
+                var result = await _productervice.GetProductsBasicInfo(filter.kind, filter.tag, filter.query);
 
+                if (!result.IsSuccess)
+                {
+                    return Fail(msg: result.ErrorMessage);
+                }
 
-            return Success(result.Data);
-
-
+                return Success(result.Data);
+            }
         }
 
 
@@ -229,19 +273,41 @@ namespace EcommerceBackend.Controllers
 
 
         [HttpPost("AddNewProduct")]
-        public IActionResult AddNewProduct([FromBody] Product product)
+        public async Task<IActionResult> AddNewProduct([FromBody] AddProductRequestDTO request)
         {
-            return Content("ok");
+            if (request == null)
+            {
+                return Fail("請求資料不得為空");
+            }
+
+            if (string.IsNullOrEmpty(request.Title))
+            {
+                return Fail("商品名稱不得為空");
+            }
+
+            if (request.Variants == null || request.Variants.Count == 0)
+            {
+                return Fail("商品變體不得為空");
+            }
+
+            var result = await _productervice.AddProduct(request);
+
+            if (!result.IsSuccess)
+            {
+                return Fail(msg: result.ErrorMessage);
+            }
+
+            return Success(result.Data);
         }
 
         [HttpPost("ModifyProduct")]
-        public IActionResult ModifyProduct([FromBody] Product product)
+        public IActionResult ModifyProduct([FromBody] AddProductRequestDTO product)
         {
             return Content("ok");
         }
 
         [HttpDelete("DeleteProduct")]
-        public IActionResult DeleteProduct([FromBody] Product product)
+        public IActionResult DeleteProduct([FromBody] AddProductRequestDTO product)
         {
             return Content("ok");
         }
@@ -305,12 +371,12 @@ namespace EcommerceBackend.Controllers
         public string? tag { get; set; }
 
         public string? query { get; set; }
+
+        // 分頁參數（可選）
+        public int? page { get; set; }
+        public int? pageSize { get; set; }
     }
 
-    public class Product
-    {
-
-    }
 
     public class ProductDynamicInfo
     {

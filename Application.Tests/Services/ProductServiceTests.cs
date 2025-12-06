@@ -1,4 +1,5 @@
 ﻿using Application.Services;
+using Common.Interfaces.Infrastructure;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ namespace Application.Tests.Services
     {
         private Mock<IProductRepository> _productRepositoryMock;
         private Mock<IUserRepository> _userRepositoryMock;
+        private Mock<IRedisService> _redisServiceMock;
         private Mock<ILogger<ProductService>> _loggerMock;
         private ProductService _productService;
 
@@ -24,8 +26,13 @@ namespace Application.Tests.Services
         {
             _productRepositoryMock = new Mock<IProductRepository>();
             _userRepositoryMock = new Mock<IUserRepository>();
+            _redisServiceMock = new Mock<IRedisService>();
             _loggerMock = new Mock<ILogger<ProductService>>();
-            _productService = new ProductService(_productRepositoryMock.Object, _userRepositoryMock.Object, _loggerMock.Object);
+            _productService = new ProductService(
+                _productRepositoryMock.Object, 
+                _userRepositoryMock.Object, 
+                _redisServiceMock.Object,
+                _loggerMock.Object);
         }
 
 

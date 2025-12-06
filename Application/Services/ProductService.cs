@@ -1,10 +1,12 @@
 ﻿using Application.DTOs;
 using Application.Extensions;
 using Application.Interfaces;
+using Common.Interfaces.Infrastructure;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using System.Text.Json;
 using static Application.Extensions.ProductExtensions;
 
 namespace Application.Services
@@ -13,12 +15,24 @@ namespace Application.Services
     {
         public readonly IProductRepository _repository;
         private readonly IUserRepository _userRepository;
+        private readonly IRedisService _redisService;
 
-        public ProductService(IProductRepository repository, IUserRepository userRepository, ILogger<ProductService> logger) : base(logger)
+        // JSON 序列化選項（提升效能）
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
+
+        public ProductService(
+            IProductRepository repository, 
+            IUserRepository userRepository, 
+            IRedisService redisService,
+            ILogger<ProductService> logger) : base(logger)
         {
             _repository = repository;
             _userRepository = userRepository;
-
+            _redisService = redisService;
         }
 
 
@@ -29,41 +43,46 @@ namespace Application.Services
         {
             try
             {
-                var product = await _repository.GetProductById(productId);
-
-                if (product == null)
+                // 方案1：順序查詢（避免 DbContext 並行問題）
+                // 查詢1：基本資訊（有緩存，通常很快）
+                var basicInfoResult = await GetProductBasicInfoById(productId);
+                if (!basicInfoResult.IsSuccess || basicInfoResult.Data == null)
                 {
-                    return Fail<ProductWithFavoriteStatusDTO>("產品不存在");
-
+                    return Fail<ProductWithFavoriteStatusDTO>(basicInfoResult.ErrorMessage ?? "產品不存在");
                 }
 
-                var productDto = product.ToProductInformationDTO();
+                // 查詢2：動態資訊（變體、價格、折扣等）
+                var dynamicInfoResult = await GetProductDynamicInfoById(productId);
+                if (!dynamicInfoResult.IsSuccess || dynamicInfoResult.Data == null || !dynamicInfoResult.Data.Any())
+                {
+                    return Fail<ProductWithFavoriteStatusDTO>(dynamicInfoResult.ErrorMessage ?? "無法獲取商品變體資訊");
+                }
 
-                //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
-                ;
+                var basicInfo = basicInfoResult.Data;
+                var dynamicInfo = dynamicInfoResult.Data.First(); // 應該只有一個，因為是同一個 productId
+
+                // 組裝完整商品資訊
+                var productDto = new ProductInfomationDTO
+                {
+                    ProductId = basicInfo.ProductId,
+                    Title = basicInfo.Title,
+                    Material = basicInfo.Material,
+                    HowToWash = basicInfo.HowToWash,
+                    Features = basicInfo.Features,
+                    Images = basicInfo.Images,
+                    CoverImg = basicInfo.CoverImg,
+                    Variants = dynamicInfo.Variants
+                };
 
                 return Success<ProductWithFavoriteStatusDTO>(new ProductWithFavoriteStatusDTO
                 {
                     Product = productDto
                 });
-                //return new ServiceResult<ProductWithFavoriteStatusDTO>()
-                //{
-
-                //    IsSuccess = true,
-                //    Data = new ProductWithFavoriteStatusDTO
-                //    {
-                //        Product = productDto
-                //    }
-
-                //};
             }
             catch (Exception ex)
             {
                 return Error<ProductWithFavoriteStatusDTO>(ex.Message);
-
             }
-
-
 
         }
 
@@ -71,6 +90,18 @@ namespace Application.Services
         {
             try
             {
+                // 1. 先嘗試從緩存讀取
+                var cachedJson = await _redisService.GetProductBasicInfoAsync(productId);
+                if (!string.IsNullOrEmpty(cachedJson))
+                {
+                    var cachedProduct = JsonSerializer.Deserialize<ProductBasicDTO>(cachedJson, _jsonOptions);
+                    if (cachedProduct != null)
+                    {
+                        return Success<ProductBasicDTO>(cachedProduct);
+                    }
+                }
+
+                // 2. 緩存未命中，從資料庫讀取
                 var product = await _repository.GetProductBasicInfoById(productId);
 
                 if (product == null)
@@ -80,7 +111,17 @@ namespace Application.Services
 
                 var productDto = product.ToProductBasicDTO();
 
-                //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
+                // 3. 同步寫入緩存（避免高並發時的緩存穿透）
+                try
+                {
+                    var json = JsonSerializer.Serialize(productDto, _jsonOptions);
+                    await _redisService.SetProductBasicInfoAsync(productId, json);
+                }
+                catch (Exception ex)
+                {
+                    // 緩存寫入失敗不影響正常回應
+                    Console.WriteLine($"Error caching product {productId}: {ex.Message}");
+                }
 
                 return Success<ProductBasicDTO>(productDto);
             }
@@ -94,7 +135,26 @@ namespace Application.Services
         {
             try
             {
+                // 1. 先嘗試從緩存讀取動態資訊
+                var cachedJson = await _redisService.GetProductDynamicInfoCacheAsync(productId);
+                if (!string.IsNullOrEmpty(cachedJson))
+                {
+                    try
+                    {
+                        var cachedDynamicInfo = JsonSerializer.Deserialize<List<ProductDynamicDTO>>(cachedJson, _jsonOptions);
+                        if (cachedDynamicInfo != null && cachedDynamicInfo.Count > 0)
+                        {
+                            return Success<List<ProductDynamicDTO>>(cachedDynamicInfo);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // 緩存反序列化失敗，繼續查詢資料庫
+                        Console.WriteLine($"Error deserializing cached product dynamic info: {ex.Message}");
+                    }
+                }
 
+                // 2. 緩存未命中，從資料庫讀取
                 var productVariants = await _repository.GetProductVariantsByProductId(productId);
 
                 // 要先分組
@@ -107,9 +167,24 @@ namespace Application.Services
                     productDynamicDtos.Add(new ProductDynamicDTO { ProductId = variant.Key, Variants = list.ToList(), IsFavorite = false });
                 }
 
-                return Success<List<ProductDynamicDTO>>(productDynamicDtos.ToList());
+                var result = productDynamicDtos.ToList();
 
+                // 3. 同步寫入緩存（避免高並發時的緩存穿透）
+                if (result.Count > 0)
+                {
+                    try
+                    {
+                        var json = JsonSerializer.Serialize(result, _jsonOptions);
+                        await _redisService.SetProductDynamicInfoCacheAsync(productId, json, TimeSpan.FromMinutes(10));
+                    }
+                    catch (Exception ex)
+                    {
+                        // 緩存寫入失敗不影響正常回應
+                        Console.WriteLine($"Error caching product dynamic info: {ex.Message}");
+                    }
+                }
 
+                return Success<List<ProductDynamicDTO>>(result);
             }
             catch (Exception ex)
             {
@@ -220,34 +295,51 @@ namespace Application.Services
         {
             try
             {
-                var product = await _repository.GetProductById(productId);
-
-                if (product == null)
+                // 方案1：順序查詢（避免 DbContext 並行問題）
+                // 查詢1：基本資訊（有緩存，通常很快）
+                var basicInfoResult = await GetProductBasicInfoById(productId);
+                if (!basicInfoResult.IsSuccess || basicInfoResult.Data == null)
                 {
-                    return Fail<ProductWithFavoriteStatusDTO>("產品不存在");
-
+                    return Fail<ProductWithFavoriteStatusDTO>(basicInfoResult.ErrorMessage ?? "產品不存在");
                 }
 
-                var productDto = product.ToProductInformationDTO();
+                // 查詢2：動態資訊（變體、價格、折扣等）
+                var dynamicInfoResult = await GetProductDynamicInfoById(productId);
+                if (!dynamicInfoResult.IsSuccess || dynamicInfoResult.Data == null || !dynamicInfoResult.Data.Any())
+                {
+                    return Fail<ProductWithFavoriteStatusDTO>(dynamicInfoResult.ErrorMessage ?? "無法獲取商品變體資訊");
+                }
 
-                //productDto = fakeProductList.FirstOrDefault(p => p.ProductId == productId);
-
+                // 查詢3：用戶收藏狀態
                 var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userid);
+                bool isFavorite = favoriteProductIds.Contains(productId);
 
+                var basicInfo = basicInfoResult.Data;
+                var dynamicInfo = dynamicInfoResult.Data.First(); // 應該只有一個，因為是同一個 productId
+
+                // 組裝完整商品資訊
+                var productDto = new ProductInfomationDTO
+                {
+                    ProductId = basicInfo.ProductId,
+                    Title = basicInfo.Title,
+                    Material = basicInfo.Material,
+                    HowToWash = basicInfo.HowToWash,
+                    Features = basicInfo.Features,
+                    Images = basicInfo.Images,
+                    CoverImg = basicInfo.CoverImg,
+                    Variants = dynamicInfo.Variants
+                };
 
                 return Success<ProductWithFavoriteStatusDTO>(new ProductWithFavoriteStatusDTO
                 {
                     Product = productDto,
-                    IsFavorite = favoriteProductIds.Contains(productDto.ProductId)
+                    IsFavorite = isFavorite
                 });
-
-                
             }
             catch (Exception ex)
             {
                 return Error<ProductWithFavoriteStatusDTO>(ex.Message);
             }
-
         }
 
 
@@ -291,7 +383,18 @@ namespace Application.Services
         {
             try
             {
-                // 將過濾條件傳遞給 Repository，在資料庫層執行
+                // 1. 先嘗試從緩存讀取列表
+                var cachedJson = await _redisService.GetProductListCacheAsync(kind, tag, query);
+                if (!string.IsNullOrEmpty(cachedJson))
+                {
+                    var cachedProducts = JsonSerializer.Deserialize<List<ProductBasicDTO>>(cachedJson, _jsonOptions);
+                    if (cachedProducts != null && cachedProducts.Count > 0)
+                    {
+                        return Success<List<ProductBasicDTO>>(cachedProducts);
+                    }
+                }
+
+                // 2. 緩存未命中，從資料庫讀取
                 IEnumerable<Domain.Entities.Product> products = Enumerable.Empty<Product>();
                 
                 if (!string.IsNullOrEmpty(tag))
@@ -308,8 +411,24 @@ namespace Application.Services
                 }
 
                 var productsDtos = products.ToProductInBasicDTOs();
+                var productList = productsDtos.ToList();
 
-                return Success<List<ProductBasicDTO>>(productsDtos.ToList());
+                // 3. 同步寫入緩存（避免高並發時的緩存穿透）
+                if (productList.Count > 0)
+                {
+                    try
+                    {
+                        var json = JsonSerializer.Serialize(productList, _jsonOptions);
+                        await _redisService.SetProductListCacheAsync(kind, tag, query, json);
+                    }
+                    catch (Exception ex)
+                    {
+                        // 緩存寫入失敗不影響正常回應
+                        Console.WriteLine($"Error caching product list: {ex.Message}");
+                    }
+                }
+
+                return Success<List<ProductBasicDTO>>(productList);
 
             }
             catch (Exception ex)
@@ -451,29 +570,47 @@ namespace Application.Services
         {
             try
             {
+                // 使用特殊的緩存 key：recommendation:{productId}
+                string cacheKind = $"recommendation:{productId}";
+                
+                // 1. 先嘗試從緩存讀取
+                var cachedJson = await _redisService.GetProductListCacheAsync(cacheKind, null, null);
+                if (!string.IsNullOrEmpty(cachedJson))
+                {
+                    var cachedProducts = JsonSerializer.Deserialize<List<ProductBasicDTO>>(cachedJson, _jsonOptions);
+                    if (cachedProducts != null && cachedProducts.Count > 0)
+                    {
+                        return Success<List<ProductBasicDTO>>(cachedProducts);
+                    }
+                }
+
+                // 2. 緩存未命中，從資料庫讀取
                 var products = await _repository.GetRecommendationProductBasicInfo(userid, productId);
-                //var productsDto = products.ToProductInformationDTOs();
-
                 var productsDtos = products.ToProductInBasicDTOs();
+                var productList = productsDtos.ToList();
 
-                //var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userid);
-                //var productWithFavorite = productsDto.Select(p => new ProductWithFavoriteStatusDTO
-                //{
-                //    Product = p,
-                //    IsFavorite = favoriteProductIds.Contains(p.ProductId)
-                //});
+                // 3. 同步寫入緩存（避免高並發時的緩存穿透）
+                if (productList.Count > 0)
+                {
+                    try
+                    {
+                        var json = JsonSerializer.Serialize(productList, _jsonOptions);
+                        await _redisService.SetProductListCacheAsync(cacheKind, null, null, json, TimeSpan.FromMinutes(30));
+                    }
+                    catch (Exception ex)
+                    {
+                        // 緩存寫入失敗不影響正常回應
+                        Console.WriteLine($"Error caching recommendation products: {ex.Message}");
+                    }
+                }
 
-
-                return Success<List<ProductBasicDTO>>(productsDtos.ToList());
+                return Success<List<ProductBasicDTO>>(productList);
               
             }
             catch (Exception ex)
             {
                 return Error<List<ProductBasicDTO>>(ex.Message);             
             }
-
-
-
         }
 
         public async Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetfavoriteList(int userid)
@@ -500,6 +637,307 @@ namespace Application.Services
             }
 
 
+        }
+
+        /// <summary>
+        /// 新增商品
+        /// </summary>
+        public async Task<ServiceResult<AddProductResponseDTO>> AddProduct(AddProductRequestDTO request)
+        {
+            try
+            {
+                // 1. 創建 Product 實體
+                var product = new Product
+                {
+                    Title = request.Title,
+                    Material = request.Material,
+                    HowToWash = request.HowToWash,
+                    Features = request.Features,
+                    CoverImg = request.CoverImg,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    ProductTags = new List<ProductTag>(),
+                    ProductKinds = new List<ProductKind>(),
+                    ProductVariants = new List<ProductVariant>(),
+                    ProductImages = new List<ProductImage>()
+                };
+
+                // 2. 處理 Tags（查找或創建）
+                foreach (var tagName in request.TagNames)
+                {
+                    var tag = await _repository.GetOrCreateTagAsync(tagName);
+                    product.ProductTags.Add(new ProductTag { Tag = tag });
+                }
+
+                // 3. 處理 Kinds（查找或創建）
+                foreach (var kindName in request.KindNames)
+                {
+                    var kind = await _repository.GetOrCreateKindAsync(kindName);
+                    product.ProductKinds.Add(new ProductKind { Kind = kind });
+                }
+
+                // 4. 處理 ProductImages
+                foreach (var imageUrl in request.Images)
+                {
+                    product.ProductImages.Add(new ProductImage { ImageUrl = imageUrl });
+                }
+
+                // 5. 處理 ProductVariants
+                foreach (var variantDto in request.Variants)
+                {
+                    // 查找或創建 Size
+                    var size = await _repository.GetOrCreateSizeAsync(variantDto.SizeValue);
+
+                    var variant = new ProductVariant
+                    {
+                        Color = variantDto.Color,
+                        SizeId = size.Id,
+                        Stock = variantDto.Stock,
+                        SKU = variantDto.SKU,
+                        VariantPrice = variantDto.Price,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    product.ProductVariants.Add(variant);
+                }
+
+                // 6. 保存商品
+                var savedProduct = await _repository.AddProductAsync(product);
+
+                // 7. 清除相關緩存
+                await _redisService.InvalidateAllProductListCacheAsync();
+                await _redisService.InvalidateProductCacheAsync(savedProduct.Id);
+
+                return Success<AddProductResponseDTO>(new AddProductResponseDTO { ProductId = savedProduct.Id });
+            }
+            catch (Exception ex)
+            {
+                return Error<AddProductResponseDTO>(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 分頁查詢商品列表（完整資訊）
+        /// </summary>
+        public async Task<ServiceResult<PagedResponseDTO<ProductWithFavoriteStatusDTO>>> GetProductsPaged(string? kind, string? tag, string? query, int page, int pageSize)
+        {
+            try
+            {
+                // 1. 先嘗試從緩存讀取完整列表
+                var cachedJson = await _redisService.GetProductListFullPagedCacheAsync(kind, tag, query, page, pageSize);
+                if (!string.IsNullOrEmpty(cachedJson))
+                {
+                    try
+                    {
+                        var cachedResponse = JsonSerializer.Deserialize<PagedResponseDTO<ProductWithFavoriteStatusDTO>>(cachedJson, _jsonOptions);
+                        if (cachedResponse != null && cachedResponse.Items != null && cachedResponse.Items.Count > 0)
+                        {
+                            return Success<PagedResponseDTO<ProductWithFavoriteStatusDTO>>(cachedResponse);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // 緩存反序列化失敗，繼續查詢資料庫
+                        Console.WriteLine($"Error deserializing cached full paged product list: {ex.Message}");
+                    }
+                }
+
+                // 2. 緩存未命中，從資料庫讀取
+                IEnumerable<Product> products;
+                int totalCount;
+
+                if (!string.IsNullOrEmpty(tag))
+                {
+                    var result = await _repository.GetProductsByTagPagedAsync(tag, query, page, pageSize);
+                    products = result.Products;
+                    totalCount = result.TotalCount;
+                }
+                else if (!string.IsNullOrEmpty(kind))
+                {
+                    var result = await _repository.GetProductsByKindPagedAsync(kind, query, page, pageSize);
+                    products = result.Products;
+                    totalCount = result.TotalCount;
+                }
+                else if (!string.IsNullOrEmpty(query))
+                {
+                    var result = await _repository.GetProductsByQueryPagedAsync(query, page, pageSize);
+                    products = result.Products;
+                    totalCount = result.TotalCount;
+                }
+                else
+                {
+                    return Fail<PagedResponseDTO<ProductWithFavoriteStatusDTO>>("請求類型不得為空");
+                }
+
+                var productsDtos = products.ToProductInformationDTOs();
+                var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO { Product = p });
+
+                var pagedResponse = new PagedResponseDTO<ProductWithFavoriteStatusDTO>
+                {
+                    Items = productWithFavorite.ToList(),
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize
+                };
+
+                // 3. 同步寫入緩存（避免高並發時的緩存穿透）
+                if (pagedResponse.Items.Count > 0)
+                {
+                    try
+                    {
+                        var json = JsonSerializer.Serialize(pagedResponse, _jsonOptions);
+                        await _redisService.SetProductListFullPagedCacheAsync(kind, tag, query, page, pageSize, json, TimeSpan.FromMinutes(10));
+                    }
+                    catch (Exception ex)
+                    {
+                        // 緩存寫入失敗不影響正常回應
+                        Console.WriteLine($"Error caching full paged product list: {ex.Message}");
+                    }
+                }
+
+                return Success<PagedResponseDTO<ProductWithFavoriteStatusDTO>>(pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return Error<PagedResponseDTO<ProductWithFavoriteStatusDTO>>(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 分頁查詢商品列表（完整資訊）- 已登入用戶
+        /// </summary>
+        public async Task<ServiceResult<PagedResponseDTO<ProductWithFavoriteStatusDTO>>> GetProductsPagedForUser(int userid, string? kind, string? tag, int page, int pageSize)
+        {
+            try
+            {
+                IEnumerable<Product> products;
+                int totalCount;
+
+                if (!string.IsNullOrEmpty(tag))
+                {
+                    var result = await _repository.GetProductsByTagPagedAsync(tag, null, page, pageSize);
+                    products = result.Products;
+                    totalCount = result.TotalCount;
+                }
+                else if (!string.IsNullOrEmpty(kind))
+                {
+                    var result = await _repository.GetProductsByKindPagedAsync(kind, null, page, pageSize);
+                    products = result.Products;
+                    totalCount = result.TotalCount;
+                }
+                else
+                {
+                    return Fail<PagedResponseDTO<ProductWithFavoriteStatusDTO>>("請求類型不得為空");
+                }
+
+                var productsDtos = products.ToProductInformationDTOs();
+                var favoriteProductIds = await _userRepository.GetFavoriteProductIdsByUser(userid);
+                var productWithFavorite = productsDtos.Select(p => new ProductWithFavoriteStatusDTO
+                {
+                    Product = p,
+                    IsFavorite = favoriteProductIds.Contains(p.ProductId)
+                });
+
+                var pagedResponse = new PagedResponseDTO<ProductWithFavoriteStatusDTO>
+                {
+                    Items = productWithFavorite.ToList(),
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize
+                };
+
+                return Success<PagedResponseDTO<ProductWithFavoriteStatusDTO>>(pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return Error<PagedResponseDTO<ProductWithFavoriteStatusDTO>>(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 分頁查詢商品基本資訊列表
+        /// </summary>
+        public async Task<ServiceResult<PagedResponseDTO<ProductBasicDTO>>> GetProductsBasicInfoPaged(string? kind, string? tag, string? query, int page, int pageSize)
+        {
+            try
+            {
+                // 1. 先嘗試從緩存讀取分頁列表
+                var cachedJson = await _redisService.GetProductListPagedCacheAsync(kind, tag, query, page, pageSize);
+                if (!string.IsNullOrEmpty(cachedJson))
+                {
+                    try
+                    {
+                        var cachedResponse = JsonSerializer.Deserialize<PagedResponseDTO<ProductBasicDTO>>(cachedJson, _jsonOptions);
+                        if (cachedResponse != null && cachedResponse.Items != null && cachedResponse.Items.Count > 0)
+                        {
+                            return Success<PagedResponseDTO<ProductBasicDTO>>(cachedResponse);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // 緩存反序列化失敗，繼續查詢資料庫
+                        Console.WriteLine($"Error deserializing cached paged product list: {ex.Message}");
+                    }
+                }
+
+                // 2. 緩存未命中，從資料庫讀取
+                IEnumerable<Product> products;
+                int totalCount;
+
+                if (!string.IsNullOrEmpty(tag))
+                {
+                    var result = await _repository.GetProductsBasicInfoByTagPagedAsync(tag, query, page, pageSize);
+                    products = result.Products;
+                    totalCount = result.TotalCount;
+                }
+                else if (!string.IsNullOrEmpty(kind))
+                {
+                    var result = await _repository.GetProductsBasicInfoByKindPagedAsync(kind, query, page, pageSize);
+                    products = result.Products;
+                    totalCount = result.TotalCount;
+                }
+                else if (!string.IsNullOrEmpty(query))
+                {
+                    var result = await _repository.GetProductsBasicInfoByQueryPagedAsync(query, page, pageSize);
+                    products = result.Products;
+                    totalCount = result.TotalCount;
+                }
+                else
+                {
+                    return Fail<PagedResponseDTO<ProductBasicDTO>>("請求類型不得為空");
+                }
+
+                var productsDtos = products.ToProductInBasicDTOs();
+
+                var pagedResponse = new PagedResponseDTO<ProductBasicDTO>
+                {
+                    Items = productsDtos.ToList(),
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize
+                };
+
+                // 3. 同步寫入緩存（避免高並發時的緩存穿透）
+                if (pagedResponse.Items.Count > 0)
+                {
+                    try
+                    {
+                        var json = JsonSerializer.Serialize(pagedResponse, _jsonOptions);
+                        await _redisService.SetProductListPagedCacheAsync(kind, tag, query, page, pageSize, json, TimeSpan.FromMinutes(10));
+                    }
+                    catch (Exception ex)
+                    {
+                        // 緩存寫入失敗不影響正常回應
+                        Console.WriteLine($"Error caching paged product list: {ex.Message}");
+                    }
+                }
+
+                return Success<PagedResponseDTO<ProductBasicDTO>>(pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return Error<PagedResponseDTO<ProductBasicDTO>>(ex.Message);
+            }
         }
 
 

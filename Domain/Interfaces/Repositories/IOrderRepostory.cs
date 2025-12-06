@@ -27,6 +27,13 @@ namespace Domain.Interfaces.Repositories
         /// </summary>
         public Task<Order?> GetOrderInfoByRecordCodeForUpdate(string recordCode);
 
+        /// <summary>
+        /// 獲取訂單（僅載入 OrderProducts，用於庫存更新等輕量級操作）
+        /// </summary>
+        /// <param name="recordCode">訂單編號</param>
+        /// <returns>訂單實體（僅包含 OrderProducts）</returns>
+        public Task<Order?> GetOrderWithProductsOnlyForUpdate(string recordCode);
+
         public Task GenerateOrder(Order order);
 
         

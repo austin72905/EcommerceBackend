@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Common.Interfaces.Infrastructure;
+using System.Collections.Generic;
 
 namespace Infrastructure.MQ
 {
@@ -46,11 +47,38 @@ namespace Infrastructure.MQ
                 );
 
                 // 確保隊列存在
+                const string dlx = "dead.letter.exchange";
+                const string dlq = "shipment_queue.dlq";
+                const string dlqRoutingKey = "shipment.dlq";
+
+                await channel.ExchangeDeclareAsync(
+                    exchange: dlx,
+                    type: "direct",
+                    durable: true,
+                    autoDelete: false
+                );
+
+                await channel.QueueDeclareAsync(
+                    queue: dlq,
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null);
+
+                await channel.QueueBindAsync(
+                    queue: dlq,
+                    exchange: dlx,
+                    routingKey: dlqRoutingKey);
+
                 await channel.QueueDeclareAsync(queue: "shipment_queue",
                                      durable: true,
                                      exclusive: false,
                                      autoDelete: false,
-                                     arguments: null);
+                                     arguments: new Dictionary<string, object>
+                                     {
+                                         { "x-dead-letter-exchange", dlx },
+                                         { "x-dead-letter-routing-key", dlqRoutingKey }
+                                     });
 
                 await channel.QueueBindAsync(
                    queue: "shipment_queue",
@@ -87,7 +115,7 @@ namespace Infrastructure.MQ
                     {
                         // 消息處理失敗，發送 NACK
                         Console.WriteLine($"[!] Error processing message: {ex.Message}");
-                        await channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
+                        await channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
                     }
                 };
 

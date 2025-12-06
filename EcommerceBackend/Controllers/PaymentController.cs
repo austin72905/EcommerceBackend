@@ -65,6 +65,11 @@ namespace EcommerceBackend.Controllers
             if (!result.IsSuccess || result.Data == null)
             {
                 _logger.LogWarning("支付回調處理失敗: {ErrorMessage}", result.ErrorMessage);
+                if (result.ErrorMessage == "RETRY_LATER")
+                {
+                    Response.Headers["Retry-After"] = "2";
+                    return StatusCode(StatusCodes.Status429TooManyRequests, "請稍後重試");
+                }
                 return Fail(msg: result.ErrorMessage ?? "支付回調處理失敗");
             }
             

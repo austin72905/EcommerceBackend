@@ -44,5 +44,25 @@ namespace Application.Interfaces
 
 
         public Task<ServiceResult<List<ProductWithFavoriteStatusDTO>>> GetfavoriteList(int userid);
+
+        /// <summary>
+        /// 新增商品
+        /// </summary>
+        public Task<ServiceResult<AddProductResponseDTO>> AddProduct(AddProductRequestDTO request);
+
+        /// <summary>
+        /// 分頁查詢商品列表（完整資訊）
+        /// </summary>
+        public Task<ServiceResult<PagedResponseDTO<ProductWithFavoriteStatusDTO>>> GetProductsPaged(string? kind, string? tag, string? query, int page, int pageSize);
+
+        /// <summary>
+        /// 分頁查詢商品列表（完整資訊）- 已登入用戶
+        /// </summary>
+        public Task<ServiceResult<PagedResponseDTO<ProductWithFavoriteStatusDTO>>> GetProductsPagedForUser(int userid, string? kind, string? tag, int page, int pageSize);
+
+        /// <summary>
+        /// 分頁查詢商品基本資訊列表
+        /// </summary>
+        public Task<ServiceResult<PagedResponseDTO<ProductBasicDTO>>> GetProductsBasicInfoPaged(string? kind, string? tag, string? query, int page, int pageSize);
     }
 }

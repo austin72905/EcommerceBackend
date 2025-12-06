@@ -1,5 +1,6 @@
 ﻿using Common.Interfaces.Infrastructure;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
@@ -12,25 +13,26 @@ namespace Infrastructure.MQ
 {
     public class ShipmentProducer: IShipmentProducer
     {
-        private readonly ConnectionFactory _connectionFactory;
+        private readonly RabbitMqConnectionManager _connectionManager;
+        private readonly ILogger<ShipmentProducer> _logger;
 
-        private readonly IConfiguration _configuration;
-
-        public ShipmentProducer(IConfiguration configuration)
+        public ShipmentProducer(RabbitMqConnectionManager connectionManager, ILogger<ShipmentProducer> logger)
         {
-            _configuration= configuration;
-
-            _connectionFactory =new ConnectionFactory 
-            { 
-                HostName = _configuration["AppSettings:RabbitMqHostName"],
-            };
+            _connectionManager = connectionManager;
+            _logger = logger;
         }
 
         public async Task SendMessage(object message)
         {
-            var connection = await _connectionFactory.CreateConnectionAsync();
-            var channel = await connection.CreateChannelAsync();
-            
+            IChannel? channel = null;
+            try
+            {
+                // 使用連接管理器獲取 channel（重用連接）
+                channel = await _connectionManager.CreateChannelAsync();
+
+                const string dlx = "dead.letter.exchange";
+                const string dlq = "shipment_queue.dlq";
+                const string dlqRoutingKey = "shipment.dlq";
 
                 // 確保交換器存在
                 await channel.ExchangeDeclareAsync(
@@ -40,6 +42,27 @@ namespace Infrastructure.MQ
                     autoDelete: false
                 );
 
+                // DLX/DLQ
+                await channel.ExchangeDeclareAsync(
+                    exchange: dlx,
+                    type: "direct",
+                    durable: true,
+                    autoDelete: false
+                );
+
+                await channel.QueueDeclareAsync(
+                    queue: dlq,
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null
+                );
+
+                await channel.QueueBindAsync(
+                    queue: dlq,
+                    exchange: dlx,
+                    routingKey: dlqRoutingKey
+                );
 
 
                 // 確保隊列存在並綁定
@@ -49,7 +72,11 @@ namespace Infrastructure.MQ
                     durable: true,
                     exclusive: false,
                     autoDelete: false,
-                    arguments: null
+                    arguments: new Dictionary<string, object>
+                    {
+                        { "x-dead-letter-exchange", dlx },
+                        { "x-dead-letter-routing-key", dlqRoutingKey }
+                    }
                 );
 
                 // 綁定交換器與隊列
@@ -72,8 +99,27 @@ namespace Infrastructure.MQ
                         routingKey: "shipment.cansend",
                         body: messageBody
                     );
-
-            
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "發送物流消息時發生錯誤");
+                throw;
+            }
+            finally
+            {
+                // 只關閉 channel，連接由連接管理器管理
+                if (channel != null && channel.IsOpen)
+                {
+                    try
+                    {
+                        await channel.CloseAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "關閉 channel 時發生錯誤");
+                    }
+                }
+            }
         }
     }
 }

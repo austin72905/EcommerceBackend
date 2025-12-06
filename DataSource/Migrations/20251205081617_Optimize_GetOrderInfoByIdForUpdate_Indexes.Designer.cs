@@ -3,6 +3,7 @@ using System;
 using DataSource.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataSource.Migrations
 {
     [DbContext(typeof(EcommerceDBContext))]
-    partial class EcommerceDBContextModelSnapshot : ModelSnapshot
+    [Migration("20251205081617_Optimize_GetOrderInfoByIdForUpdate_Indexes")]
+    partial class Optimize_GetOrderInfoByIdForUpdate_Indexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -104,20 +107,20 @@ namespace DataSource.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4487),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9787),
                             DiscountAmount = 100,
                             EndDate = new DateTime(2025, 12, 31, 0, 0, 0, 0, DateTimeKind.Utc),
                             StartDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4487)
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9788)
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4489),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9790),
                             DiscountAmount = 199,
                             EndDate = new DateTime(2025, 12, 31, 0, 0, 0, 0, DateTimeKind.Utc),
                             StartDate = new DateTime(2024, 2, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4490)
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9790)
                         });
                 });
 
@@ -374,8 +377,6 @@ namespace DataSource.Migrations
                     b.HasIndex("OrderId")
                         .IsUnique();
 
-                    b.HasIndex("PaymentStatus");
-
                     b.HasIndex("TenantConfigId");
 
                     b.ToTable("Payments");
@@ -426,56 +427,56 @@ namespace DataSource.Migrations
                         {
                             Id = 1,
                             CoverImg = "https://ponggoodbf.com/img/coat1.jpg",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4250),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9564),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "超時尚流蘇几皮外套",
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4252)
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9565)
                         },
                         new
                         {
                             Id = 2,
                             CoverImg = "https://ponggoodbf.com/img/coat4.jpg",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4254),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9567),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "紫色格紋大衣",
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4254)
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9567)
                         },
                         new
                         {
                             Id = 3,
                             CoverImg = "https://ponggoodbf.com/img/coat3.jpg",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4255),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9569),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "超質感綠色皮衣",
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4256)
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9569)
                         },
                         new
                         {
                             Id = 4,
                             CoverImg = "https://ponggoodbf.com/img/coat2.jpg",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4257),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9570),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "海島風情黑色短袖襯衫",
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4257)
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9570)
                         },
                         new
                         {
                             Id = 5,
                             CoverImg = "https://ponggoodbf.com/img/coat5.jpg",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4258),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9572),
                             Features = "其實我也不知道要說什麼...a",
                             HowToWash = "洗衣機（水溫40度）, 不可乾洗, 不可烘乾。本商品會在流汗或淋雨弄濕時，或因摩擦而染色到其他衣物上，敬請注意。",
                             Material = "聚酯纖維, 聚氨酯纖維",
                             Title = "帥氣單寧",
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4259)
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9572)
                         });
                 });
 
@@ -860,288 +861,288 @@ namespace DataSource.Migrations
                         {
                             Id = 1,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4398),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9689),
                             ProductId = 1,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4398),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9689),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 2,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4401),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9691),
                             ProductId = 1,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4402),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9692),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 3,
                             Color = "米",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4403),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9725),
                             ProductId = 1,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4403),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9725),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 4,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4405),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9726),
                             ProductId = 1,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4405),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9727),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 5,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4407),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9728),
                             ProductId = 1,
                             SKU = "BROWN-L",
                             SizeId = 3,
                             Stock = 20,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4407),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9728),
                             VariantPrice = 211
                         },
                         new
                         {
                             Id = 6,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4408),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9729),
                             ProductId = 2,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4409),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9730),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 7,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4410),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9731),
                             ProductId = 2,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4410),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9731),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 8,
                             Color = "米",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4411),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9732),
                             ProductId = 2,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4411),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9733),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 9,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4412),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9734),
                             ProductId = 2,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4413),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9734),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 10,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4414),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9735),
                             ProductId = 3,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4414),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9736),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 11,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4415),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9737),
                             ProductId = 3,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4416),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9737),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 12,
                             Color = "米",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4417),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9738),
                             ProductId = 3,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4417),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9739),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 13,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4418),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9740),
                             ProductId = 3,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4418),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9740),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 14,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4442),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9741),
                             ProductId = 3,
                             SKU = "BROWN-L",
                             SizeId = 3,
                             Stock = 20,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4442),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9741),
                             VariantPrice = 211
                         },
                         new
                         {
                             Id = 15,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4443),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9742),
                             ProductId = 4,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4444),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9743),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 16,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4445),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9744),
                             ProductId = 4,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4445),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9744),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 17,
                             Color = "米",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4446),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9745),
                             ProductId = 4,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4446),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9746),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 18,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4447),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9748),
                             ProductId = 4,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4448),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9748),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 19,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4449),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9749),
                             ProductId = 4,
                             SKU = "BROWN-L",
                             SizeId = 3,
                             Stock = 20,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4449),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9749),
                             VariantPrice = 211
                         },
                         new
                         {
                             Id = 20,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4450),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9750),
                             ProductId = 5,
                             SKU = "BLACK-S",
                             SizeId = 1,
                             Stock = 2,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4450),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9751),
                             VariantPrice = 99
                         },
                         new
                         {
                             Id = 21,
                             Color = "黑",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4451),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9752),
                             ProductId = 5,
                             SKU = "BLACK-L",
                             SizeId = 3,
                             Stock = 16,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4452),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9752),
                             VariantPrice = 283
                         },
                         new
                         {
                             Id = 22,
                             Color = "米",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4453),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9753),
                             ProductId = 5,
                             SKU = "WHEAT-L",
                             SizeId = 3,
                             Stock = 3,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4453),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9753),
                             VariantPrice = 150
                         },
                         new
                         {
                             Id = 23,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4454),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9754),
                             ProductId = 5,
                             SKU = "BROWN-M",
                             SizeId = 2,
                             Stock = 17,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4455),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9755),
                             VariantPrice = 199
                         },
                         new
                         {
                             Id = 24,
                             Color = "咖啡",
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4456),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9756),
                             ProductId = 5,
                             SKU = "BROWN-L",
                             SizeId = 3,
                             Stock = 20,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4456),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9756),
                             VariantPrice = 211
                         });
                 });
@@ -1172,73 +1173,71 @@ namespace DataSource.Migrations
 
                     b.HasIndex("VariantId");
 
-                    b.HasIndex("VariantId", "DiscountId");
-
                     b.ToTable("ProductVariantDiscounts");
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4501),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9805),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4502),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9805),
                             VariantId = 2
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4504),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9806),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4505),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9807),
                             VariantId = 4
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4505),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9808),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4506),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9808),
                             VariantId = 8
                         },
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4507),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9809),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4507),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9809),
                             VariantId = 11
                         },
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4508),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9810),
                             DiscountId = 1,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4508),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9811),
                             VariantId = 12
                         },
                         new
                         {
                             Id = 6,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4509),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9811),
                             DiscountId = 2,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4509),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9812),
                             VariantId = 19
                         },
                         new
                         {
                             Id = 7,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4510),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9812),
                             DiscountId = 2,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4510),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9813),
                             VariantId = 22
                         },
                         new
                         {
                             Id = 8,
-                            CreatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4511),
+                            CreatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9813),
                             DiscountId = 2,
-                            UpdatedAt = new DateTime(2025, 12, 5, 9, 47, 1, 421, DateTimeKind.Utc).AddTicks(4511),
+                            UpdatedAt = new DateTime(2025, 12, 5, 8, 16, 17, 202, DateTimeKind.Utc).AddTicks(9814),
                             VariantId = 24
                         });
                 });
@@ -1509,25 +1508,6 @@ namespace DataSource.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserShipAddresses");
-                });
-
-            modelBuilder.Entity("Domain.Interfaces.Repositories.PaymentUpdateResult", b =>
-                {
-                    b.Property<int>("OrderId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PayWay")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PaymentId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("Updated")
-                        .HasColumnType("boolean");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Cart", b =>

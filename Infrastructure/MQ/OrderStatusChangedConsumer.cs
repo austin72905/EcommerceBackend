@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Common.Interfaces.Infrastructure;
 using Common.Interfaces.Application.Services;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 
 namespace Infrastructure.MQ
 {
@@ -61,12 +62,41 @@ namespace Infrastructure.MQ
                 );
 
                 // 確保隊列存在
+                const string dlx = "dead.letter.exchange";
+                const string dlq = "order_state_changed_queue.dlq";
+                const string dlqRoutingKey = "order.state.changed.dlq";
+
+                await channel.ExchangeDeclareAsync(
+                    exchange: dlx,
+                    type: "direct",
+                    durable: true,
+                    autoDelete: false
+                );
+
+                await channel.QueueDeclareAsync(
+                    queue: dlq,
+                    durable: true,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: null
+                );
+
+                await channel.QueueBindAsync(
+                    queue: dlq,
+                    exchange: dlx,
+                    routingKey: dlqRoutingKey
+                );
+
                 await channel.QueueDeclareAsync(
                     queue: "order_state_changed_queue",
                     durable: true,
                     exclusive: false,
                     autoDelete: false,
-                    arguments: null
+                    arguments: new Dictionary<string, object>
+                    {
+                        { "x-dead-letter-exchange", dlx },
+                        { "x-dead-letter-routing-key", dlqRoutingKey }
+                    }
                 );
 
                 // 綁定交換器與隊列
@@ -112,7 +142,7 @@ namespace Infrastructure.MQ
                     {
                         // 消息處理失敗，發送 NACK
                         _logger.LogError(ex, "[訂單狀態同步] 處理訊息失敗: {Message}", messageJson);
-                        await channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
+                        await channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
                     }
                 };
 

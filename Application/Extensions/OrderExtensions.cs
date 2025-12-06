@@ -54,6 +54,14 @@ namespace Application.Extensions
                 PayWay = (PaymentMethod)order.PayWay,
                 ShippingPrice = order.ShippingPrice,
                 UpdatedAt = order.UpdatedAt, // 使用訂單實際的更新時間
+                
+                // ============ 關鍵狀態時間戳（優先使用，提升查詢性能） ============
+                // 優先使用 Order 表中的時間戳字段，避免 JOIN OrderStep 查詢
+                // 如果時間戳為空，前端可以從 OrderStepInfomation 中查找（作為備用）
+                PaidAt = order.PaidAt,
+                ShippedAt = order.ShippedAt,
+                PickedUpAt = order.PickedUpAt,
+                CompletedAt = order.CompletedAt,
             };
         }
 

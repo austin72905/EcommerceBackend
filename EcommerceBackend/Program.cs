@@ -16,6 +16,7 @@ using Infrastructure.Services;
 using Common.Interfaces.Infrastructure;
 using Infrastructure.MQ;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
@@ -48,8 +49,8 @@ var connectionStringBuilder = new NpgsqlConnectionStringBuilder(baseConnectionSt
 {
     // 連接池配置
     Pooling = true,
-    MinPoolSize = 5,
-    MaxPoolSize = 30,
+    MinPoolSize = 10,      // 增加初始連接池大小，提升啟動性能
+    MaxPoolSize = 100,     // 增加最大連接池大小，支持高並發測試（100 VU）
     // 連接超時時間（秒）
     Timeout = 15,
     // 命令超時時間（秒）- 通過連接字符串參數設置
@@ -58,9 +59,20 @@ var connectionStringBuilder = new NpgsqlConnectionStringBuilder(baseConnectionSt
 
 builder.Services.AddDbContext<EcommerceDBContext>(options =>
     options.UseNpgsql(connectionStringBuilder.ConnectionString)
-        //.LogTo(Console.WriteLine, LogLevel.Information) // 開啟詳細日誌
-        .LogTo(Console.WriteLine, LogLevel.Error)  // 只顯示錯誤日誌
-        //.EnableSensitiveDataLogging()  // 僅建議於 production 環境使用
+        //.LogTo(
+        //    message => 
+        //    {
+        //        // 只打印包含特定 tag 的 SQL 命令
+        //        // TagWith 會在 SQL 註釋中出現，格式為 -- GetOrderInfoByIdForUpdate
+        //        if (message.Contains("GetOrderInfoByIdForUpdate"))
+        //        {
+        //            Console.WriteLine(message);
+        //        }
+        //    },
+        //    new[] { RelationalEventId.CommandExecuted },  // 只監聽 SQL 執行事件
+        //    LogLevel.Information
+        //)
+        .EnableSensitiveDataLogging()  // 啟用敏感數據日誌（包含參數值）
         //.EnableDetailedErrors()   // 僅建議於 production 環境使用
     );
 
@@ -70,50 +82,50 @@ builder.Services.AddHttpContextAccessor();
 // 註冊 IHttpUtils 為 HttpClient，並設定為 Scoped
 builder.Services.AddHttpClient<IHttpUtils, HttpUtils>();
 
-// 配置 OpenTelemetry 分散式追蹤
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource
-        .AddService(
-            serviceName: "EcommerceBackend",
-            serviceVersion: "1.0.0")
-        .AddAttributes(new Dictionary<string, object>
-        {
-            ["deployment.environment"] = builder.Environment.EnvironmentName
-        }))
-    .WithTracing(tracing => tracing
-        // 自動追蹤 ASP.NET Core HTTP 請求
-        .AddAspNetCoreInstrumentation(options =>
-        {
-            options.RecordException = true;
-            options.EnrichWithHttpRequest = (activity, request) =>
-            {
-                activity.SetTag("http.request.method", request.Method);
-                activity.SetTag("http.request.path", request.Path);
-            };
-        })
-        // 自動追蹤 HttpClient 請求（包括對 payment service 的調用）
-        .AddHttpClientInstrumentation(options =>
-        {
-            options.RecordException = true;
-        })
-        // 自動追蹤 Entity Framework Core 數據庫查詢
-        .AddEntityFrameworkCoreInstrumentation(options =>
-        {
-            options.SetDbStatementForText = true;
-            options.EnrichWithIDbCommand = (activity, command) =>
-            {
-                activity.SetTag("db.statement", command.CommandText);
-            };
-        })
-        // 導出到 Jaeger（使用 OTLP gRPC）
-        .AddOtlpExporter(options =>
-        {
-            // 從環境變數或配置讀取 Jaeger 端點，預設為 localhost:4317
-            var jaegerEndpoint = builder.Configuration["AppSettings:JaegerEndpoint"] 
-                ?? Environment.GetEnvironmentVariable("JAEGER_ENDPOINT") 
-                ?? "http://localhost:4317";
-            options.Endpoint = new Uri(jaegerEndpoint);
-        }));
+// 配置 OpenTelemetry 分散式追蹤（已註解）
+// builder.Services.AddOpenTelemetry()
+//     .ConfigureResource(resource => resource
+//         .AddService(
+//             serviceName: "EcommerceBackend",
+//             serviceVersion: "1.0.0")
+//         .AddAttributes(new Dictionary<string, object>
+//         {
+//             ["deployment.environment"] = builder.Environment.EnvironmentName
+//         }))
+//     .WithTracing(tracing => tracing
+//         // 自動追蹤 ASP.NET Core HTTP 請求
+//         .AddAspNetCoreInstrumentation(options =>
+//         {
+//             options.RecordException = true;
+//             options.EnrichWithHttpRequest = (activity, request) =>
+//             {
+//                 activity.SetTag("http.request.method", request.Method);
+//                 activity.SetTag("http.request.path", request.Path);
+//             };
+//         })
+//         // 自動追蹤 HttpClient 請求（包括對 payment service 的調用）
+//         .AddHttpClientInstrumentation(options =>
+//         {
+//             options.RecordException = true;
+//         })
+//         // 自動追蹤 Entity Framework Core 數據庫查詢
+//         .AddEntityFrameworkCoreInstrumentation(options =>
+//         {
+//             options.SetDbStatementForText = true;
+//             options.EnrichWithIDbCommand = (activity, command) =>
+//             {
+//                 activity.SetTag("db.statement", command.CommandText);
+//             };
+//         })
+//         // 導出到 Jaeger（使用 OTLP gRPC）
+//         .AddOtlpExporter(options =>
+//         {
+//             // 從環境變數或配置讀取 Jaeger 端點，預設為 localhost:4317
+//             var jaegerEndpoint = builder.Configuration["AppSettings:JaegerEndpoint"] 
+//                 ?? Environment.GetEnvironmentVariable("JAEGER_ENDPOINT") 
+//                 ?? "http://localhost:4317";
+//             options.Endpoint = new Uri(jaegerEndpoint);
+//         }));
 
 // 應用服務註冊
 // app service
@@ -144,10 +156,14 @@ builder.Services.AddScoped<IShipmentRepository, ShipmentRepository>();
 
 // 單例服務註冊
 // singleton services  
+// 註冊 RabbitMQ 連接管理器（單例，重用連接）
+builder.Services.AddSingleton<Infrastructure.MQ.RabbitMqConnectionManager>();
+
 builder.Services.AddSingleton<IShipmentProducer, ShipmentProducer>();
 builder.Services.AddSingleton<IShipmentConsumer, ShipmentConsumer>();
 builder.Services.AddSingleton<IOrderTimeoutProducer, OrderTimeoutProducer>();
 builder.Services.AddSingleton<IOrderStateProducer, OrderStateProducer>();
+builder.Services.AddSingleton<IPaymentCompletedProducer, PaymentCompletedProducer>();
 builder.Services.AddSingleton<IOrderStatusChangedConsumer, OrderStatusChangedConsumer>();
 
 // 消費者服務改為 Scoped，因為它需要在每次消費時重新創建，並且依賴其他 Scoped 服務
@@ -161,6 +177,7 @@ builder.Services.AddSingleton<IQueueProcessor, QueueProcessor>();
 builder.Services.AddHostedService<ShipmentConsumerService>();
 builder.Services.AddHostedService<OrderTimeoutConsumerService>();
 builder.Services.AddHostedService<OrderStatusChangedConsumerService>();
+builder.Services.AddHostedService<PaymentCompletedConsumerService>();
 
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp=> 
@@ -247,6 +264,122 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"An error occurred while querying stock: {ex.Message}");
         throw;
+    }
+}
+
+// 啟動後，預熱商品基本資訊緩存（Cache Warming）
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<EcommerceDBContext>();
+    var redisService = scope.ServiceProvider.GetRequiredService<IRedisService>();
+
+    try
+    {
+        // 查詢所有商品的基本資訊（不含變體）
+        var products = await dbContext.Products
+            .AsNoTracking()
+            .Include(p => p.ProductImages)
+            .Select(p => new
+            {
+                p.Id,
+                p.Title,
+                Material = p.Material ?? "",
+                p.HowToWash,
+                p.Features,
+                CoverImg = p.ProductImages.OrderBy(pi => pi.Id).Select(pi => pi.ImageUrl).FirstOrDefault() ?? "",
+                Images = p.ProductImages.OrderBy(pi => pi.Id).Select(pi => pi.ImageUrl).ToList()
+            })
+            .ToListAsync();
+
+        // 準備批量緩存資料
+        var productCacheData = new Dictionary<int, string>();
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
+
+        foreach (var product in products)
+        {
+            // 解析 Material 字串為 List
+            var materialList = !string.IsNullOrEmpty(product.Material)
+                ? product.Material.Split(',', System.StringSplitOptions.RemoveEmptyEntries).Select(m => m.Trim()).ToList()
+                : new List<string>();
+
+            var productBasicDto = new
+            {
+                ProductId = product.Id,
+                product.Title,
+                Material = materialList,
+                product.HowToWash,
+                product.Features,
+                product.Images,
+                product.CoverImg
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(productBasicDto, jsonOptions);
+            productCacheData[product.Id] = json;
+        }
+
+        // 批量存入 Redis
+        await redisService.SetProductBasicInfoBatchAsync(productCacheData);
+
+        Console.WriteLine($"Successfully pre-warmed {products.Count} product basic info to Redis cache.");
+    }
+    catch (Exception ex)
+    {
+        // 緩存預熱失敗不應該阻止應用啟動，只記錄錯誤
+        Console.WriteLine($"Warning: Failed to pre-warm product cache: {ex.Message}");
+    }
+}
+
+// 啟動後，載入租戶配置到緩存（整個應用使用同一個配置）
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<EcommerceDBContext>();
+    var redisService = scope.ServiceProvider.GetRequiredService<IRedisService>();
+    var paymentRepository = scope.ServiceProvider.GetRequiredService<IPaymentRepository>();
+
+    try
+    {
+        // 查詢租戶配置
+        var tenantConfig = await paymentRepository.GetDefaultTenantConfigAsync();
+        
+        if (tenantConfig != null)
+        {
+            // 準備緩存數據
+            var cacheData = new
+            {
+                TenantConfigId = tenantConfig.Id,
+                MerchantId = tenantConfig.MerchantId,
+                SecretKey = tenantConfig.SecretKey,
+                HashIV = tenantConfig.HashIV,
+                PaymentAmount = "" // PaymentAmount 需要從 Payment 獲取
+            };
+            
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            };
+            
+            var json = System.Text.Json.JsonSerializer.Serialize(cacheData, jsonOptions);
+            
+            // 存入 Redis（緩存 1 天，因為配置很少變更）
+            const string cacheKey = "tenant_config:default";
+            await redisService.SetCacheAsync(cacheKey, json, TimeSpan.FromDays(1));
+            
+            Console.WriteLine($"Successfully loaded tenant config to Redis cache. MerchantId: {tenantConfig.MerchantId}");
+        }
+        else
+        {
+            Console.WriteLine("Warning: No tenant config found in database.");
+        }
+    }
+    catch (Exception ex)
+    {
+        // 緩存預熱失敗不應該阻止應用啟動，只記錄錯誤
+        Console.WriteLine($"Warning: Failed to load tenant config to cache: {ex.Message}");
     }
 }
 

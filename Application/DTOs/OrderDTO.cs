@@ -29,6 +29,27 @@ namespace Application.DTOs
         // 新增的更新時間
         public DateTime UpdatedAt { get; set; }
 
+        // ============ 關鍵狀態時間戳（用於前端快速顯示，優先使用） ============
+        /// <summary>
+        /// 支付時間（優先使用，避免 JOIN OrderStep 查詢）
+        /// </summary>
+        public DateTime? PaidAt { get; set; }
+
+        /// <summary>
+        /// 送貨時間（優先使用）
+        /// </summary>
+        public DateTime? ShippedAt { get; set; }
+
+        /// <summary>
+        /// 取貨時間（優先使用）
+        /// </summary>
+        public DateTime? PickedUpAt { get; set; }
+
+        /// <summary>
+        /// 訂單完成時間（優先使用）
+        /// </summary>
+        public DateTime? CompletedAt { get; set; }
+
     }
 
 

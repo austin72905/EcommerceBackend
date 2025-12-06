@@ -3,6 +3,7 @@ using System;
 using DataSource.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataSource.Migrations
 {
     [DbContext(typeof(EcommerceDBContext))]
-    partial class EcommerceDBContextModelSnapshot : ModelSnapshot
+    [Migration("20251205094701_Add_Payment_Performance_Index")]
+    partial class Add_Payment_Performance_Index
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
