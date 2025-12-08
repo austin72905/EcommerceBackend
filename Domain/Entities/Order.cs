@@ -1,4 +1,4 @@
-﻿using Domain.Enums;
+using Domain.Enums;
 using Domain.Interfaces;
 using Domain.ValueObjects;
 
@@ -287,6 +287,8 @@ namespace Domain.Entities
                     {
                         ShippedAt = now;
                     }
+                    // 添加已出貨的訂單步驟
+                    AddOrderStepStatus(Domain.Enums.OrderStepStatus.ShipmentCompleted);
                     break;
                 case OrderStatus.WaitPickup:
                     // 取貨時間（當訂單送達等待取貨時）
@@ -294,14 +296,20 @@ namespace Domain.Entities
                     {
                         PickedUpAt = now;
                     }
+                    // 不需要添加 OrderStep，因為這只是物流狀態
                     break;
                 case OrderStatus.Completed:
                     // 完成時間
                     CompletedAt = now;
+                    // 添加訂單已完成的訂單步驟（使用 OrderStepStatus.OrderCompleted）
+                    AddOrderStepStatus(Domain.Enums.OrderStepStatus.OrderCompleted);
+                    break;
+                default:
+                    // 其他狀態轉換使用 OrderStatus 值作為 OrderStep 的狀態
+                    // 注意：這只適用於 OrderStatus 和 OrderStepStatus 值相同的狀態
+                    AddOrderStep(newStatus);
                     break;
             }
-            
-            AddOrderStep(newStatus);
         }
 
         /// <summary>
@@ -325,7 +333,8 @@ namespace Domain.Entities
             UpdatedAt = DateTime.UtcNow;
             CompletedAt = DateTime.UtcNow;  // 同步記錄完成時間，用於前端快速查詢
             
-            AddOrderStep(OrderStatus.Completed);
+            // 添加訂單已完成的訂單步驟（使用 OrderStepStatus.OrderCompleted）
+            AddOrderStepStatus(Domain.Enums.OrderStepStatus.OrderCompleted);
         }
 
         // ============ 私有輔助方法 ============

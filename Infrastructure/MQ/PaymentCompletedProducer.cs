@@ -1,9 +1,10 @@
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Collections.Generic;
 using Common.Interfaces.Infrastructure;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
-using System.Collections.Generic;
 
 namespace Infrastructure.MQ
 {
@@ -11,6 +12,15 @@ namespace Infrastructure.MQ
     {
         private readonly RabbitMqConnectionManager _connectionManager;
         private readonly ILogger<PaymentCompletedProducer> _logger;
+        private readonly SemaphoreSlim _channelLock = new(1, 1);
+        private IChannel? _channel;
+
+        private const string Exchange = "payment.completed";
+        private const string Queue = "payment_completed_queue";
+        private const string RoutingKey = "payment.completed";
+        private const string Dlx = "dead.letter.exchange";
+        private const string Dlq = "payment_completed_queue.dlq";
+        private const string DlqRoutingKey = "payment.completed.dlq";
 
         public PaymentCompletedProducer(
             RabbitMqConnectionManager connectionManager,
@@ -22,86 +32,100 @@ namespace Infrastructure.MQ
 
         public async Task SendMessage(object message)
         {
-            IChannel? channel = null;
             try
             {
-                channel = await _connectionManager.CreateChannelAsync();
+                var channel = await GetOrCreateChannelAsync();
+                var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
 
-                const string exchange = "payment.completed";
-                const string queue = "payment_completed_queue";
-                const string routingKey = "payment.completed";
-                const string dlx = "dead.letter.exchange";
-                const string dlq = "payment_completed_queue.dlq";
-                const string dlqRoutingKey = "payment.completed.dlq";
+                await channel.BasicPublishAsync(
+                    exchange: Exchange,
+                    routingKey: RoutingKey,
+                    body: body);
+            }
+            catch (Exception ex)
+            {
+                // 發送失敗時重置 channel，下次會重新建立
+                _channel = null;
+                _logger.LogError(ex, "發送支付完成消息時發生錯誤");
+                throw;
+            }
+        }
 
+        /// <summary>
+        /// 取得或建立可重用的 Channel，並確保 Exchange/Queue/Binding 已宣告。
+        /// </summary>
+        private async Task<IChannel> GetOrCreateChannelAsync()
+        {
+            if (_channel?.IsOpen == true)
+            {
+                return _channel;
+            }
+
+            await _channelLock.WaitAsync();
+            try
+            {
+                if (_channel?.IsOpen == true)
+                {
+                    return _channel;
+                }
+
+                if (_channel != null)
+                {
+                    try { await _channel.CloseAsync(); } catch { /* ignore */ }
+                }
+
+                var channel = await _connectionManager.CreateChannelAsync();
+
+                // 宣告主交換器
                 await channel.ExchangeDeclareAsync(
-                    exchange: exchange,
+                    exchange: Exchange,
                     type: "direct",
                     durable: true,
                     autoDelete: false);
 
-                // dead-letter exchange/queue for manual inspection
+                // 宣告 DLX/DLQ
                 await channel.ExchangeDeclareAsync(
-                    exchange: dlx,
+                    exchange: Dlx,
                     type: "direct",
                     durable: true,
                     autoDelete: false);
 
                 await channel.QueueDeclareAsync(
-                    queue: dlq,
+                    queue: Dlq,
                     durable: true,
                     exclusive: false,
                     autoDelete: false,
                     arguments: null);
 
                 await channel.QueueBindAsync(
-                    queue: dlq,
-                    exchange: dlx,
-                    routingKey: dlqRoutingKey);
+                    queue: Dlq,
+                    exchange: Dlx,
+                    routingKey: DlqRoutingKey);
 
                 var queueArgs = new Dictionary<string, object>
                 {
-                    { "x-dead-letter-exchange", dlx },
-                    { "x-dead-letter-routing-key", dlqRoutingKey }
+                    { "x-dead-letter-exchange", Dlx },
+                    { "x-dead-letter-routing-key", DlqRoutingKey }
                 };
 
                 await channel.QueueDeclareAsync(
-                    queue: queue,
+                    queue: Queue,
                     durable: true,
                     exclusive: false,
                     autoDelete: false,
                     arguments: queueArgs);
 
                 await channel.QueueBindAsync(
-                    queue: queue,
-                    exchange: exchange,
-                    routingKey: routingKey);
+                    queue: Queue,
+                    exchange: Exchange,
+                    routingKey: RoutingKey);
 
-                var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
-
-                await channel.BasicPublishAsync(
-                    exchange: exchange,
-                    routingKey: routingKey,
-                    body: body);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "發送支付完成事件失敗");
-                throw;
+                _channel = channel;
+                return channel;
             }
             finally
             {
-                if (channel != null && channel.IsOpen)
-                {
-                    try
-                    {
-                        await channel.CloseAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "關閉 payment completed channel 時發生錯誤");
-                    }
-                }
+                _channelLock.Release();
             }
         }
     }

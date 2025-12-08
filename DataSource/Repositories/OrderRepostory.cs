@@ -1,7 +1,9 @@
-﻿using DataSource.DBContext;
+using DataSource.DBContext;
 using Domain.Entities;
+using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Linq;
 
 namespace DataSource.Repositories
@@ -39,8 +41,8 @@ namespace DataSource.Repositories
             // 如果有查詢條件，在資料庫層過濾（避免載入所有訂單到記憶體）
             if (!string.IsNullOrEmpty(query))
             {
-                queryable = queryable.Where(o => 
-                    o.RecordCode.Contains(query) || 
+                queryable = queryable.Where(o =>
+                    o.RecordCode.Contains(query) ||
                     o.OrderProducts.Any(op => op.ProductVariant.Product.Title.Contains(query))
                 );
             }
@@ -68,7 +70,7 @@ namespace DataSource.Repositories
                 .Include(o => o.OrderSteps)
                 .Include(o => o.Shipments)
                 .Include(o => o.Address)
-                .Where(o => o.Id==orderId)
+                .Where(o => o.Id == orderId)
                 .FirstOrDefaultAsync();
         }
 
@@ -92,7 +94,7 @@ namespace DataSource.Repositories
                 .Include(o => o.OrderSteps)
                 .Include(o => o.Shipments)
                 .Include(o => o.Address)
-                .Where(o => o.Id==orderId)
+                .Where(o => o.Id == orderId)
                 .FirstOrDefaultAsync();
         }
 
@@ -176,6 +178,20 @@ namespace DataSource.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        /// <summary>
+        /// 獲取訂單（僅載入 OrderSteps，用於狀態同步等輕量級操作）
+        /// 相比 GetOrderInfoByRecordCodeForUpdate，此方法只載入必要的 OrderSteps，
+        /// 大幅減少資料庫查詢負載和記憶體使用
+        /// 帶追蹤以支援狀態更新和保存
+        /// </summary>
+        public async Task<Order?> GetOrderForStatusUpdateAsync(string recordCode)
+        {
+            return await _dbSet
+                .Include(o => o.OrderSteps)  // 只載入 OrderSteps
+                .Where(o => o.RecordCode == recordCode)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task GenerateOrder(Order order)
         {
             // 在添加訂單之前，先清理 ChangeTracker 中可能存在的相關實體
@@ -245,8 +261,55 @@ namespace DataSource.Repositories
             }
         }
 
+        /// <summary>
+        /// 單一 SQL 嘗試更新訂單狀態（帶狀態條件，避免重複處理）
+        /// </summary>
+        public async Task<bool> TryUpdateOrderStatusAsync(string recordCode, OrderStatus fromStatus, OrderStatus toStatus)
+        {
+            const string sql = @"
+UPDATE ""Orders""
+SET ""Status"" = @toStatus,
+    ""UpdatedAt"" = @now
+WHERE ""RecordCode"" = @recordCode
+  AND ""Status"" = @fromStatus
+RETURNING TRUE;";
 
-        public async Task UpdateOrderStatusAsync(string recordcode,int status)
+            await using var connection = _context.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = sql;
+
+            var now = DateTime.UtcNow;
+
+            var recordCodeParam = command.CreateParameter();
+            recordCodeParam.ParameterName = "@recordCode";
+            recordCodeParam.Value = recordCode;
+            command.Parameters.Add(recordCodeParam);
+
+            var fromStatusParam = command.CreateParameter();
+            fromStatusParam.ParameterName = "@fromStatus";
+            fromStatusParam.Value = (int)fromStatus;
+            command.Parameters.Add(fromStatusParam);
+
+            var toStatusParam = command.CreateParameter();
+            toStatusParam.ParameterName = "@toStatus";
+            toStatusParam.Value = (int)toStatus;
+            command.Parameters.Add(toStatusParam);
+
+            var nowParam = command.CreateParameter();
+            nowParam.ParameterName = "@now";
+            nowParam.Value = now;
+            command.Parameters.Add(nowParam);
+
+            var result = await command.ExecuteScalarAsync();
+            return result != null; // 更新 1 行代表成功
+        }
+
+        public async Task UpdateOrderStatusAsync(string recordcode, int status)
         {
             await _dbSet
                     .Where(o => o.RecordCode == recordcode)

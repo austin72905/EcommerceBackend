@@ -281,35 +281,39 @@ namespace Application.Services
                     }
                 }
 
+
+                #region 如果緩存中沒有，從資料庫查詢（不應該發生，因為應用啟動時已載入）
                 // 如果緩存中沒有，從資料庫查詢（不應該發生，因為應用啟動時已載入）
-                if (tenantConfigData == null)
-                {
-                    _logger.LogWarning("緩存中沒有租戶配置，從資料庫查詢");
-                    var tenantConfig = await _paymentRepository.GetDefaultTenantConfigAsync();
-                    if (tenantConfig == null)
-                    {
-                        _logger.LogError("資料庫中沒有租戶配置");
-                        return null;
-                    }
-                    
-                    tenantConfigData = new TenantConfigCacheData
-                    {
-                        TenantConfigId = tenantConfig.Id,
-                        MerchantId = tenantConfig.MerchantId,
-                        SecretKey = tenantConfig.SecretKey,
-                        HashIV = tenantConfig.HashIV,
-                        PaymentAmount = "" // PaymentAmount 需要從 Payment 獲取
-                    };
-                    
-                    // 重新寫入緩存（使用與 Program.cs 相同的命名策略）
-                    var jsonOptions = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                        WriteIndented = false
-                    };
-                    var json = JsonSerializer.Serialize(tenantConfigData, jsonOptions);
-                    await _redisService.SetCacheAsync(cacheKey, json, TimeSpan.FromDays(1));
-                }
+                //if (tenantConfigData == null)
+                //{
+                //    _logger.LogWarning("緩存中沒有租戶配置，從資料庫查詢");
+                //    var tenantConfig = await _paymentRepository.GetDefaultTenantConfigAsync();
+                //    if (tenantConfig == null)
+                //    {
+                //        _logger.LogError("資料庫中沒有租戶配置");
+                //        return null;
+                //    }
+
+                //    tenantConfigData = new TenantConfigCacheData
+                //    {
+                //        TenantConfigId = tenantConfig.Id,
+                //        MerchantId = tenantConfig.MerchantId,
+                //        SecretKey = tenantConfig.SecretKey,
+                //        HashIV = tenantConfig.HashIV,
+                //        PaymentAmount = "" // PaymentAmount 需要從 Payment 獲取
+                //    };
+
+                //    // 重新寫入緩存（使用與 Program.cs 相同的命名策略）
+                //    var jsonOptions = new JsonSerializerOptions
+                //    {
+                //        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                //        WriteIndented = false
+                //    };
+                //    var json = JsonSerializer.Serialize(tenantConfigData, jsonOptions);
+                //    await _redisService.SetCacheAsync(cacheKey, json, TimeSpan.FromDays(1));
+                //}
+                #endregion
+
 
                 // 從資料庫查詢 Payment（不包含 TenantConfig，因為已從緩存獲取）
                 var payment = await _paymentRepository.GetPaymentByRecordCode(recordCode);
@@ -390,8 +394,13 @@ namespace Application.Services
             }
         }
 
+        /// <summary>
+        /// 真正的支付回調過程
+        /// </summary>
+        /// <returns></returns>
         public async Task<ServiceResult<object>> PayReturn()
         {
+            // 記錄整個回調的時間
             var sw = Stopwatch.StartNew();
             try
             {
@@ -571,10 +580,32 @@ namespace Application.Services
 
         private async Task<ServiceResult<object>> TransactionSuccess()
         {
+            /*
+                前面已經經過了 驗證簽名、支付成功狀態、獲取支付配置
+             
+             */
             var swTotal = Stopwatch.StartNew();
             _logger.LogInformation("開始處理交易成功邏輯，訂單號: {RecordCode}", RecordCode);
 
             // 非阻塞分散式鎖（單次嘗試，短 TTL）
+            // 為什麼需要鎖? 不是用冪等更新了嗎?
+            /*
+            因為可能會有重複請求，所以需要鎖住，避免重複處理
+            1. 避免並發重入造成熱點/重試洪水：第三方支付回調可能同時重試或多條訊息併發到達，同一 RecordCode 會同時進來。若不先鎖，雖然 SQL 幂等，但多個執行緒會同時搶更新，造成資料庫鎖競爭、記錄大量無效重試、打滿日誌與併發度。
+            2. 封鎖下游副作用重複觸發：冪等更新只保護狀態表，但後面的行為（事件 PaymentCompletedEvent 發送）是外部副作用。若多個請求同時通過，雖然只有一條會成功更新，但其他執行緒在判斷上有機會還沒看到更新結果就往下走（或在 Race 中失敗後仍準備送事件），短 TTL 鎖可讓只有一個執行緒進入臨界區，確保事件只發一次，減少重複消費/補償成本。
+            3. 快速回應重試：取得不到鎖時直接回傳 RETRY_LATER，讓上游或任務稍後再試，而不是讓多個執行緒在應用層與資料庫忙等，降低資源消耗。
+            4. TTL 短、鎖非阻塞：避免長時間鎖死，僅在回調瞬間防併發；冪等更新則是第二道保障，確保即使鎖失效或邏輯異常，狀態仍可正確落盤。
+            
+            所以鎖是第一道「防並發/防重入」與「減少副作用重複」的手段；冪等更新是第二道「資料一致性」保護。兩者疊加，可降低熱點衝突並避免重複事件。
+            
+            
+            
+            
+            
+            
+            
+            
+            */
             string lockKey = $"payment_callback:{RecordCode}";
             string lockValue = Guid.NewGuid().ToString();
             bool lockAcquired = false;
@@ -582,6 +613,7 @@ namespace Application.Services
             try
             {
                 lockAcquired = await _redisService.TryAcquireLockAsync(lockKey, lockValue, TimeSpan.FromSeconds(5));
+                // 拿不到 鎖 就先返回了 讓上游或任務稍後再試
                 if (!lockAcquired)
                 {
                     _logger.LogWarning("同筆訂單鎖被占用，回應重試，訂單號: {RecordCode}", RecordCode);
@@ -592,7 +624,11 @@ namespace Application.Services
                 // 以單一 SQL 幂等更新付款/訂單狀態，避免應用層鎖競爭
                 var updateResult = await _paymentRepository.TryMarkPaymentAsPaidAsync(RecordCode);
                 swDb.Stop();
-                _logger.LogInformation("TryMarkPaymentAsPaidAsync 耗時：{Elapsed}，訂單號: {RecordCode}", swDb.Elapsed, RecordCode);
+                
+                if (swDb.Elapsed > TimeSpan.FromSeconds(5))
+                {
+                    _logger.LogInformation("TryMarkPaymentAsPaidAsync 耗時：{Elapsed}，訂單號: {RecordCode}", swDb.Elapsed, RecordCode);
+                }
 
                 if (!updateResult.Updated)
                 {
@@ -600,8 +636,8 @@ namespace Application.Services
                     return Success<object>("OK");
                 }
 
-                _logger.LogInformation("已標記為已付款，訂單號: {RecordCode}, 支付ID: {PaymentId}, 訂單ID: {OrderId}", 
-                    RecordCode, updateResult.PaymentId, updateResult.OrderId);
+                // _logger.LogInformation("已標記為已付款，訂單號: {RecordCode}, 支付ID: {PaymentId}, 訂單ID: {OrderId}", 
+                //     RecordCode, updateResult.PaymentId, updateResult.OrderId);
 
                 // 發送支付完成事件，交由背景消費者處理後續動作
                 var evt = new PaymentCompletedEvent(
@@ -610,6 +646,11 @@ namespace Application.Services
                     updateResult.PaymentId,
                     DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
+                // 這裡如果用同步狀態等待，對效能影響
+                /*
+                    背後是做 建立 OrderStep、確認庫存、發送 MQ(發送蛇的MQ) => 支付回調是 HTTP 請求，第三方支付平台會等待回應
+                 
+                 */
                 await _paymentCompletedProducer.SendMessage(evt);
                 return Success<object>("OK");
             }

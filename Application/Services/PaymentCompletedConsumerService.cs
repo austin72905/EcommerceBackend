@@ -147,6 +147,11 @@ namespace Application.Services
 
         private async Task HandleEventAsync(PaymentCompletedEvent evt, CancellationToken ct)
         {
+
+            // 這裡是有使用連線池的嗎? 整個EF Core有使用連線持嗎?
+            // 連線池在 Program.cs 透過 NpgsqlConnectionStringBuilder 設定
+            // 連線池不是由 EF Core 管理，而是由 Npgsql ADO.NET Provider 管理。
+            // 並在 AddDbContext + UseNpgsql 時傳遞給 Npgsql Provider。Npgsql 負責管理連線池，EF Core 透過 Npgsql 間接使用它
             using var scope = _scopeFactory.CreateScope();
             var orderRepository = scope.ServiceProvider.GetRequiredService<IOrderRepostory>();
             var inventoryService = scope.ServiceProvider.GetRequiredService<IInventoryService>();
@@ -170,10 +175,13 @@ namespace Application.Services
                 _logger.LogInformation("已為訂單建立支付/待出貨步驟，RecordCode={RecordCode}", evt.RecordCode);
             }
 
+            // 前面下單時在 Redis 中預扣庫存，防止超賣
+            // 付款成功後（資料庫正式扣除）
             var confirmResult = await inventoryService.ConfirmInventoryAsync(evt.RecordCode);
             if (!confirmResult.IsSuccess)
             {
                 _logger.LogWarning("付款成功後確認庫存失敗，訂單編號: {RecordCode}, 錯誤: {Error}", evt.RecordCode, confirmResult.ErrorMessage);
+                throw new InvalidOperationException($"庫存確認失敗: {confirmResult.ErrorMessage}");
             }
 
             var shipmentMessage = new
@@ -189,8 +197,11 @@ namespace Application.Services
                 orderId = order.RecordCode,
                 timestamp = evt.OccurredAtUtc
             };
-
+            // 目前用不到，因為都是統一用 orderStateProducer 去模擬整個流程
+            // 之後可以加上try catch
             await shipmentProducer.SendMessage(shipmentMessage);
+            // 同步訂單狀態到外部 Go 微服務（ec-order-state-service）
+            // 之後可以加上try catch 處理失敗
             await orderStateProducer.SendMessage(orderStateMessage);
             _logger.LogInformation("支付完成事件已處理並發送 MQ，RecordCode={RecordCode}", evt.RecordCode);
         }

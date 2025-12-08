@@ -135,7 +135,7 @@ namespace Application.Services
             string lockKey = $"inventory_confirm:{orderId}";
             string lockValue = Guid.NewGuid().ToString();
             bool lockAcquired = false;
-
+            // 這個可以加stop watch
             try
             {
                 if (string.IsNullOrEmpty(orderId))

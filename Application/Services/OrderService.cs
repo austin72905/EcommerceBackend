@@ -11,6 +11,7 @@ using Domain.Interfaces.Services;
 using Infrastructure.Cache;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Collections.Immutable;
 using DomainOrder = Domain.Entities.Order; // 使用別名避免命名空間衝突
 
 namespace Application.Services
@@ -26,6 +27,23 @@ namespace Application.Services
         private readonly IOrderDomainService _orderDomainService;
 
         private readonly IConfiguration _configuration;
+
+        /// <summary>
+        /// 預定義的狀態轉換路徑（靜態只讀，避免每次調用時重複建立）
+        /// </summary>
+        private static readonly ImmutableDictionary<(OrderStatus, OrderStatus), ImmutableArray<OrderStatus>> StatusPaths =
+            new Dictionary<(OrderStatus, OrderStatus), OrderStatus[]>
+            {
+                // WaitingForShipment -> Completed 的路徑
+                { (OrderStatus.WaitingForShipment, OrderStatus.Completed), 
+                  new[] { OrderStatus.InTransit, OrderStatus.WaitPickup, OrderStatus.Completed } },
+                // WaitingForShipment -> WaitPickup 的路徑
+                { (OrderStatus.WaitingForShipment, OrderStatus.WaitPickup), 
+                  new[] { OrderStatus.InTransit, OrderStatus.WaitPickup } },
+                // InTransit -> Completed 的路徑
+                { (OrderStatus.InTransit, OrderStatus.Completed), 
+                  new[] { OrderStatus.WaitPickup, OrderStatus.Completed } },
+            }.ToImmutableDictionary(kvp => kvp.Key, kvp => kvp.Value.ToImmutableArray());
 
         public OrderService(
             IInventoryService inventoryService,
@@ -238,8 +256,8 @@ namespace Application.Services
                 _logger.LogInformation("[訂單狀態同步] 開始同步訂單狀態: RecordCode={RecordCode}, FromStatus={FromStatus}, ToStatus={ToStatus}",
                     recordCode, fromStatus, toStatus);
 
-                // 使用帶追蹤的方法獲取訂單，以便 EF Core 可以追蹤變更
-                var order = await _orderRepostory.GetOrderInfoByRecordCodeForUpdate(recordCode);
+                // 使用輕量級查詢，只載入 OrderSteps（狀態同步需要的資料）
+                var order = await _orderRepostory.GetOrderForStatusUpdateAsync(recordCode);
 
                 if (order == null)
                 {
@@ -361,29 +379,14 @@ namespace Application.Services
         }
 
         /// <summary>
-        /// 獲取狀態轉換路徑
+        /// 獲取狀態轉換路徑（使用預定義的 StatusPaths，避免每次調用時重複建立 Dictionary）
         /// </summary>
         private List<OrderStatus>? GetStatusTransitionPath(OrderStatus from, OrderStatus to)
         {
-            // 定義狀態轉換路徑映射
-            var paths = new Dictionary<(OrderStatus, OrderStatus), List<OrderStatus>>
+            // 使用預定義的狀態轉換路徑
+            if (StatusPaths.TryGetValue((from, to), out var path))
             {
-                // WaitingForShipment -> Completed 的路徑
-                { (OrderStatus.WaitingForShipment, OrderStatus.Completed), 
-                    new List<OrderStatus> { OrderStatus.InTransit, OrderStatus.WaitPickup, OrderStatus.Completed } },
-                
-                // WaitingForShipment -> WaitPickup 的路徑
-                { (OrderStatus.WaitingForShipment, OrderStatus.WaitPickup), 
-                    new List<OrderStatus> { OrderStatus.InTransit, OrderStatus.WaitPickup } },
-                
-                // InTransit -> Completed 的路徑
-                { (OrderStatus.InTransit, OrderStatus.Completed), 
-                    new List<OrderStatus> { OrderStatus.WaitPickup, OrderStatus.Completed } },
-            };
-
-            if (paths.TryGetValue((from, to), out var path))
-            {
-                return path;
+                return path.ToList();
             }
 
             // 如果沒有預定義的路徑，檢查是否可以直接轉換

@@ -205,12 +205,17 @@ namespace Infrastructure.MQ
             // 冪等性檢查：避免重複處理相同訊息
             var messageKey = $"{message.OrderID}:{message.FromStatus}:{message.ToStatus}:{message.Timestamp}";
             
+            // 分散式鎖的 key 和 value
+            var lockKey = $"order_status_sync:{message.OrderID}";
+            var lockValue = Guid.NewGuid().ToString();
+            bool lockAcquired = false;
+            
             // 動態建立 Scope
             using (var scope = _scopeFactory.CreateScope())
             {
                 var redisService = scope.ServiceProvider.GetRequiredService<IRedisService>();
                 
-                // 檢查訊息是否已處理
+                // 檢查訊息是否已處理（第一次檢查，快速失敗）
                 var isProcessed = await redisService.IsMessageProcessedAsync(messageKey);
                 if (isProcessed)
                 {
@@ -219,12 +224,31 @@ namespace Infrastructure.MQ
                     return;
                 }
                 
+                // 嘗試獲取分散式鎖（防止並發處理同一訂單）
+                lockAcquired = await redisService.TryAcquireLockAsync(lockKey, lockValue, TimeSpan.FromSeconds(10));
+                if (!lockAcquired)
+                {
+                    _logger.LogWarning("[訂單狀態同步] 無法獲取分散式鎖，可能正在被其他消費者處理: OrderID={OrderID}, MessageKey={MessageKey}", 
+                        message.OrderID, messageKey);
+                    return; // 其他消費者正在處理，直接返回（避免重複處理）
+                }
+                
                 try
                 {
+                    // 雙重檢查：在獲取鎖的過程中，訊息可能已被其他消費者處理
+                    isProcessed = await redisService.IsMessageProcessedAsync(messageKey);
+                    if (isProcessed)
+                    {
+                        _logger.LogInformation("[訂單狀態同步] 訊息已在獲取鎖的過程中處理，跳過: MessageKey={MessageKey}, OrderID={OrderID}", 
+                            messageKey, message.OrderID);
+                        return;
+                    }
+                    
                     var orderStatusSyncService = scope.ServiceProvider.GetRequiredService<IOrderStatusSyncService>();
                     await orderStatusSyncService.SyncOrderStatusFromStateServiceAsync(message.OrderID, message.FromStatus, message.ToStatus);
                     
                     // 處理成功後標記為已處理
+                    // 冪等性檢查，避免重複處理相同訊息
                     await redisService.MarkMessageAsProcessedAsync(messageKey);
                     _logger.LogInformation("[訂單狀態同步] 訊息處理成功並標記: MessageKey={MessageKey}, OrderID={OrderID}", 
                         messageKey, message.OrderID);
@@ -234,6 +258,22 @@ namespace Infrastructure.MQ
                     _logger.LogError(ex, "[訂單狀態同步] 訊息處理失敗: MessageKey={MessageKey}, OrderID={OrderID}", 
                         messageKey, message.OrderID);
                     throw; // 重新拋出異常，讓 RabbitMQ 重試
+                }
+                finally
+                {
+                    // 釋放分散式鎖
+                    if (lockAcquired)
+                    {
+                        try
+                        {
+                            await redisService.ReleaseLockAsync(lockKey, lockValue);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "[訂單狀態同步] 釋放分散式鎖失敗: OrderID={OrderID}，鎖會自動過期", 
+                                message.OrderID);
+                        }
+                    }
                 }
             }
         }

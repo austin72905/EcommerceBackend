@@ -246,6 +246,11 @@ export function setup() {
 // 存儲每個 VU 的 CSRF Token（使用全局變數，但每個 VU 是獨立的）
 let csrfToken = null;
 
+// 存儲每個 VU 成功建立的訂單號列表（每個 VU 是獨立的）
+// 用於在查詢訂單時優先使用真實存在的訂單號
+let orderCodeList = [];
+const MAX_ORDER_CODES = 10; // 最多保存 10 個訂單號，避免無限增長
+
 /**
  * 從 Set-Cookie 響應頭中提取 CSRF Token
  */
@@ -378,7 +383,18 @@ function executeSecondaryRead() {
             }
         );
     } else {
-        const orderCode = `EC${Math.random().toString(36).substring(2, 12).toUpperCase()}`;
+        // 優先從 VU 的訂單號列表中選擇真實存在的訂單號
+        // 如果列表為空，則使用隨機生成的訂單號（可能不存在）
+        let orderCode;
+        if (orderCodeList.length > 0) {
+            // 從列表中隨機選擇一個訂單號
+            const randomIndex = Math.floor(Math.random() * orderCodeList.length);
+            orderCode = orderCodeList[randomIndex];
+        } else {
+            // 如果列表為空，使用隨機生成的訂單號（作為 fallback）
+            orderCode = `EC${Math.random().toString(36).substring(2, 12).toUpperCase()}`;
+        }
+        
         res = http.get(
             `${BASE_URL}/Order/GetOrderInfo?recordCode=${orderCode}`,
             {
@@ -531,6 +547,13 @@ function executeHeavyWrite() {
                 // console.log(`[DEBUG] 提取的金額: ${amount}`);
 
                 if (recordNo && amount) {
+                    // 將訂單號存入 VU 的訂單號列表，用於後續查詢
+                    if (orderCodeList.length >= MAX_ORDER_CODES) {
+                        // 如果列表已滿，移除最舊的訂單號（FIFO）
+                        orderCodeList.shift();
+                    }
+                    orderCodeList.push(recordNo);
+                    
                     // console.log(`[INFO] ✓ SubmitOrder 成功，訂單號: ${recordNo}, 金額: ${amount}`);
                     // console.log(`[INFO] 準備發送支付成功回調到 ECPayReturn...`);
                     
