@@ -25,9 +25,10 @@ namespace Infrastructure.MQ
             ILogger<OrderStatusChangedConsumer> logger)
         {
             _configuration = configuration;
+            var rabbitMqUri = _configuration["AppSettings:RabbitMqUri"] ?? "amqp://guest:guest@localhost:5672/";
             _connectionFactory = new ConnectionFactory
             {
-                HostName = _configuration["AppSettings:RabbitMqHostName"],
+                Uri = new Uri(rabbitMqUri),
             };
             _scopeFactory = serviceScopeFactory;
             _logger = logger;

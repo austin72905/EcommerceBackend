@@ -21,9 +21,10 @@ namespace Infrastructure.MQ
         public RabbitMqConnectionManager(IConfiguration configuration, ILogger<RabbitMqConnectionManager> logger)
         {
             _logger = logger;
+            var rabbitMqUri = configuration["AppSettings:RabbitMqUri"] ?? "amqp://guest:guest@localhost:5672/";
             _connectionFactory = new ConnectionFactory
             {
-                HostName = configuration["AppSettings:RabbitMqHostName"],
+                Uri = new Uri(rabbitMqUri),
                 // 設置自動重連
                 AutomaticRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(10),

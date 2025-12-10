@@ -21,12 +21,11 @@ namespace Infrastructure.MQ
         public ShipmentConsumer(IServiceScopeFactory serviceScopeFactory, IConfiguration configuration)
         {
             _configuration = configuration;
-
+            var rabbitMqUri = _configuration["AppSettings:RabbitMqUri"] ?? "amqp://guest:guest@localhost:5672/";
             // 初始化 RabbitMQ 連接工廠
             _connectionFactory = new ConnectionFactory
             {
-                HostName = _configuration["AppSettings:RabbitMqHostName"],
-
+                Uri = new Uri(rabbitMqUri),
             };
 
             _scopeFactory = serviceScopeFactory;

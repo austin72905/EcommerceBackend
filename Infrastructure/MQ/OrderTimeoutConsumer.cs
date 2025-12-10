@@ -24,9 +24,10 @@ namespace Infrastructure.MQ
             IConfiguration configuration,
             ILogger<OrderTimeoutConsumer> logger)
         {
+            var rabbitMqUri = configuration["AppSettings:RabbitMqUri"] ?? "amqp://guest:guest@localhost:5672/";
             _connectionFactory = new ConnectionFactory
             {
-                HostName = configuration["AppSettings:RabbitMqHostName"],
+                Uri = new Uri(rabbitMqUri),
                 AutomaticRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(10),
                 RequestedHeartbeat = TimeSpan.FromSeconds(30)

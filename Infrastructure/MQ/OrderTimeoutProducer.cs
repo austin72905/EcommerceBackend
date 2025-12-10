@@ -18,10 +18,10 @@ namespace Infrastructure.MQ
         public OrderTimeoutProducer(IConfiguration configuration)
         {
             _configuration = configuration;
-
+            var rabbitMqUri = _configuration["AppSettings:RabbitMqUri"] ?? "amqp://guest:guest@localhost:5672/";
             _connectionFactory = new ConnectionFactory
             {
-                HostName = _configuration["AppSettings:RabbitMqHostName"],
+                Uri = new Uri(rabbitMqUri),
             };
         }
 

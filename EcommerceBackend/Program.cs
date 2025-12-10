@@ -29,6 +29,19 @@ using System.Collections.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 取得第一個非空值，方便依序套用環境變數與組態預設
+string? FirstNonEmpty(params string?[] values)
+{
+    foreach (var value in values)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+    }
+    return null;
+}
+
 
 // 載入組態設定
 builder.Configuration
@@ -36,16 +49,40 @@ builder.Configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-string redisConnectionString = Environment.GetEnvironmentVariable("RedisConnString");
+// Redis 連線字串：環境變數 > appsettings 預設
+var redisConnectionString = FirstNonEmpty(
+    Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING"),
+    Environment.GetEnvironmentVariable("RedisConnString"),
+    builder.Configuration["AppSettings:RedisConnectionString"]);
 
-if (string.IsNullOrEmpty(redisConnectionString))
+if (string.IsNullOrWhiteSpace(redisConnectionString))
 {
-    throw new ArgumentNullException("RedisConnString", "Environment variable RedisConnString is not set or is empty.");
+    throw new InvalidOperationException("未設定 Redis 連線字串，請設定環境變數 REDIS_CONNECTION_STRING / RedisConnString 或在 appsettings.json 中提供 AppSettings:RedisConnectionString。");
 }
 
+// DB 連線字串：環境變數 > appsettings 預設
+var dbConnectionString = FirstNonEmpty(
+    Environment.GetEnvironmentVariable("DB_CONNECTION_STRING"),
+    Environment.GetEnvironmentVariable("DB_CONN_STRING"),
+    builder.Configuration.GetConnectionString("DefaultConnection"));
+
+if (string.IsNullOrWhiteSpace(dbConnectionString))
+{
+    throw new InvalidOperationException("未設定資料庫連線字串，請設定環境變數 DB_CONNECTION_STRING / DB_CONN_STRING 或在 appsettings.json 中提供 ConnectionStrings:DefaultConnection。");
+}
+
+// RabbitMQ URI：環境變數 > appsettings 預設
+var rabbitMqUri = FirstNonEmpty(
+    Environment.GetEnvironmentVariable("RABBITMQ_URL"),
+    Environment.GetEnvironmentVariable("RABBITMQ_URI"),
+    Environment.GetEnvironmentVariable("AMQP_URL"),
+    builder.Configuration["AppSettings:RabbitMqUri"],
+    "amqp://guest:guest@localhost:5672/");
+// 將實際使用的 URI 寫回組態，供 MQ 相關服務取用
+builder.Configuration["AppSettings:RabbitMqUri"] = rabbitMqUri;
+
 // 構建連接字符串，添加連接池和超時配置
-var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var connectionStringBuilder = new NpgsqlConnectionStringBuilder(baseConnectionString)
+var connectionStringBuilder = new NpgsqlConnectionStringBuilder(dbConnectionString)
 {
     // 連接池配置
     Pooling = true,
