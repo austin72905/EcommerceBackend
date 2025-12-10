@@ -34,7 +34,6 @@ namespace DataSource.Repositories
                     .ThenInclude(op => op.ProductVariant)
                            .ThenInclude(pv => pv.ProductVariantDiscounts)
                                 .ThenInclude(pvd => pvd.Discount)
-                .Include(o => o.OrderSteps)
                 .Include(o => o.Shipments)
                 .Where(o => o.UserId == userid);
 
@@ -67,7 +66,6 @@ namespace DataSource.Repositories
                     .ThenInclude(op => op.ProductVariant)
                            .ThenInclude(pv => pv.ProductVariantDiscounts)
                                 .ThenInclude(pvd => pvd.Discount)
-                .Include(o => o.OrderSteps)
                 .Include(o => o.Shipments)
                 .Include(o => o.Address)
                 .Where(o => o.Id == orderId)
@@ -91,7 +89,6 @@ namespace DataSource.Repositories
                     .ThenInclude(op => op.ProductVariant)
                            .ThenInclude(pv => pv.ProductVariantDiscounts)
                                 .ThenInclude(pvd => pvd.Discount)
-                .Include(o => o.OrderSteps)
                 .Include(o => o.Shipments)
                 .Include(o => o.Address)
                 .Where(o => o.Id == orderId)
@@ -112,7 +109,6 @@ namespace DataSource.Repositories
                     .ThenInclude(op => op.ProductVariant)
                            .ThenInclude(pv => pv.ProductVariantDiscounts)
                                 .ThenInclude(pvd => pvd.Discount)
-                .Include(o => o.OrderSteps)
                 .Include(o => o.Shipments)
                 .Include(o => o.Address)
                 .Where(o => o.UserId == userid && o.RecordCode == recordCode)
@@ -133,7 +129,6 @@ namespace DataSource.Repositories
                     .ThenInclude(op => op.ProductVariant)
                            .ThenInclude(pv => pv.ProductVariantDiscounts)
                                 .ThenInclude(pvd => pvd.Discount)
-                .Include(o => o.OrderSteps)
                 .Include(o => o.Shipments)
                 .Include(o => o.Address)
                 .Where(o => o.RecordCode == recordCode)
@@ -156,7 +151,6 @@ namespace DataSource.Repositories
                     .ThenInclude(op => op.ProductVariant)
                            .ThenInclude(pv => pv.ProductVariantDiscounts)
                                 .ThenInclude(pvd => pvd.Discount)
-                .Include(o => o.OrderSteps)
                 .Include(o => o.Shipments)
                 .Include(o => o.Address)
                 .Where(o => o.RecordCode == recordCode)
@@ -174,20 +168,6 @@ namespace DataSource.Repositories
             return await _dbSet
                 .AsNoTracking()  // 不追蹤實體，減少記憶體使用和性能開銷
                 .Include(o => o.OrderProducts)  // 只載入 OrderProducts，不載入相關的 ProductVariant、Size 等
-                .Where(o => o.RecordCode == recordCode)
-                .FirstOrDefaultAsync();
-        }
-
-        /// <summary>
-        /// 獲取訂單（僅載入 OrderSteps，用於狀態同步等輕量級操作）
-        /// 相比 GetOrderInfoByRecordCodeForUpdate，此方法只載入必要的 OrderSteps，
-        /// 大幅減少資料庫查詢負載和記憶體使用
-        /// 帶追蹤以支援狀態更新和保存
-        /// </summary>
-        public async Task<Order?> GetOrderForStatusUpdateAsync(string recordCode)
-        {
-            return await _dbSet
-                .Include(o => o.OrderSteps)  // 只載入 OrderSteps
                 .Where(o => o.RecordCode == recordCode)
                 .FirstOrDefaultAsync();
         }

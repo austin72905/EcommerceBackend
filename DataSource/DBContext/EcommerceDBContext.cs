@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace DataSource.DBContext
@@ -27,7 +27,6 @@ namespace DataSource.DBContext
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderProduct> OrderProducts { get; set; }
-        public DbSet<OrderStep> OrderSteps { get; set; }
         public DbSet<Shipment> Shipments { get; set; }
         public DbSet<Payment> Payments { get; set; }
 
@@ -149,10 +148,6 @@ namespace DataSource.DBContext
                 .HasIndex(p => p.TenantConfigId);
             modelBuilder.Entity<Payment>()
                 .HasIndex(p => p.PaymentStatus);
-
-            // OrderStep 表的 OrderId 外鍵索引
-            modelBuilder.Entity<OrderStep>()
-                .HasIndex(os => os.OrderId);
 
             // Kind 表的 Name 欄位索引
             modelBuilder.Entity<Kind>()

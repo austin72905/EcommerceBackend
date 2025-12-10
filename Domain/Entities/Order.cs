@@ -1,4 +1,4 @@
-using Domain.Enums;
+﻿using Domain.Enums;
 using Domain.Interfaces;
 using Domain.ValueObjects;
 
@@ -10,17 +10,15 @@ namespace Domain.Entities
     /// 聚合邊界：
     /// - Order（聚合根）
     /// - OrderProduct（聚合內實體）
-    /// - OrderStep（聚合內實體）
     /// - Shipment（聚合內實體）
     /// 
     /// 不變性（Invariants）：
     /// 1. 訂單總價 = 所有訂單商品總價 + 運費
     /// 2. 訂單狀態轉換必須符合業務規則（透過 CanTransitionTo 驗證）
     /// 3. 只能在 Created 狀態時添加商品
-    /// 4. 只能取消 Created 或 WaitingForPayment 狀態的訂單
-    /// 5. 訂單必須有至少一個 OrderStep 記錄狀態變更
-    /// 6. 訂單必須有至少一個 Shipment 記錄物流狀態
-    /// 7. RecordCode 必須唯一且不可變
+    /// 4. 只能取消 Created 狀態的訂單
+    /// 5. 訂單必須有至少一個 Shipment 記錄物流狀態
+    /// 6. RecordCode 必須唯一且不可變
     /// </summary>
     public class Order : IAggregateRoot
     {
@@ -28,7 +26,6 @@ namespace Domain.Entities
         private Order() 
         { 
             OrderProducts = new List<OrderProduct>();
-            OrderSteps = new List<OrderStep>();
             Shipments = new List<Shipment>();
         }
 
@@ -66,9 +63,6 @@ namespace Domain.Entities
                 UpdatedAt = DateTime.UtcNow
             };
 
-            // 添加初始訂單步驟
-            order.AddOrderStep(OrderStatus.Created);
-            
             // 添加初始物流狀態
             order.AddShipment(ShipmentStatus.Pending);
 
@@ -123,7 +117,7 @@ namespace Domain.Entities
 
         // ============ 關鍵狀態時間戳（用於快速查詢，提升性能） ============
         /// <summary>
-        /// 支付時間（用於前端快速顯示，避免 JOIN OrderStep 查詢）
+        /// 支付時間（用於前端快速顯示）
         /// </summary>
         public DateTime? PaidAt { get; private set; }
 
@@ -142,12 +136,16 @@ namespace Domain.Entities
         /// </summary>
         public DateTime? CompletedAt { get; private set; }
 
+        /// <summary>
+        /// 取消時間（用於前端快速顯示）
+        /// </summary>
+        public DateTime? CanceledAt { get; private set; }
+
         // 導航屬性
         public User User { get; private set; }
         public UserShipAddress Address { get; private set; }
         public Payment Payment { get; private set; }
         public ICollection<OrderProduct> OrderProducts { get; private set; }
-        public ICollection<OrderStep> OrderSteps { get; private set; }
         public ICollection<Shipment> Shipments { get; private set; }
 
         // ============ 業務邏輯方法 ============
@@ -213,17 +211,16 @@ namespace Domain.Entities
         }
 
         /// <summary>
-        /// 取消訂單
+        /// 取消訂單（只能取消 Created 狀態的訂單）
         /// </summary>
         public void Cancel()
         {
-            if (Status != (int)OrderStatus.Created && Status != (int)OrderStatus.WaitingForPayment)
+            if (Status != (int)OrderStatus.Created)
                 throw new InvalidOperationException($"訂單狀態 {(OrderStatus)Status} 無法取消");
 
             Status = (int)OrderStatus.Canceled;
             UpdatedAt = DateTime.UtcNow;
-            
-            AddOrderStep(OrderStatus.Canceled);
+            CanceledAt = DateTime.UtcNow; // 同步記錄取消時間，用於前端快速查詢
         }
 
         /// <summary>
@@ -239,16 +236,10 @@ namespace Domain.Entities
             PayWay = paymentMethod;
             UpdatedAt = DateTime.UtcNow;
             PaidAt = DateTime.UtcNow;  // 同步記錄支付時間，用於前端快速查詢
-            
-            // 添加支付已接收的訂單步驟（使用 OrderStepStatus.PaymentReceived）
-            AddOrderStepStatus(Domain.Enums.OrderStepStatus.PaymentReceived);
-            // 添加等待出貨的訂單步驟
-            AddOrderStepStatus(Domain.Enums.OrderStepStatus.WaitingForShipment);
         }
 
         /// <summary>
-        /// 標記為已付款（不創建 OrderStep，用於縮小事務範圍）
-        /// OrderStep 將在背景異步創建，減少事務時間和數據庫鎖競爭
+        /// 標記為已付款（用於縮小事務範圍）
         /// 同時更新 PaidAt 時間戳，用於前端快速查詢
         /// </summary>
         public void MarkAsPaidWithoutSteps(int paymentMethod)
@@ -261,8 +252,6 @@ namespace Domain.Entities
             PayWay = paymentMethod;
             UpdatedAt = DateTime.UtcNow;
             PaidAt = DateTime.UtcNow;  // 同步記錄支付時間，用於前端快速查詢
-            
-            // 不創建 OrderStep，將在背景異步創建（作為審計日誌）
         }
 
         /// <summary>
@@ -287,8 +276,6 @@ namespace Domain.Entities
                     {
                         ShippedAt = now;
                     }
-                    // 添加已出貨的訂單步驟
-                    AddOrderStepStatus(Domain.Enums.OrderStepStatus.ShipmentCompleted);
                     break;
                 case OrderStatus.WaitPickup:
                     // 取貨時間（當訂單送達等待取貨時）
@@ -296,18 +283,14 @@ namespace Domain.Entities
                     {
                         PickedUpAt = now;
                     }
-                    // 不需要添加 OrderStep，因為這只是物流狀態
                     break;
                 case OrderStatus.Completed:
                     // 完成時間
                     CompletedAt = now;
-                    // 添加訂單已完成的訂單步驟（使用 OrderStepStatus.OrderCompleted）
-                    AddOrderStepStatus(Domain.Enums.OrderStepStatus.OrderCompleted);
                     break;
-                default:
-                    // 其他狀態轉換使用 OrderStatus 值作為 OrderStep 的狀態
-                    // 注意：這只適用於 OrderStatus 和 OrderStepStatus 值相同的狀態
-                    AddOrderStep(newStatus);
+                case OrderStatus.Canceled:
+                    // 取消時間（若透過狀態同步流程取消）
+                    CanceledAt ??= now;
                     break;
             }
         }
@@ -332,27 +315,9 @@ namespace Domain.Entities
             Status = (int)OrderStatus.Completed;
             UpdatedAt = DateTime.UtcNow;
             CompletedAt = DateTime.UtcNow;  // 同步記錄完成時間，用於前端快速查詢
-            
-            // 添加訂單已完成的訂單步驟（使用 OrderStepStatus.OrderCompleted）
-            AddOrderStepStatus(Domain.Enums.OrderStepStatus.OrderCompleted);
         }
 
         // ============ 私有輔助方法 ============
-
-        private void AddOrderStep(OrderStatus status)
-        {
-            var orderStep = OrderStep.Create((int)status);
-            OrderSteps.Add(orderStep);
-        }
-
-        /// <summary>
-        /// 添加訂單步驟（使用 OrderStepStatus）
-        /// </summary>
-        private void AddOrderStepStatus(Domain.Enums.OrderStepStatus stepStatus)
-        {
-            var orderStep = OrderStep.Create((int)stepStatus);
-            OrderSteps.Add(orderStep);
-        }
 
         private void AddShipment(ShipmentStatus status)
         {
@@ -364,20 +329,16 @@ namespace Domain.Entities
         {
             var currentStatus = (OrderStatus)Status;
             
-            // 定義允許的狀態轉換
+            // 定義允許的狀態轉換（統一使用 enum，與 ec-order-state-service 保持一致）
             return (currentStatus, newStatus) switch
             {
-                (OrderStatus.Created, OrderStatus.WaitingForPayment) => true,
-                (OrderStatus.Created, OrderStatus.WaitingForShipment) => true, // 支付完成後直接轉換為等待出貨
-                (OrderStatus.Created, OrderStatus.Canceled) => true,
-                (OrderStatus.WaitingForPayment, OrderStatus.WaitingForShipment) => true, // 從待付款轉換為待出貨
-                (OrderStatus.WaitingForPayment, OrderStatus.Completed) => true,
-                (OrderStatus.WaitingForPayment, OrderStatus.Canceled) => true,
-                (OrderStatus.WaitingForShipment, OrderStatus.InTransit) => true, // 從待出貨轉換為運送中
-                (OrderStatus.WaitingForShipment, OrderStatus.Canceled) => true,
-                (OrderStatus.InTransit, OrderStatus.WaitPickup) => true, // 從運送中轉換為待取貨
-                (OrderStatus.InTransit, OrderStatus.Canceled) => true,
-                (OrderStatus.WaitPickup, OrderStatus.Completed) => true, // 從待取貨轉換為已完成
+                (OrderStatus.Created, OrderStatus.WaitingForShipment) => true,  // Created -> WaitingForShipment
+                (OrderStatus.Created, OrderStatus.Canceled) => true,             // Created -> Canceled
+                (OrderStatus.WaitingForShipment, OrderStatus.InTransit) => true,  // WaitingForShipment -> InTransit
+                (OrderStatus.WaitingForShipment, OrderStatus.Canceled) => true,  // WaitingForShipment -> Canceled
+                (OrderStatus.InTransit, OrderStatus.WaitPickup) => true,         // InTransit -> WaitPickup
+                (OrderStatus.InTransit, OrderStatus.Canceled) => true,           // InTransit -> Canceled
+                (OrderStatus.WaitPickup, OrderStatus.Completed) => true,          // WaitPickup -> Completed
                 _ => false
             };
         }

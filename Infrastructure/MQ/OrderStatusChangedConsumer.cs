@@ -287,10 +287,10 @@ namespace Infrastructure.MQ
             public string OrderID { get; set; } // 使用 RecordCode 作為 orderId
             
             [JsonPropertyName("fromStatus")]
-            public string FromStatus { get; set; }
+            public int FromStatus { get; set; } // 統一使用數字 enum
             
             [JsonPropertyName("toStatus")]
-            public string ToStatus { get; set; }
+            public int ToStatus { get; set; } // 統一使用數字 enum
             
             [JsonPropertyName("timestamp")]
             public string Timestamp { get; set; }

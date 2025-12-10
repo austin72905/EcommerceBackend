@@ -35,13 +35,6 @@ namespace Domain.Interfaces.Repositories
         /// <returns>訂單實體（僅包含 OrderProducts）</returns>
         public Task<Order?> GetOrderWithProductsOnlyForUpdate(string recordCode);
 
-        /// <summary>
-        /// 獲取訂單（僅載入 OrderSteps，用於狀態同步等輕量級操作）
-        /// </summary>
-        /// <param name="recordCode">訂單編號</param>
-        /// <returns>訂單實體（僅包含 OrderSteps）</returns>
-        Task<Order?> GetOrderForStatusUpdateAsync(string recordCode);
-
         public Task GenerateOrder(Order order);
 
         
@@ -57,5 +50,10 @@ namespace Domain.Interfaces.Repositories
         public Task<bool> TryUpdateOrderStatusAsync(string recordCode, OrderStatus fromStatus, OrderStatus toStatus);
 
         public Task SaveChangesAsync();
+
+        /// <summary>
+        /// 在同一交易中執行動作，用於確保訂單與付款等多步驟的一致性
+        /// </summary>
+        public Task ExecuteInTransactionAsync(Func<Task> action);
     }
 }

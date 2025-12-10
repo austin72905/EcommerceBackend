@@ -1,4 +1,4 @@
-﻿
+
 
 using Domain.Enums;
 
@@ -22,8 +22,6 @@ namespace Application.DTOs
 
         public int ShippingPrice { get; set; }
 
-        public List<OrderStepDTO>? OrderStepInfomation { get; set; }
-
         public List<ShipmentDTO>? ShipInfomation { get; set; }
 
         // 新增的更新時間
@@ -31,7 +29,7 @@ namespace Application.DTOs
 
         // ============ 關鍵狀態時間戳（用於前端快速顯示，優先使用） ============
         /// <summary>
-        /// 支付時間（優先使用，避免 JOIN OrderStep 查詢）
+        /// 支付時間（優先使用）
         /// </summary>
         public DateTime? PaidAt { get; set; }
 
@@ -58,11 +56,5 @@ namespace Application.DTOs
         public string? Receiver { get; set; }
         public string? PhoneNumber { get; set; }
         public string? ShippingAddress { get; set; }
-    }
-
-    public class OrderStepDTO
-    {
-        public OrderStepStatus Status { get; set; }
-        public DateTime UpdatedAt { get; set; }
     }
 }
