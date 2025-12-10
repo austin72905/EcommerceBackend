@@ -51,5 +51,23 @@ namespace DataSource.Repositories
         {
             await _context.SaveChangesAsync();
         }
+
+        /// <summary>
+        /// 在同一交易中執行指定動作，確保多步驟操作的一致性
+        /// </summary>
+        public async Task ExecuteInTransactionAsync(Func<Task> action)
+        {
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await action();
+                await tx.CommitAsync();
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
     }
 }

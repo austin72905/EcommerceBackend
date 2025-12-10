@@ -3,6 +3,9 @@ using Domain.Enums;
 using Domain.Interfaces.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Application
 {
@@ -21,6 +24,14 @@ namespace Application
 
             _scopeFactory = serviceScopeFactory;
             _logger = logger;
+        }
+
+
+        public Task AddQueueAsync(Queue<Shipment> queue, string recordCode)
+        {
+            _logger.LogInformation("新增物流佇列，訂單編號: {RecordCode}", recordCode);
+            AddQueue(queue);
+            return Task.CompletedTask;
         }
 
 

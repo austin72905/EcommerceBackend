@@ -1,4 +1,3 @@
-﻿using Domain.Enums;
 
 namespace Domain.Entities
 {
@@ -31,7 +30,7 @@ namespace Domain.Entities
                 OrderId = orderId,
                 PaymentAmount = paymentAmount,
                 TenantConfigId = tenantConfigId,
-                PaymentStatus = (byte)OrderStepStatus.WaitingForPayment,
+                PaymentStatus = 1, // 1 = WaitingForPayment (等待付款)
                 TransactionId = string.Empty,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -60,10 +59,11 @@ namespace Domain.Entities
         /// </summary>
         public void MarkAsPaid()
         {
-            if (PaymentStatus == (byte)OrderStepStatus.PaymentReceived)
+            // 2 = PaymentReceived (已收款)
+            if (PaymentStatus == 2)
                 throw new InvalidOperationException("付款記錄已經是已付款狀態");
 
-            PaymentStatus = (byte)OrderStepStatus.PaymentReceived;
+            PaymentStatus = 2; // 2 = PaymentReceived (已收款)
             UpdatedAt = DateTime.UtcNow;
         }
 
@@ -72,10 +72,11 @@ namespace Domain.Entities
         /// </summary>
         public void MarkAsCanceled()
         {
-            if (PaymentStatus == (byte)OrderStepStatus.OrderCanceled)
+            // 6 = OrderCanceled (已取消訂單)
+            if (PaymentStatus == 6)
                 throw new InvalidOperationException("付款記錄已經是已取消狀態");
 
-            PaymentStatus = (byte)OrderStepStatus.OrderCanceled;
+            PaymentStatus = 6; // 6 = OrderCanceled (已取消訂單)
             UpdatedAt = DateTime.UtcNow;
         }
 

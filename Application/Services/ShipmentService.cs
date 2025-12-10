@@ -8,12 +8,10 @@ namespace Application.Services
     public class ShipmentService : IShipmentService
     {
         private readonly IShipmentRepository _shipmentRepository;
-        private readonly IQueueProcessor _queueProcessor;
 
-        public ShipmentService(IShipmentRepository shipmentRepository, IQueueProcessor queueProcessor)
+        public ShipmentService(IShipmentRepository shipmentRepository)
         {
             _shipmentRepository = shipmentRepository;
-            _queueProcessor = queueProcessor;
         }
 
         public async Task UpdateShipmentStatus(int status, string recordCode, int orderId)
@@ -24,19 +22,7 @@ namespace Application.Services
             {
                 // 模擬處理物流訂單的過程 - 使用富領域模型工廠方法
                 // 以一個定時器10秒新增一次
-                var shipments = new Queue<Shipment>
-                    (
-                        new[]
-                        {
-                            //Shipment.CreateForOrder(orderId, (int)ShipmentStatus.Pending),
-                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.Shipped),
-                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.InTransit),
-                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.OutForDelivery),
-                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.Delivered),
-                            Shipment.CreateForOrder(orderId, (int)ShipmentStatus.PickedUpByCustomer),
-                        }
-                    );
-                _queueProcessor.AddQueue(shipments);
+                // 物流佇列流程已暫停，僅保留查詢條件避免未來誤觸
             }
 
 

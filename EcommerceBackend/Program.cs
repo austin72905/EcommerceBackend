@@ -159,8 +159,9 @@ builder.Services.AddScoped<IShipmentRepository, ShipmentRepository>();
 // 註冊 RabbitMQ 連接管理器（單例，重用連接）
 builder.Services.AddSingleton<Infrastructure.MQ.RabbitMqConnectionManager>();
 
-builder.Services.AddSingleton<IShipmentProducer, ShipmentProducer>();
-builder.Services.AddSingleton<IShipmentConsumer, ShipmentConsumer>();
+// Shipment 佇列流程暫停使用
+// builder.Services.AddSingleton<IShipmentProducer, ShipmentProducer>();
+// builder.Services.AddSingleton<IShipmentConsumer, ShipmentConsumer>();
 builder.Services.AddSingleton<IOrderTimeoutProducer, OrderTimeoutProducer>();
 builder.Services.AddSingleton<IOrderStateProducer, OrderStateProducer>();
 builder.Services.AddSingleton<IPaymentCompletedProducer, PaymentCompletedProducer>();
@@ -170,11 +171,12 @@ builder.Services.AddSingleton<IOrderStatusChangedConsumer, OrderStatusChangedCon
 builder.Services.AddScoped<IOrderTimeoutConsumer, OrderTimeoutConsumer>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 
-// 隊列處理器註冊
-builder.Services.AddSingleton<IQueueProcessor, QueueProcessor>();
+// 隊列處理器註冊（Shipment 佇列暫停使用）
+// builder.Services.AddSingleton<IQueueProcessor, QueueProcessor>();
 
 // 註冊背景服務
-builder.Services.AddHostedService<ShipmentConsumerService>();
+// Shipment 佇列暫停使用
+// builder.Services.AddHostedService<ShipmentConsumerService>();
 builder.Services.AddHostedService<OrderTimeoutConsumerService>();
 builder.Services.AddHostedService<OrderStatusChangedConsumerService>();
 builder.Services.AddHostedService<PaymentCompletedConsumerService>();

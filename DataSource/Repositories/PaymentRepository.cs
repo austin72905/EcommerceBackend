@@ -33,8 +33,6 @@ namespace DataSource.Repositories
             return await _dbSet
                 .AsNoTracking()
                 .Include(p => p.Order)
-                    .ThenInclude(p => p.OrderSteps)
-                .Include(p => p.Order)
                     .ThenInclude(p => p.Shipments)
                 .Where(p => p.Order.RecordCode == recordCode)
                 .FirstOrDefaultAsync();
@@ -93,7 +91,8 @@ namespace DataSource.Repositories
         /// </summary>
         public async Task<PaymentUpdateResult> TryMarkPaymentAsPaidAsync(string recordCode)
         {
-            var paidStatus = (byte)Domain.Enums.OrderStepStatus.PaymentReceived;
+            // PaymentStatus: 2 表示已付款（對應原 OrderStepStatus.PaymentReceived）
+            var paidStatus = (byte)2;
             var waitingForShipment = (int)Domain.Enums.OrderStatus.WaitingForShipment;
             var now = DateTime.UtcNow;
 

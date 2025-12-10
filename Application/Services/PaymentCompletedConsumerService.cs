@@ -17,7 +17,7 @@ using RabbitMQ.Client.Events;
 namespace Application.Services
 {
     /// <summary>
-    /// 消費支付完成事件：建立 OrderStep、確認庫存、發送 MQ
+    /// 消費支付完成事件：確認庫存、發送 MQ
     /// </summary>
     public class PaymentCompletedConsumerService : BackgroundService
     {
@@ -155,7 +155,6 @@ namespace Application.Services
             using var scope = _scopeFactory.CreateScope();
             var orderRepository = scope.ServiceProvider.GetRequiredService<IOrderRepostory>();
             var inventoryService = scope.ServiceProvider.GetRequiredService<IInventoryService>();
-            var shipmentProducer = scope.ServiceProvider.GetRequiredService<IShipmentProducer>();
             var orderStateProducer = scope.ServiceProvider.GetRequiredService<IOrderStateProducer>();
 
             var order = await orderRepository.GetOrderInfoByIdForUpdate(evt.OrderId);
@@ -163,16 +162,6 @@ namespace Application.Services
             {
                 _logger.LogWarning("支付完成事件找不到訂單，RecordCode={RecordCode}, OrderId={OrderId}", evt.RecordCode, evt.OrderId);
                 return;
-            }
-
-            // 幂等：若已有 PaymentReceived 步驟就跳過建立
-            var hasPaymentStep = order.OrderSteps.Any(s => s.StepStatus == (int)OrderStepStatus.PaymentReceived);
-            if (!hasPaymentStep)
-            {
-                order.OrderSteps.Add(OrderStep.CreateForOrder(order.Id, (int)OrderStepStatus.PaymentReceived));
-                order.OrderSteps.Add(OrderStep.CreateForOrder(order.Id, (int)OrderStepStatus.WaitingForShipment));
-                await orderRepository.SaveChangesAsync();
-                _logger.LogInformation("已為訂單建立支付/待出貨步驟，RecordCode={RecordCode}", evt.RecordCode);
             }
 
             // 前面下單時在 Redis 中預扣庫存，防止超賣
@@ -184,24 +173,14 @@ namespace Application.Services
                 throw new InvalidOperationException($"庫存確認失敗: {confirmResult.ErrorMessage}");
             }
 
-            var shipmentMessage = new
-            {
-                Status = (int)ShipmentStatus.Pending,
-                OrderId = order.Id,
-                RecordCode = order.RecordCode
-            };
-
             var orderStateMessage = new
             {
                 eventType = "PaymentCompleted",
                 orderId = order.RecordCode,
                 timestamp = evt.OccurredAtUtc
             };
-            // 目前用不到，因為都是統一用 orderStateProducer 去模擬整個流程
-            // 之後可以加上try catch
-            await shipmentProducer.SendMessage(shipmentMessage);
+            // 目前改由外部訂單狀態服務統一處理狀態，不再發送 Shipment 佇列
             // 同步訂單狀態到外部 Go 微服務（ec-order-state-service）
-            // 之後可以加上try catch 處理失敗
             await orderStateProducer.SendMessage(orderStateMessage);
             _logger.LogInformation("支付完成事件已處理並發送 MQ，RecordCode={RecordCode}", evt.RecordCode);
         }
