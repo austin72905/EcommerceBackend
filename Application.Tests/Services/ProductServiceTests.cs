@@ -55,15 +55,46 @@ namespace Application.Tests.Services
                 Material = "Cotton",
                 HowToWash = "Hand wash only",
                 Features = "Lightweight",
-                CoverImg = "cover.jpg"
+                CoverImg = "cover.jpg",
+                ProductImages = new List<ProductImage>() // 確保 ProductImages 不為 null
             };
 
+            var productVariant = new ProductVariant
+            {
+                Id = 1,
+                ProductId = productId,
+                VariantPrice = 100,
+                Color = "Red",
+                Size = new Size { SizeValue = "M" },
+                Stock = 10,
+                SKU = "RED-M",
+                ProductVariantDiscounts = new List<ProductVariantDiscount>()
+            };
+
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.GetProductDynamicInfoCacheAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.SetProductBasicInfoAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+                .Returns(Task.CompletedTask);
+            _redisServiceMock
+                .Setup(r => r.SetProductDynamicInfoCacheAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+                .Returns(Task.CompletedTask);
+            _redisServiceMock
+                .Setup(r => r.SetProductDynamicInfoCacheAsync(It.IsAny<int>(), It.IsAny<string>(), (TimeSpan?)null))
+                .Returns(Task.CompletedTask);
+
+            // Mock Repository 方法
             _productRepositoryMock
-                .Setup(repo => repo.GetProductById(productId))
+                .Setup(repo => repo.GetProductBasicInfoById(productId))
                 .ReturnsAsync(product);
-
-            // ToProductInformationDTO已在其他測試中驗證其功能正確性，這樣在 ProductService 的單元測試中無需重複測試。
-
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductVariantsByProductId(productId))
+                .ReturnsAsync(new List<ProductVariant> { productVariant });
 
             // Act
             var result = await _productService.GetProductById(productId);
@@ -75,8 +106,9 @@ namespace Application.Tests.Services
             Assert.AreEqual(productId, result.Data!.Product.ProductId);
             Assert.AreEqual(product.Title, result.Data!.Product.Title);
 
-            //  確保 ProductService 中的 GetProductById 方法實際調用了 _repository.GetProductById，並且只調用了一次。
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);  
+            // 驗證調用了正確的方法
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductVariantsByProductId(productId), Times.Once);
         }
 
 
@@ -94,8 +126,13 @@ namespace Application.Tests.Services
             // Arrange
             int productId = 999;
 
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+
             _productRepositoryMock
-                .Setup(repo => repo.GetProductById(productId))
+                .Setup(repo => repo.GetProductBasicInfoById(productId))
                 .ReturnsAsync((Product)null);
 
             // Act
@@ -106,7 +143,7 @@ namespace Application.Tests.Services
             Assert.AreEqual("產品不存在", result.ErrorMessage);
             Assert.IsNull(result.Data);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
         }
 
 
@@ -116,9 +153,14 @@ namespace Application.Tests.Services
             // Arrange
             int productId = 1;
 
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+
             // 模擬存儲庫方法拋出例外
             _productRepositoryMock
-                .Setup(repo => repo.GetProductById(productId))
+                .Setup(repo => repo.GetProductBasicInfoById(productId))
                 .ThrowsAsync(new Exception("Database error"));
 
             // Act
@@ -126,8 +168,8 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess); // 驗證返回值標誌
-            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage); // 驗證錯誤信息
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage); // BaseService.Error 會返回固定錯誤訊息
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
         }
 
 
@@ -141,22 +183,38 @@ namespace Application.Tests.Services
             var product = new Product
             {
                 Id = productId,
-                Title = null! // 模擬數據問題，導致 ToProductInformationDTO 拋出 NullReferenceException
+                Title = "Test Product",
+                Material = "Cotton",
+                HowToWash = "Hand wash only",
+                Features = "Lightweight",
+                CoverImg = "cover.jpg",
+                ProductImages = new List<ProductImage>()
             };
 
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.GetProductDynamicInfoCacheAsync(productId))
+                .ReturnsAsync(string.Empty);
+
             _productRepositoryMock
-                .Setup(repo => repo.GetProductById(productId))
+                .Setup(repo => repo.GetProductBasicInfoById(productId))
                 .ReturnsAsync(product);
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductVariantsByProductId(productId))
+                .ThrowsAsync(new Exception("Serialization error")); // 模擬序列化錯誤
 
             // Act
             var result = await _productService.GetProductById(productId);
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage); // BaseService.Error 會返回固定錯誤訊息
 
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
-
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductVariantsByProductId(productId), Times.Once);
         }
 
 
@@ -174,11 +232,41 @@ namespace Application.Tests.Services
                 Material = "Cotton",
                 HowToWash = "Hand wash only",
                 Features = "Lightweight",
-                CoverImg = "cover.jpg"
+                CoverImg = "cover.jpg",
+                ProductImages = new List<ProductImage>() // 確保 ProductImages 不為 null
+            };
+            var productVariant = new ProductVariant
+            {
+                Id = 1,
+                ProductId = productId,
+                VariantPrice = 100,
+                Color = "Red",
+                Size = new Size { SizeValue = "M" },
+                Stock = 10,
+                SKU = "RED-M",
+                ProductVariantDiscounts = new List<ProductVariantDiscount>()
             };
             var favoriteProductIds = new List<int> { productId };
 
-            _productRepositoryMock.Setup(repo => repo.GetProductById(productId)).ReturnsAsync(product);
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.GetProductDynamicInfoCacheAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.SetProductBasicInfoAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+                .Returns(Task.CompletedTask);
+            _redisServiceMock
+                .Setup(r => r.SetProductDynamicInfoCacheAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+                .Returns(Task.CompletedTask);
+            _redisServiceMock
+                .Setup(r => r.SetProductDynamicInfoCacheAsync(It.IsAny<int>(), It.IsAny<string>(), (TimeSpan?)null))
+                .Returns(Task.CompletedTask);
+
+            _productRepositoryMock.Setup(repo => repo.GetProductBasicInfoById(productId)).ReturnsAsync(product);
+            _productRepositoryMock.Setup(repo => repo.GetProductVariantsByProductId(productId)).ReturnsAsync(new List<ProductVariant> { productVariant });
             _userRepositoryMock.Setup(repo => repo.GetFavoriteProductIdsByUser(userId)).ReturnsAsync(favoriteProductIds);
 
             // Act
@@ -191,7 +279,8 @@ namespace Application.Tests.Services
             Assert.AreEqual(productId, result.Data!.Product.ProductId);
             Assert.IsTrue(result.Data!.IsFavorite);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductVariantsByProductId(productId), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Once);
         }
 
@@ -212,11 +301,41 @@ namespace Application.Tests.Services
                 Material = "Cotton",
                 HowToWash = "Hand wash only",
                 Features = "Lightweight",
-                CoverImg = "cover.jpg"
+                CoverImg = "cover.jpg",
+                ProductImages = new List<ProductImage>() // 確保 ProductImages 不為 null
+            };
+            var productVariant = new ProductVariant
+            {
+                Id = 1,
+                ProductId = productId,
+                VariantPrice = 100,
+                Color = "Red",
+                Size = new Size { SizeValue = "M" },
+                Stock = 10,
+                SKU = "RED-M",
+                ProductVariantDiscounts = new List<ProductVariantDiscount>()
             };
             var favoriteProductIds = new List<int> { 2 }; // 不包含此產品
 
-            _productRepositoryMock.Setup(repo => repo.GetProductById(productId)).ReturnsAsync(product);
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.GetProductDynamicInfoCacheAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.SetProductBasicInfoAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+                .Returns(Task.CompletedTask);
+            _redisServiceMock
+                .Setup(r => r.SetProductDynamicInfoCacheAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+                .Returns(Task.CompletedTask);
+            _redisServiceMock
+                .Setup(r => r.SetProductDynamicInfoCacheAsync(It.IsAny<int>(), It.IsAny<string>(), (TimeSpan?)null))
+                .Returns(Task.CompletedTask);
+
+            _productRepositoryMock.Setup(repo => repo.GetProductBasicInfoById(productId)).ReturnsAsync(product);
+            _productRepositoryMock.Setup(repo => repo.GetProductVariantsByProductId(productId)).ReturnsAsync(new List<ProductVariant> { productVariant });
             _userRepositoryMock.Setup(repo => repo.GetFavoriteProductIdsByUser(userId)).ReturnsAsync(favoriteProductIds);
 
             // Act
@@ -228,7 +347,8 @@ namespace Application.Tests.Services
             Assert.AreEqual(productId, result.Data!.Product.ProductId);
             Assert.IsFalse(result.Data!.IsFavorite);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductVariantsByProductId(productId), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Once);
         }
 
@@ -241,7 +361,12 @@ namespace Application.Tests.Services
             int userId = 1;
             int productId = 999;
 
-            _productRepositoryMock.Setup(repo => repo.GetProductById(productId)).ReturnsAsync((Product)null);
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+
+            _productRepositoryMock.Setup(repo => repo.GetProductBasicInfoById(productId)).ReturnsAsync((Product)null);
 
             // Act
             var result = await _productService.GetProductByIdForUser(userId, productId);
@@ -251,7 +376,7 @@ namespace Application.Tests.Services
             Assert.AreEqual("產品不存在", result.ErrorMessage);
             Assert.IsNull(result.Data);
 
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Never);
         }
 
@@ -264,9 +389,14 @@ namespace Application.Tests.Services
             int userId = 1;
             int productId = 101;
 
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+
             // 模擬存儲庫拋出異常
             _productRepositoryMock
-                .Setup(repo => repo.GetProductById(productId))
+                .Setup(repo => repo.GetProductBasicInfoById(productId))
                 .ThrowsAsync(new Exception("Database error"));
 
             // Act
@@ -274,9 +404,9 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage); // BaseService.Error 會返回固定錯誤訊息
 
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(It.IsAny<int>()), Times.Never); // 確保沒有調用
         }
 
@@ -294,12 +424,45 @@ namespace Application.Tests.Services
                 Material = "Cotton",
                 HowToWash = "Hand wash only",
                 Features = "Lightweight",
-                CoverImg = "cover.jpg"
+                CoverImg = "cover.jpg",
+                ProductImages = new List<ProductImage>()
             };
 
+            var productVariant = new ProductVariant
+            {
+                Id = 1,
+                ProductId = productId,
+                VariantPrice = 100,
+                Color = "Red",
+                Size = new Size { SizeValue = "M" },
+                Stock = 10,
+                SKU = "RED-M",
+                ProductVariantDiscounts = new List<ProductVariantDiscount>()
+            };
+
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.GetProductDynamicInfoCacheAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.SetProductBasicInfoAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TimeSpan?>()))
+                .Returns(Task.CompletedTask);
+            _redisServiceMock
+                .Setup(r => r.SetProductDynamicInfoCacheAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+                .Returns(Task.CompletedTask);
+            _redisServiceMock
+                .Setup(r => r.SetProductDynamicInfoCacheAsync(It.IsAny<int>(), It.IsAny<string>(), (TimeSpan?)null))
+                .Returns(Task.CompletedTask);
+
             _productRepositoryMock
-                .Setup(repo => repo.GetProductById(productId))
+                .Setup(repo => repo.GetProductBasicInfoById(productId))
                 .ReturnsAsync(product);
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductVariantsByProductId(productId))
+                .ReturnsAsync(new List<ProductVariant> { productVariant });
 
             // 模擬用戶存儲庫拋出異常
             _userRepositoryMock
@@ -311,9 +474,10 @@ namespace Application.Tests.Services
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage); // BaseService.Error 會返回固定錯誤訊息
 
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductVariantsByProductId(productId), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(userId), Times.Once);
         }
 
@@ -327,21 +491,38 @@ namespace Application.Tests.Services
             var product = new Product
             {
                 Id = productId,
-                Title = null! // 模擬數據問題，導致 ToProductInformationDTO 拋出 NullReferenceException
+                Title = "Test Product",
+                Material = "Cotton",
+                HowToWash = "Hand wash only",
+                Features = "Lightweight",
+                CoverImg = "cover.jpg",
+                ProductImages = new List<ProductImage>()
             };
 
+            // Mock Redis 返回空（緩存未命中）
+            _redisServiceMock
+                .Setup(r => r.GetProductBasicInfoAsync(productId))
+                .ReturnsAsync(string.Empty);
+            _redisServiceMock
+                .Setup(r => r.GetProductDynamicInfoCacheAsync(productId))
+                .ReturnsAsync(string.Empty);
+
             _productRepositoryMock
-                .Setup(repo => repo.GetProductById(productId))
+                .Setup(repo => repo.GetProductBasicInfoById(productId))
                 .ReturnsAsync(product);
+            _productRepositoryMock
+                .Setup(repo => repo.GetProductVariantsByProductId(productId))
+                .ThrowsAsync(new Exception("Serialization error")); // 模擬序列化錯誤
 
             // Act
             var result = await _productService.GetProductByIdForUser(userId, productId);
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage);
+            Assert.AreEqual("系統錯誤，請聯繫管理員", result.ErrorMessage); // BaseService.Error 會返回固定錯誤訊息
 
-            _productRepositoryMock.Verify(repo => repo.GetProductById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductBasicInfoById(productId), Times.Once);
+            _productRepositoryMock.Verify(repo => repo.GetProductVariantsByProductId(productId), Times.Once);
             _userRepositoryMock.Verify(repo => repo.GetFavoriteProductIdsByUser(It.IsAny<int>()), Times.Never);
         }
 

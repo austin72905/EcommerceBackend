@@ -88,10 +88,6 @@ namespace Application.Tests.Services
                         });
             typeof(Order).GetProperty("OrderProducts")!.SetValue(order, new List<OrderProduct> { orderProduct });
             
-            var orderStep = OrderStep.CreateForOrder(1, (int)OrderStepStatus.Created);
-            typeof(OrderStep).GetProperty("UpdatedAt")!.SetValue(orderStep, DateTime.Now);
-            typeof(Order).GetProperty("OrderSteps")!.SetValue(order, new List<OrderStep> { orderStep });
-            
             var shipment = Shipment.CreateForOrder(1, (int)ShipmentStatus.Pending);
             typeof(Shipment).GetProperty("UpdatedAt")!.SetValue(shipment, DateTime.Now);
             typeof(Order).GetProperty("Shipments")!.SetValue(order, new List<Shipment> { shipment });
@@ -163,12 +159,6 @@ namespace Application.Tests.Services
             };
             typeof(OrderProduct).GetProperty("ProductVariant")!.SetValue(orderProduct, productVariant);
             typeof(Order).GetProperty("OrderProducts")!.SetValue(order, new List<OrderProduct> { orderProduct });
-            
-            var orderStep1 = OrderStep.CreateForOrder(1, (int)OrderStepStatus.Created);
-            typeof(OrderStep).GetProperty("UpdatedAt")!.SetValue(orderStep1, DateTime.Now.AddDays(-1));
-            var orderStep2 = OrderStep.CreateForOrder(1, (int)OrderStepStatus.OrderCompleted);
-            typeof(OrderStep).GetProperty("UpdatedAt")!.SetValue(orderStep2, DateTime.Now);
-            typeof(Order).GetProperty("OrderSteps")!.SetValue(order, new List<OrderStep> { orderStep1, orderStep2 });
             
             var shipment1 = Shipment.CreateForOrder(1, (int)ShipmentStatus.Shipped);
             typeof(Shipment).GetProperty("UpdatedAt")!.SetValue(shipment1, DateTime.Now.AddDays(-2));
@@ -266,6 +256,17 @@ namespace Application.Tests.Services
                     return total;
                 });
 
+            // 設置 ExecuteInTransactionAsync 來模擬事務執行
+            _orderRepositoryMock
+                .Setup(repo => repo.ExecuteInTransactionAsync(It.IsAny<Func<Task>>()))
+                .Returns<Func<Task>>(async action =>
+                {
+                    // 在事務中設置 Order.Id
+                    var orderProperty = typeof(Order).GetProperty("Id");
+                    // 執行實際的動作（會調用 GenerateOrder 和 GeneratePaymentRecord）
+                    await action();
+                });
+
             _orderRepositoryMock
                 .Setup(repo => repo.GenerateOrder(It.IsAny<Order>()))
                 .Callback<Order>(order => typeof(Order).GetProperty("Id")!.SetValue(order, 1))
@@ -290,6 +291,7 @@ namespace Application.Tests.Services
 
             _productRepositoryMock.Verify(repo => repo.GetProductVariants(It.IsAny<List<int>>()), Times.Once);
             _inventoryServiceMock.Verify(service => service.CheckAndHoldInventoryAsync(It.IsAny<string>(), It.IsAny<Dictionary<int, int>>()), Times.Once);
+            _orderRepositoryMock.Verify(repo => repo.ExecuteInTransactionAsync(It.IsAny<Func<Task>>()), Times.Once);
             _orderRepositoryMock.Verify(repo => repo.GenerateOrder(It.IsAny<Order>()), Times.Once);
             _paymentRepositoryMock.Verify(repo => repo.GeneratePaymentRecord(It.IsAny<Payment>()), Times.Once);
         }
