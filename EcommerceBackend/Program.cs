@@ -158,6 +158,7 @@ builder.Services.AddOpenTelemetry()
         })
         // 註冊自訂 ActivitySource 以追蹤手動建立的活動（如 BCrypt 操作）
         .AddSource("EcommerceBackend.UserService")
+        .AddSource("EcommerceBackend.OrderService")
         // 導出到 Jaeger（使用 OTLP gRPC）
         .AddOtlpExporter(options =>
         {

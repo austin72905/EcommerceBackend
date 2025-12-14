@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using DomainOrder = Domain.Entities.Order; // 使用別名避免命名空間衝突
 
@@ -20,6 +21,9 @@ namespace Application.Services
 {
     public class OrderService : BaseService<OrderService>, IOrderService, IOrderStatusSyncService
     {
+        // OpenTelemetry ActivitySource 用於手動追蹤操作
+        private static readonly ActivitySource ActivitySource = new("EcommerceBackend.OrderService");
+
         private readonly IOrderRepostory _orderRepostory;
         private readonly IProductRepository _productRepository;
         private readonly IPaymentRepository _paymentRepository;
@@ -117,22 +121,44 @@ namespace Application.Services
         {
             try
             {
-                // 獲取商品變體資料
-                var variantIds = info.Items.Select(i => i.VariantId).ToList();
-                var productVariants = await _productRepository.GetProductVariants(variantIds);
-                var productVariantDict = productVariants.ToDictionary(pv => pv.Id);
+                // 追蹤：獲取商品變體資料（資料庫查詢）
+                IEnumerable<ProductVariant> productVariants;
+                Dictionary<int, ProductVariant> productVariantDict;
+                using (var activity = ActivitySource.StartActivity("DB.GetProductVariants", ActivityKind.Internal))
+                {
+                    if (activity != null)
+                    {
+                        activity.SetTag("db.system", "postgresql");
+                        activity.SetTag("db.operation", "select");
+                        activity.SetTag("db.table", "ProductVariants");
+                        activity.SetTag("variant.count", info.Items.Count);
+                    }
+                    var variantIds = info.Items.Select(i => i.VariantId).ToList();
+                    productVariants = await _productRepository.GetProductVariants(variantIds);
+                    productVariantDict = productVariants.ToDictionary(pv => pv.Id);
+                }
 
-                // 使用富領域模型的工廠方法創建訂單
-                var order = DomainOrder.Create(
-                    userId: info.UserId,
-                    receiver: info.ReceiverName,
-                    phoneNumber: info.ReceiverPhone,
-                    shippingAddress: info.ShippingAddress,
-                    recieveWay: info.RecieveWay,
-                    email: info.Email,
-                    shippingPrice: (int)info.ShippingFee,
-                    recieveStore: info.RecieveStore
-                );
+                // 追蹤：創建訂單實體（記憶體操作，通常很快）
+                DomainOrder order;
+                using (var activity = ActivitySource.StartActivity("Domain.CreateOrder", ActivityKind.Internal))
+                {
+                    if (activity != null)
+                    {
+                        activity.SetTag("operation", "order_creation");
+                        activity.SetTag("user.id", info.UserId);
+                    }
+                    // 使用富領域模型的工廠方法創建訂單
+                    order = DomainOrder.Create(
+                        userId: info.UserId,
+                        receiver: info.ReceiverName,
+                        phoneNumber: info.ReceiverPhone,
+                        shippingAddress: info.ShippingAddress,
+                        recieveWay: info.RecieveWay,
+                        email: info.Email,
+                        shippingPrice: (int)info.ShippingFee,
+                        recieveStore: info.RecieveStore
+                    );
+                }
 
                 // 用來給庫存服務檢查庫存的
                 var variantInventoryPair = new Dictionary<int, int>();
@@ -155,46 +181,115 @@ namespace Application.Services
                     order.AddOrderProduct(productVariant.Id, productVariant.VariantPrice, item.Quantity);
                 }
 
-                // 檢查並預扣庫存（使用庫存服務）
-                var inventoryResult = await ExecuteWithTimeoutRetryAsync(
-                    () => _inventoryService.CheckAndHoldInventoryAsync(order.RecordCode, variantInventoryPair),
-                    timeout: TimeSpan.FromSeconds(3),
-                    maxRetry: 1);
+                // 追蹤：檢查並預扣庫存（Redis 操作，可能是耗時操作）
+                ServiceResult<InventoryCheckResult>? inventoryResult;
+                using (var activity = ActivitySource.StartActivity("Redis.CheckAndHoldInventory", ActivityKind.Internal))
+                {
+                    if (activity != null)
+                    {
+                        activity.SetTag("db.system", "redis");
+                        activity.SetTag("db.operation", "check_and_hold");
+                        activity.SetTag("order.record_code", order.RecordCode);
+                        activity.SetTag("variant.count", variantInventoryPair.Count);
+                    }
+                    inventoryResult = await ExecuteWithTimeoutRetryAsync(
+                        () => _inventoryService.CheckAndHoldInventoryAsync(order.RecordCode, variantInventoryPair),
+                        timeout: TimeSpan.FromSeconds(3),
+                        maxRetry: 1);
+                }
 
                 if (inventoryResult == null || !inventoryResult.IsSuccess)
                 {
                     return Error<PaymentRequestDataWithUrl>(inventoryResult?.ErrorMessage ?? "庫存檢查逾時或失敗");
                 }
 
-                // 發送延遲超時訊息 (2分鐘後執行)
-                _ = _orderTimeoutProducer.SendOrderTimeoutMessageAsync(info.UserId, order.RecordCode, 2)
-                    .ContinueWith(t =>
+                // 追蹤：發送延遲超時訊息（RabbitMQ 操作，可能是耗時操作）
+                using (var activity = ActivitySource.StartActivity("RabbitMQ.SendOrderTimeoutMessage", ActivityKind.Internal))
+                {
+                    if (activity != null)
                     {
-                        if (t.IsFaulted)
+                        activity.SetTag("messaging.system", "rabbitmq");
+                        activity.SetTag("messaging.operation", "publish");
+                        activity.SetTag("order.record_code", order.RecordCode);
+                        activity.SetTag("delay.minutes", 2);
+                    }
+                    // 發送延遲超時訊息 (2分鐘後執行)
+                    _ = _orderTimeoutProducer.SendOrderTimeoutMessageAsync(info.UserId, order.RecordCode, 2)
+                        .ContinueWith(t =>
                         {
-                            _logger.LogError(t.Exception, "發送訂單超時訊息失敗 RecordCode={RecordCode}", order.RecordCode);
+                            if (t.IsFaulted)
+                            {
+                                _logger.LogError(t.Exception, "發送訂單超時訊息失敗 RecordCode={RecordCode}", order.RecordCode);
+                            }
+                        });
+                }
+
+                // 追蹤：計算總金額（領域邏輯，可能涉及複雜計算）
+                using (var activity = ActivitySource.StartActivity("Domain.CalculateTotalPrice", ActivityKind.Internal))
+                {
+                    if (activity != null)
+                    {
+                        activity.SetTag("operation", "price_calculation");
+                        activity.SetTag("order.record_code", order.RecordCode);
+                    }
+                    // 使用領域方法計算總金額（業務邏輯在 Domain 層）
+                    // 傳入已載入的 productVariants 用於折扣計算
+                    order.CalculateTotalPrice(_orderDomainService, productVariantDict);
+                }
+
+                // 追蹤：保存訂單與付款記錄（資料庫操作）
+                using (var activity = ActivitySource.StartActivity("DB.SaveOrderAndPayment", ActivityKind.Internal))
+                {
+                    if (activity != null)
+                    {
+                        activity.SetTag("db.system", "postgresql");
+                        activity.SetTag("db.operation", "transaction");
+                        activity.SetTag("order.record_code", order.RecordCode);
+                    }
+                    // 保存訂單與付款記錄於同一交易，優化為只保存兩次（訂單一次，付款一次）
+                    await _orderRepostory.ExecuteInTransactionAsync(async () =>
+                    {
+                        // 追蹤：添加訂單到追蹤器
+                        using (var addOrderActivity = ActivitySource.StartActivity("DB.AddOrderToTracker", ActivityKind.Internal))
+                        {
+                            if (addOrderActivity != null)
+                            {
+                                addOrderActivity.SetTag("db.system", "postgresql");
+                                addOrderActivity.SetTag("db.operation", "add_to_tracker");
+                            }
+                            await _orderRepostory.AddOrderWithoutSave(order);
+                        }
+
+                        // 追蹤：第一次保存以獲取 order.Id（領域模型已經自動添加了 OrderStep 和 Shipment）
+                        using (var saveOrderActivity = ActivitySource.StartActivity("DB.SaveOrder", ActivityKind.Internal))
+                        {
+                            if (saveOrderActivity != null)
+                            {
+                                saveOrderActivity.SetTag("db.system", "postgresql");
+                                saveOrderActivity.SetTag("db.operation", "save_changes");
+                            }
+                            await _orderRepostory.SaveChangesAsync();
+                        }
+
+                        // 追蹤：使用原生 SQL 批量插入付款記錄（高效能，避免 EF Core 追蹤開銷）
+                        using (var bulkInsertPaymentActivity = ActivitySource.StartActivity("DB.BulkInsertPayment", ActivityKind.Internal))
+                        {
+                            if (bulkInsertPaymentActivity != null)
+                            {
+                                bulkInsertPaymentActivity.SetTag("db.system", "postgresql");
+                                bulkInsertPaymentActivity.SetTag("db.operation", "bulk_insert");
+                                bulkInsertPaymentActivity.SetTag("order.id", order.Id);
+                            }
+                            // 使用原生 SQL 批量插入，繞過 EF Core 的 ChangeTracker，提升性能
+                            // 這避免了 AddAsync + SaveChangesAsync 的開銷，直接執行 SQL
+                            await _paymentRepository.BulkInsertPaymentAsync(
+                                orderId: order.Id,
+                                paymentAmount: order.OrderPrice,
+                                tenantConfigId: 1 // 假設預設值
+                            );
                         }
                     });
-
-                // 使用領域方法計算總金額（業務邏輯在 Domain 層）
-                // 傳入已載入的 productVariants 用於折扣計算
-                order.CalculateTotalPrice(_orderDomainService, productVariantDict);
-
-                // 保存訂單與付款記錄於同一交易
-                await _orderRepostory.ExecuteInTransactionAsync(async () =>
-                {
-                    // 保存訂單（領域模型已經自動添加了 OrderStep 和 Shipment）
-                    await _orderRepostory.GenerateOrder(order);
-
-                    // 使用領域模型的工廠方法創建付款記錄
-                    var payment = Payment.Create(
-                        orderId: order.Id, // 此時 order.Id 已經有值 
-                        paymentAmount: (int)order.OrderPrice,
-                        tenantConfigId: 1 // 假設預設值
-                    );
-
-                    await _paymentRepository.GeneratePaymentRecord(payment);
-                });
+                }
 
                 return Success<PaymentRequestDataWithUrl>
                     (

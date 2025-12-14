@@ -135,8 +135,18 @@ namespace Application.Services
         {
             try
             {
-                // 檢查用戶是否已被鎖定
-                var isUserLock = await _redisService.GetWrongPasswordTimeAsync(loginDto.Username);
+                // 追蹤：檢查用戶是否已被鎖定（Redis 操作）
+                int? isUserLock;
+                using (var activity = ActivitySource.StartActivity("Redis.CheckUserLock", ActivityKind.Internal))
+                {
+                    if (activity != null)
+                    {
+                        activity.SetTag("db.system", "redis");
+                        activity.SetTag("db.operation", "get");
+                        activity.SetTag("redis.key", $"login:fail:{loginDto.Username}");
+                    }
+                    isUserLock = await _redisService.GetWrongPasswordTimeAsync(loginDto.Username);
+                }
 
                 if (isUserLock == 3)
                 {
@@ -144,6 +154,7 @@ namespace Application.Services
                 }
 
                 // 優化：登入時只需要查 Username，使用專門的方法更高效
+                // 注意：此查詢使用 AsNoTracking()，實體不會被 EF Core 追蹤
                 var user = await _userRepository.GetUserByUsername(loginDto.Username);
 
                 // 用戶不存在
@@ -152,41 +163,79 @@ namespace Application.Services
                     return Fail<string>("用戶不存在");                    
                 }
 
-                // 檢查密碼
-
-
-                var passwordHash = user.PasswordHash;
-
-                if (!_encryptionService.VerifyPassword(loginDto.Password, passwordHash))
+                // 追蹤：BCrypt 密碼驗證（這可能是最耗時的操作）
+                bool isPasswordValid;
+                using (var activity = ActivitySource.StartActivity("BCrypt.VerifyPassword", ActivityKind.Internal))
                 {
-                    // 這邊實作 10分鐘內輸入密碼錯誤3次，鎖定15分鐘
-                    // 代表10分鐘內第一次輸入錯誤
-                    if (isUserLock == 0)
+                    if (activity != null)
                     {
-                        await _redisService.SetWrongPasswordTimeAsync(loginDto.Username);
-                    }else if (isUserLock == 1)
-                    {
-                        await _redisService.SetWrongPasswordTimeAsync(loginDto.Username,keepTtl:true); // 不重製時間，代表10分鐘內累積的錯誤次數
+                        activity.SetTag("operation", "password_verification");
+                        activity.SetTag("algorithm", "BCrypt");
+                        activity.SetTag("db.system", "bcrypt");
+                        activity.SetTag("db.operation", "verify");
                     }
-                    else
-                    {
-                        await _redisService.LockUserAsync(loginDto.Username);
-                    }
+                    
+                    var passwordHash = user.PasswordHash;
+                    isPasswordValid = _encryptionService.VerifyPassword(loginDto.Password, passwordHash);
+                }
 
+                if (!isPasswordValid)
+                {
+                    // 追蹤：Redis 寫入錯誤次數
+                    using (var activity = ActivitySource.StartActivity("Redis.SetWrongPasswordTime", ActivityKind.Internal))
+                    {
+                        if (activity != null)
+                        {
+                            activity.SetTag("db.system", "redis");
+                            activity.SetTag("db.operation", "set");
+                            activity.SetTag("redis.key", $"login:fail:{loginDto.Username}");
+                        }
+
+                        // 這邊實作 10分鐘內輸入密碼錯誤3次，鎖定15分鐘
+                        // 代表10分鐘內第一次輸入錯誤
+                        if (isUserLock == 0)
+                        {
+                            await _redisService.SetWrongPasswordTimeAsync(loginDto.Username);
+                        }else if (isUserLock == 1)
+                        {
+                            await _redisService.SetWrongPasswordTimeAsync(loginDto.Username,keepTtl:true); // 不重製時間，代表10分鐘內累積的錯誤次數
+                        }
+                        else
+                        {
+                            await _redisService.LockUserAsync(loginDto.Username);
+                        }
+                    }
 
                     return Fail<string>("密碼錯誤");                    
                 }
 
-
-
-
-                // 使用富領域模型方法記錄登入時間
-                user.RecordLogin();
-                await _userRepository.SaveChangesAsync();
+                // 追蹤：更新用戶登入時間（使用 ExecuteUpdateAsync，高效且不需要追蹤實體）
+                using (var activity = ActivitySource.StartActivity("DB.UpdateUserLoginTime", ActivityKind.Internal))
+                {
+                    if (activity != null)
+                    {
+                        activity.SetTag("db.system", "postgresql");
+                        activity.SetTag("db.operation", "update");
+                        activity.SetTag("db.table", "Users");
+                        activity.SetTag("user.id", user.Id);
+                    }
+                    await _userRepository.UpdateUserLoginTime(user.Id);
+                }
 
                 var userDto = user.ToUserInfoDTO();
 
-                string redisKey = await SaveUserInfoToRedis(userDto);
+                // 追蹤：將用戶資訊寫入 Redis
+                string redisKey;
+                using (var activity = ActivitySource.StartActivity("Redis.SaveUserInfo", ActivityKind.Internal))
+                {
+                    if (activity != null)
+                    {
+                        activity.SetTag("db.system", "redis");
+                        activity.SetTag("db.operation", "set");
+                        activity.SetTag("user.id", user.Id);
+                    }
+                    redisKey = await SaveUserInfoToRedis(userDto);
+                }
 
                 return Success<string>(redisKey,message: "登入成功");
                
