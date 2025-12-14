@@ -174,6 +174,15 @@ namespace DataSource.Repositories
 
         public async Task GenerateOrder(Order order)
         {
+            await AddOrderWithoutSave(order);
+            await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// 添加訂單到追蹤器但不立即保存（用於交易中批量保存）
+        /// </summary>
+        public async Task AddOrderWithoutSave(Order order)
+        {
             // 在添加訂單之前，先清理 ChangeTracker 中可能存在的相關實體
             // 這可以防止 EF Core 追蹤並嘗試插入已存在的實體
             DetachExistingEntities();
@@ -216,8 +225,7 @@ namespace DataSource.Repositories
                     entry.State = EntityState.Unchanged;
                 }
             }
-            
-            await _context.SaveChangesAsync();
+            // 不調用 SaveChangesAsync，等待交易統一保存
         }
 
         /// <summary>

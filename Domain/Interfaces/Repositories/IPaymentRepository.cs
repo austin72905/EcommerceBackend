@@ -13,6 +13,20 @@ namespace Domain.Interfaces.Repositories
 
         public  Task GeneratePaymentRecord(Payment payment);
 
+        /// <summary>
+        /// 添加付款記錄到追蹤器但不立即保存（用於交易中批量保存）
+        /// </summary>
+        /// <param name="payment">付款記錄實體</param>
+        public Task AddPaymentWithoutSave(Payment payment);
+
+        /// <summary>
+        /// 使用原生 SQL 批量插入付款記錄（高效能，避免 EF Core 追蹤開銷）
+        /// </summary>
+        /// <param name="orderId">訂單 ID</param>
+        /// <param name="paymentAmount">付款金額</param>
+        /// <param name="tenantConfigId">租戶配置 ID</param>
+        public Task BulkInsertPaymentAsync(int orderId, decimal paymentAmount, int tenantConfigId);
+
         public Task<Payment?> GetPaymentRecord(string recordCode);
 
         /// <summary>

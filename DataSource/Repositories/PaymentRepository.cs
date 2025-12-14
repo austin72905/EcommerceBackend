@@ -3,6 +3,7 @@ using DataSource.DBContext;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace DataSource.Repositories
 {
@@ -24,8 +25,35 @@ namespace DataSource.Repositories
 
         public async Task GeneratePaymentRecord(Payment payment)
         {
-            await _dbSet.AddAsync(payment);
+            await AddPaymentWithoutSave(payment);
             await SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// 添加付款記錄到追蹤器但不立即保存（用於交易中批量保存）
+        /// </summary>
+        public async Task AddPaymentWithoutSave(Payment payment)
+        {
+            await _dbSet.AddAsync(payment);
+            // 不調用 SaveChangesAsync，等待交易統一保存
+        }
+
+        /// <summary>
+        /// 使用原生 SQL 批量插入付款記錄（高效能，避免 EF Core 追蹤開銷）
+        /// 直接執行 SQL，繞過 EF Core 的 ChangeTracker，提升性能
+        /// </summary>
+        public async Task BulkInsertPaymentAsync(int orderId, decimal paymentAmount, int tenantConfigId)
+        {
+            var now = DateTime.UtcNow;
+            const string sql = @"
+                INSERT INTO ""Payments"" (""OrderId"", ""TenantConfigId"", ""PaymentAmount"", ""PaymentStatus"", ""TransactionId"", ""CreatedAt"", ""UpdatedAt"")
+                VALUES (@orderId, @tenantConfigId, @paymentAmount, 1, '', @now, @now)";
+
+            await _context.Database.ExecuteSqlRawAsync(sql,
+                new NpgsqlParameter("@orderId", orderId),
+                new NpgsqlParameter("@tenantConfigId", tenantConfigId),
+                new NpgsqlParameter("@paymentAmount", paymentAmount),
+                new NpgsqlParameter("@now", now));
         }
 
         public async Task<Payment?> GetPaymentRecord(string recordCode)

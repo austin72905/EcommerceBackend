@@ -37,6 +37,12 @@ namespace Domain.Interfaces.Repositories
 
         public Task GenerateOrder(Order order);
 
+        /// <summary>
+        /// 添加訂單到追蹤器但不立即保存（用於交易中批量保存）
+        /// </summary>
+        /// <param name="order">訂單實體</param>
+        public Task AddOrderWithoutSave(Order order);
+
         
         public Task UpdateOrderStatusAsync(string recordCode, int status);
 
