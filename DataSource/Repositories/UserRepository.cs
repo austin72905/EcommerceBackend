@@ -130,6 +130,19 @@ namespace DataSource.Repositories
         {
             await _context.SaveChangesAsync();
         }
+
+        /// <summary>
+        /// 更新用戶登入時間（使用 ExecuteUpdateAsync，高效且不需要追蹤實體）
+        /// </summary>
+        public async Task UpdateUserLoginTime(int userId)
+        {
+            await _dbSet
+                .Where(u => u.Id == userId)
+                .ExecuteUpdateAsync(set => set
+                    .SetProperty(prop => prop.LastLogin, DateTime.UtcNow)
+                    .SetProperty(prop => prop.UpdatedAt, DateTime.UtcNow));
+        }
+
         public async Task<User?> GetUserIfExistsByGoogleID(string gooleID)
         {
             return await _dbSet

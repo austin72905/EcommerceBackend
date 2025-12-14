@@ -43,5 +43,11 @@ namespace Domain.Interfaces.Repositories
         public Task AddToFavoriteList(int userid,int productId);
 
         public  Task SaveChangesAsync();
+
+        /// <summary>
+        /// 更新用戶登入時間（使用 ExecuteUpdateAsync，高效且不需要追蹤實體）
+        /// </summary>
+        /// <param name="userId"></param>
+        public Task UpdateUserLoginTime(int userId);
     }
 }
