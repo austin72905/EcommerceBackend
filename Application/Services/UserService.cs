@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -17,6 +18,9 @@ namespace Application.Services
 {
     public class UserService : BaseService<UserService>,IUserService
     {
+        // OpenTelemetry ActivitySource 用於手動追蹤操作
+        private static readonly ActivitySource ActivitySource = new("EcommerceBackend.UserService");
+
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
         private readonly IRedisService _redisService;
@@ -216,8 +220,26 @@ namespace Application.Services
                     return Fail<string>(isUserExisted.ErrorMessage);
                 }
 
-                // 新增用戶
-                var userEntity = signUpDto.ToUserEntity(_encryptionService);
+                // 新增用戶 - 手動追蹤 BCrypt 密碼雜湊操作（異步執行，避免阻塞請求處理線程）
+                string passwordHash;
+                using (var activity = ActivitySource.StartActivity("BCrypt.HashPassword", ActivityKind.Internal))
+                {
+                    if (activity != null)
+                    {
+                        activity.SetTag("operation", "password_hashing");
+                        activity.SetTag("algorithm", "BCrypt");
+                        activity.SetTag("db.system", "bcrypt");
+                        activity.SetTag("db.operation", "hash");
+                    }
+                    
+                    // 使用異步版本，將 CPU 密集型操作移到背景線程執行
+                    // 這樣可以避免在高併發下阻塞 ASP.NET Core 的請求處理線程
+                    passwordHash = await _encryptionService.HashPasswordAsync(signUpDto.Password);
+                }
+
+                // 使用已雜湊的密碼建立用戶實體（不包含 BCrypt 操作）
+                var userEntity = signUpDto.ToUserEntityWithHash(_encryptionService, passwordHash);
+
                 await _userRepository.AddUser(userEntity);
 
                 // 優化：AddUser 已經 SaveChangesAsync，userEntity.Id 已經有值，不需要重新查詢

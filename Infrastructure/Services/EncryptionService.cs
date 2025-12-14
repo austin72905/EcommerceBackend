@@ -11,6 +11,16 @@ namespace Infrastructure.Services
             return BCryptUtils.HashPassword(password);
         }
 
+        /// <summary>
+        /// 異步執行 BCrypt 雜湊，避免阻塞請求處理線程
+        /// 在高併發場景下，將 CPU 密集型操作移到背景線程執行
+        /// </summary>
+        public async Task<string> HashPasswordAsync(string password)
+        {
+            // 將 CPU 密集型操作移到背景線程執行，避免阻塞 ASP.NET Core 請求處理線程
+            return await Task.Run(() => BCryptUtils.HashPassword(password));
+        }
+
         public bool VerifyPassword(string password, string hash)
         {
             return BCryptUtils.VerifyPassword(password, hash);

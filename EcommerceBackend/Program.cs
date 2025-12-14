@@ -120,49 +120,53 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient<IHttpUtils, HttpUtils>();
 
 // 配置 OpenTelemetry 分散式追蹤（已註解）
-// builder.Services.AddOpenTelemetry()
-//     .ConfigureResource(resource => resource
-//         .AddService(
-//             serviceName: "EcommerceBackend",
-//             serviceVersion: "1.0.0")
-//         .AddAttributes(new Dictionary<string, object>
-//         {
-//             ["deployment.environment"] = builder.Environment.EnvironmentName
-//         }))
-//     .WithTracing(tracing => tracing
-//         // 自動追蹤 ASP.NET Core HTTP 請求
-//         .AddAspNetCoreInstrumentation(options =>
-//         {
-//             options.RecordException = true;
-//             options.EnrichWithHttpRequest = (activity, request) =>
-//             {
-//                 activity.SetTag("http.request.method", request.Method);
-//                 activity.SetTag("http.request.path", request.Path);
-//             };
-//         })
-//         // 自動追蹤 HttpClient 請求（包括對 payment service 的調用）
-//         .AddHttpClientInstrumentation(options =>
-//         {
-//             options.RecordException = true;
-//         })
-//         // 自動追蹤 Entity Framework Core 數據庫查詢
-//         .AddEntityFrameworkCoreInstrumentation(options =>
-//         {
-//             options.SetDbStatementForText = true;
-//             options.EnrichWithIDbCommand = (activity, command) =>
-//             {
-//                 activity.SetTag("db.statement", command.CommandText);
-//             };
-//         })
-//         // 導出到 Jaeger（使用 OTLP gRPC）
-//         .AddOtlpExporter(options =>
-//         {
-//             // 從環境變數或配置讀取 Jaeger 端點，預設為 localhost:4317
-//             var jaegerEndpoint = builder.Configuration["AppSettings:JaegerEndpoint"] 
-//                 ?? Environment.GetEnvironmentVariable("JAEGER_ENDPOINT") 
-//                 ?? "http://localhost:4317";
-//             options.Endpoint = new Uri(jaegerEndpoint);
-//         }));
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(
+            serviceName: "EcommerceBackend",
+            serviceVersion: "1.0.0")
+        .AddAttributes(new Dictionary<string, object>
+        {
+            ["deployment.environment"] = builder.Environment.EnvironmentName
+        }))
+    .WithTracing(tracing => tracing
+        // 設定採樣策略 - 採樣所有活動（100%）
+        .SetSampler(new AlwaysOnSampler())
+        // 自動追蹤 ASP.NET Core HTTP 請求
+        .AddAspNetCoreInstrumentation(options =>
+        {
+            options.RecordException = true;
+            options.EnrichWithHttpRequest = (activity, request) =>
+            {
+                activity.SetTag("http.request.method", request.Method);
+                activity.SetTag("http.request.path", request.Path);
+            };
+        })
+        // 自動追蹤 HttpClient 請求（包括對 payment service 的調用）
+        .AddHttpClientInstrumentation(options =>
+        {
+            options.RecordException = true;
+        })
+        // 自動追蹤 Entity Framework Core 數據庫查詢
+        .AddEntityFrameworkCoreInstrumentation(options =>
+        {
+            options.SetDbStatementForText = true;
+            options.EnrichWithIDbCommand = (activity, command) =>
+            {
+                activity.SetTag("db.statement", command.CommandText);
+            };
+        })
+        // 註冊自訂 ActivitySource 以追蹤手動建立的活動（如 BCrypt 操作）
+        .AddSource("EcommerceBackend.UserService")
+        // 導出到 Jaeger（使用 OTLP gRPC）
+        .AddOtlpExporter(options =>
+        {
+            // 從環境變數或配置讀取 Jaeger 端點，預設為 localhost:4317
+            var jaegerEndpoint = builder.Configuration["AppSettings:JaegerEndpoint"]
+                ?? Environment.GetEnvironmentVariable("JAEGER_ENDPOINT")
+                ?? "http://localhost:4317";
+            options.Endpoint = new Uri(jaegerEndpoint);
+        }));
 
 // 應用服務註冊
 // app service

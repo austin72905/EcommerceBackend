@@ -5,11 +5,18 @@ namespace Common.Interfaces.Infrastructure
     public interface IEncryptionService
     {
         /// <summary>
-        /// 對密碼進行 BCrypt 雜湊
+        /// 對密碼進行 BCrypt 雜湊（同步版本）
         /// </summary>
         /// <param name="password">原始密碼</param>
         /// <returns>雜湊後的密碼</returns>
         string HashPassword(string password);
+
+        /// <summary>
+        /// 對密碼進行 BCrypt 雜湊（異步版本，用於高併發場景）
+        /// </summary>
+        /// <param name="password">原始密碼</param>
+        /// <returns>雜湊後的密碼</returns>
+        Task<string> HashPasswordAsync(string password);
 
         /// <summary>
         /// 驗證密碼

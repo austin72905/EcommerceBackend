@@ -72,5 +72,28 @@ namespace Application.Extensions
 
             return user;
         }
+
+        /// <summary>
+        /// 註冊 DTO 轉換為用戶實體 - 使用已雜湊的密碼（用於異步場景）
+        /// </summary>
+        /// <param name="signUpDto">註冊 DTO</param>
+        /// <param name="encryptionService">加密服務（用於向後兼容，但此方法不使用它）</param>
+        /// <param name="passwordHash">已雜湊的密碼</param>
+        public static User ToUserEntityWithHash(this SignUpDTO signUpDto, IEncryptionService encryptionService, string passwordHash)
+        {
+            var user = User.CreateWithPassword(
+                email: signUpDto.Email,
+                username: signUpDto.Username,
+                passwordHash: passwordHash
+            );
+
+            // 設置額外資訊
+            if (!string.IsNullOrWhiteSpace(signUpDto.NickName))
+            {
+                user.UpdateProfile(nickName: signUpDto.NickName);
+            }
+
+            return user;
+        }
     }
 }
