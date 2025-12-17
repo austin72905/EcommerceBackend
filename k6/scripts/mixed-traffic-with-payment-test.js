@@ -572,20 +572,43 @@ function executeHeavyWrite() {
                     // console.log(`[DEBUG] Form-urlencoded 字符串長度: ${formDataString.length}`);
                     // console.log(`[DEBUG] 準備發送 POST 請求到: ${BASE_URL}/Payment/ECPayReturn`);
 
-                    // 發送支付成功回調
-                    const callbackRes = http.post(
-                        `${BASE_URL}/Payment/ECPayReturn`,
-                        formDataString,
-                        {
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            tags: { name: 'ECPayReturn', traffic_type: 'payment_callback' },
-                        }
-                    );
+                    // 發送支付成功回調，若未成功則最多重試 5 次
+                    const maxRetries = 5;
+                    let attempt = 0;
+                    let callbackRes;
 
-                    // console.log(`[DEBUG] ECPayReturn 響應狀態碼: ${callbackRes.status}`);
-                    // console.log(`[DEBUG] ECPayReturn 響應內容 (前500字符): ${callbackRes.body.substring(0, 500)}`);
+                    while (attempt < maxRetries) {
+                        attempt++;
+
+                        callbackRes = http.post(
+                            `${BASE_URL}/Payment/ECPayReturn`,
+                            formDataString,
+                            {
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                tags: { name: 'ECPayReturn', traffic_type: 'payment_callback' },
+                            }
+                        );
+
+                        // console.log(`[DEBUG] ECPayReturn 嘗試第 ${attempt} 次，狀態碼: ${callbackRes.status}`);
+
+                        // 成功條件：HTTP 200 且回傳的 ApiResponse.Code 為 SUCCESS(1)
+                        let isSuccess = false;
+                        if (callbackRes.status === 200) {
+                            const parsed = parseApiResponse(callbackRes);
+                            isSuccess = parsed.success === true;
+                        }
+
+                        if (isSuccess) {
+                            break;
+                        }
+
+                        // 若未成功且尚未達到最大重試次數，稍微等待再重試
+                        if (attempt < maxRetries) {
+                            randomSleep(0.5, 1.5);
+                        }
+                    }
 
                     const callbackOk = check(callbackRes, {
                         '支付回調 HTTP 可處理': (r) => [200, 400, 500, 503].includes(r.status),
