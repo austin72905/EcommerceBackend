@@ -37,9 +37,24 @@ namespace Infrastructure.MQ
                 var channel = await GetOrCreateChannelAsync();
                 var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
 
+                // 設定基本屬性與重試次數 header（x-retry-count）
+                var properties = new BasicProperties
+                {
+                    Persistent = true // 確保訊息可持久化
+                };
+
+                // 初始化重試次數為 0，讓 Consumer 可以根據此值做重試判斷
+                properties.Headers ??= new Dictionary<string, object>();
+                if (!properties.Headers.ContainsKey("x-retry-count"))
+                {
+                    properties.Headers["x-retry-count"] = 0;
+                }
+
                 await channel.BasicPublishAsync(
                     exchange: Exchange,
                     routingKey: RoutingKey,
+                    mandatory: false,
+                    basicProperties: properties,
                     body: body);
             }
             catch (Exception ex)

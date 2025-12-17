@@ -40,6 +40,8 @@ namespace Application.Services
             const string exchange = "payment.completed";
             const string queue = "payment_completed_queue";
             const string routingKey = "payment.completed";
+            const string retryHeaderKey = "x-retry-count";
+            const int maxRetryCount = 5; // 最多重試次數，超過則進 DLQ
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -113,8 +115,51 @@ namespace Application.Services
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "處理支付完成事件失敗，payload: {Payload}", payload);
-                            await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
+                            // 讀取並累計重試次數（從訊息 header 中的 x-retry-count）
+                            int currentRetry = 0;
+                            try
+                            {
+                                var headers = ea.BasicProperties?.Headers;
+                                if (headers != null && headers.TryGetValue(retryHeaderKey, out var value))
+                                {
+                                    // RabbitMQ header 可能是 long / int / byte[]，統一轉成 int
+                                    currentRetry = value switch
+                                    {
+                                        byte[] bytes => int.TryParse(Encoding.UTF8.GetString(bytes), out var parsed)
+                                            ? parsed
+                                            : 0,
+                                        int i => i,
+                                        long l => (int)l,
+                                        _ => 0
+                                    };
+                                }
+                            }
+                            catch
+                            {
+                                currentRetry = 0;
+                            }
+
+                            if (currentRetry >= maxRetryCount)
+                            {
+                                // 超過最大重試次數：寫 log，讓訊息進 DLQ（requeue: false）
+                                _logger.LogError(ex,
+                                    "處理支付完成事件失敗且已超過最大重試次數 {MaxRetryCount}，訊息將進入 DLQ，payload: {Payload}, RetryCount: {RetryCount}",
+                                    maxRetryCount, payload, currentRetry);
+
+                                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
+                            }
+                            else
+                            {
+                                // 未達上限：寫 log，要求 Broker 重新入隊（requeue: true）
+                                var nextRetry = currentRetry + 1;
+                                _logger.LogWarning(ex,
+                                    "處理支付完成事件失敗，將重新排入佇列重試，payload: {Payload}, RetryCount: {RetryCount}/{MaxRetryCount}",
+                                    payload, nextRetry, maxRetryCount);
+
+                                // 這裡使用 requeue: true 交給 RabbitMQ 重新投遞，
+                                // 重試次數的真實記錄建議搭配 DLQ / 外部儲存（例如 Redis 或資料庫）更精準控管
+                                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
+                            }
                         }
                     };
 
